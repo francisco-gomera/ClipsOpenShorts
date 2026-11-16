@@ -324,7 +324,11 @@ def list_projects(output_dir: str, upload_dir: str, jobs_dict: Optional[dict] = 
 
     for entry in os.listdir(output_dir):
         job_path = os.path.join(output_dir, entry)
-        if not os.path.isdir(job_path) or entry == "thumbnails":
+        # Skip non-directories, hidden dirs (e.g. .stats, .ratelimit), and
+        # any folder whose name is not a valid UUID job id.
+        if not os.path.isdir(job_path):
+            continue
+        if entry.startswith('.') or not is_valid_job_id(entry):
             continue
         try:
             record = get_project_record(entry, output_dir, upload_dir, jobs_dict.get(entry))
@@ -351,7 +355,11 @@ def recover_all_projects_to_memory(jobs_dict: dict, output_dir: str, upload_dir:
 
     for job_id in os.listdir(output_dir):
         job_path = os.path.join(output_dir, job_id)
-        if not os.path.isdir(job_path) or job_id == "thumbnails":
+        # Skip non-directories, hidden dirs (e.g. .stats, .ratelimit), and
+        # any folder whose name is not a valid UUID job id.
+        if not os.path.isdir(job_path):
+            continue
+        if job_id.startswith('.') or not is_valid_job_id(job_id):
             continue
 
         # No sobrescribir trabajos activamente en cola o en ejecución
