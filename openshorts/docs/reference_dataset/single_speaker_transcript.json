@@ -1,0 +1,3361 @@
+{
+  "text": "Hi, everybody. If you've ever played a game of basketball in a gym, or entered a contest in school, or started a small business in your hometown, you know that competition is a good thing. It pushes us to do our best. And you know that a fight is only fair when everybody has a chance to win, when the playing field is level for everybody and the rules are clear and consistent. That's important to our consumers, our farmers, our workers, our employers, and our farmers. You deserve a fair shake, even though there might be much bigger players in the market. Without a truly competitive marketplace, those big companies can raise costs or slack off on offering good service or keep their workers' wages too low. And in an era when large corporations often merge to form even larger ones, our leaders have an even greater responsibility to look out for us as consumers. To keep America's economy growing and America's businesses thriving, we need to protect the principle of fair competition. That's not, by the way, a Democratic idea or a Republican idea. It is an American idea because it's the best way to make sure the best ideas rise to the top. My administration has done a lot to keep the marketplace fair. We defended a free, open and accessible Internet that It doesn't let service providers pick winners and losers. We crack down on conflicts of interest by making sure professionals who give your retirement advice do so in your best interests, not in theirs. And in the last few months, we've made even more progress. This week, my Department of Agriculture took major steps to protect farmers from unfair treatment by bigger processors. These rules will help swine, beef cattle, and especially poultry growers who have fewer choices in where they sell their products. This month, the FDA started taking steps to make hearing aids more affordable for more than the nearly 30 million Americans suffering from the frustration of hearing loss. We think people with moderate hearing loss should be able to buy a hearing aid over the counter as easily as you can buy reading glasses at your local pharmacy. This year, we also addressed two other problems that keep workers and wages down. down, the overuse of non-compete agreements that hurt workers in the job market, and the unfair practices of companies that collude to set wages below the market rate. And we backed new steps, including a law I just signed to fight robot scalpers that artificially drive up ticket prices, and a rule that requires airlines to reimburse your baggage fees if your bags don't make it to your destination when you do. Finally, it's this principle of competition that's at the very heart of our health reform. In fact, it's the reason we call it the Affordable Care Act. It makes insurance companies compete for your business, which is helping millions afford the care that helps them get and stay healthy. By the way, it's open enrollment season right now. You can still sign up on healthcare.gov until January 31st and get covered for 2017. Our free market economy only works when there's competition, and competition only works when rules are in place to keep it fair and open and honest. Whether you're building the next big thing or just want to be treated right as a customer, that's good for you and it's good for the country. Thanks, everybody, and have a great weekend.",
+  "language": "en",
+  "segments": [
+    {
+      "start": 10.35,
+      "end": 11.13,
+      "text": " Hi, everybody.",
+      "words": [
+        {
+          "word": " Hi,",
+          "start": 10.35,
+          "end": 10.85
+        },
+        {
+          "word": " everybody.",
+          "start": 10.97,
+          "end": 11.13
+        }
+      ]
+    },
+    {
+      "start": 11.99,
+      "end": 14.37,
+      "text": " If you've ever played a game of basketball in a gym,",
+      "words": [
+        {
+          "word": " If",
+          "start": 11.99,
+          "end": 12.25
+        },
+        {
+          "word": " you've",
+          "start": 12.25,
+          "end": 12.41
+        },
+        {
+          "word": " ever",
+          "start": 12.41,
+          "end": 12.63
+        },
+        {
+          "word": " played",
+          "start": 12.63,
+          "end": 12.93
+        },
+        {
+          "word": " a",
+          "start": 12.93,
+          "end": 13.09
+        },
+        {
+          "word": " game",
+          "start": 13.09,
+          "end": 13.23
+        },
+        {
+          "word": " of",
+          "start": 13.23,
+          "end": 13.33
+        },
+        {
+          "word": " basketball",
+          "start": 13.33,
+          "end": 13.71
+        },
+        {
+          "word": " in",
+          "start": 13.71,
+          "end": 14.07
+        },
+        {
+          "word": " a",
+          "start": 14.07,
+          "end": 14.19
+        },
+        {
+          "word": " gym,",
+          "start": 14.19,
+          "end": 14.37
+        }
+      ]
+    },
+    {
+      "start": 14.87,
+      "end": 16.89,
+      "text": " or entered a contest in school,",
+      "words": [
+        {
+          "word": " or",
+          "start": 14.87,
+          "end": 15.21
+        },
+        {
+          "word": " entered",
+          "start": 15.21,
+          "end": 15.85
+        },
+        {
+          "word": " a",
+          "start": 15.85,
+          "end": 16.03
+        },
+        {
+          "word": " contest",
+          "start": 16.03,
+          "end": 16.31
+        },
+        {
+          "word": " in",
+          "start": 16.31,
+          "end": 16.59
+        },
+        {
+          "word": " school,",
+          "start": 16.59,
+          "end": 16.89
+        }
+      ]
+    },
+    {
+      "start": 17.49,
+      "end": 19.83,
+      "text": " or started a small business in your hometown,",
+      "words": [
+        {
+          "word": " or",
+          "start": 17.49,
+          "end": 17.71
+        },
+        {
+          "word": " started",
+          "start": 17.71,
+          "end": 18.05
+        },
+        {
+          "word": " a",
+          "start": 18.05,
+          "end": 18.25
+        },
+        {
+          "word": " small",
+          "start": 18.25,
+          "end": 18.47
+        },
+        {
+          "word": " business",
+          "start": 18.47,
+          "end": 18.85
+        },
+        {
+          "word": " in",
+          "start": 18.85,
+          "end": 19.17
+        },
+        {
+          "word": " your",
+          "start": 19.17,
+          "end": 19.29
+        },
+        {
+          "word": " hometown,",
+          "start": 19.29,
+          "end": 19.83
+        }
+      ]
+    },
+    {
+      "start": 20.65,
+      "end": 22.93,
+      "text": " you know that competition is a good thing.",
+      "words": [
+        {
+          "word": " you",
+          "start": 20.65,
+          "end": 20.83
+        },
+        {
+          "word": " know",
+          "start": 20.83,
+          "end": 21.03
+        },
+        {
+          "word": " that",
+          "start": 21.03,
+          "end": 21.21
+        },
+        {
+          "word": " competition",
+          "start": 21.21,
+          "end": 21.83
+        },
+        {
+          "word": " is",
+          "start": 21.83,
+          "end": 22.45
+        },
+        {
+          "word": " a",
+          "start": 22.45,
+          "end": 22.57
+        },
+        {
+          "word": " good",
+          "start": 22.57,
+          "end": 22.69
+        },
+        {
+          "word": " thing.",
+          "start": 22.69,
+          "end": 22.93
+        }
+      ]
+    },
+    {
+      "start": 23.67,
+      "end": 25.33,
+      "text": " It pushes us to do our best.",
+      "words": [
+        {
+          "word": " It",
+          "start": 23.67,
+          "end": 23.89
+        },
+        {
+          "word": " pushes",
+          "start": 23.89,
+          "end": 24.19
+        },
+        {
+          "word": " us",
+          "start": 24.19,
+          "end": 24.53
+        },
+        {
+          "word": " to",
+          "start": 24.53,
+          "end": 24.81
+        },
+        {
+          "word": " do",
+          "start": 24.81,
+          "end": 24.97
+        },
+        {
+          "word": " our",
+          "start": 24.97,
+          "end": 25.09
+        },
+        {
+          "word": " best.",
+          "start": 25.09,
+          "end": 25.33
+        }
+      ]
+    },
+    {
+      "start": 25.99,
+      "end": 28.99,
+      "text": " And you know that a fight is only fair",
+      "words": [
+        {
+          "word": " And",
+          "start": 25.99,
+          "end": 26.31
+        },
+        {
+          "word": " you",
+          "start": 26.31,
+          "end": 26.41
+        },
+        {
+          "word": " know",
+          "start": 26.41,
+          "end": 26.63
+        },
+        {
+          "word": " that",
+          "start": 26.63,
+          "end": 26.87
+        },
+        {
+          "word": " a",
+          "start": 26.87,
+          "end": 27.05
+        },
+        {
+          "word": " fight",
+          "start": 27.05,
+          "end": 27.73
+        },
+        {
+          "word": " is",
+          "start": 27.73,
+          "end": 27.99
+        },
+        {
+          "word": " only",
+          "start": 27.99,
+          "end": 28.69
+        },
+        {
+          "word": " fair",
+          "start": 28.69,
+          "end": 28.99
+        }
+      ]
+    },
+    {
+      "start": 29.39,
+      "end": 31.29,
+      "text": " when everybody has a chance to win,",
+      "words": [
+        {
+          "word": " when",
+          "start": 29.39,
+          "end": 29.67
+        },
+        {
+          "word": " everybody",
+          "start": 29.67,
+          "end": 30.17
+        },
+        {
+          "word": " has",
+          "start": 30.17,
+          "end": 30.53
+        },
+        {
+          "word": " a",
+          "start": 30.53,
+          "end": 30.65
+        },
+        {
+          "word": " chance",
+          "start": 30.65,
+          "end": 30.89
+        },
+        {
+          "word": " to",
+          "start": 30.89,
+          "end": 31.11
+        },
+        {
+          "word": " win,",
+          "start": 31.11,
+          "end": 31.29
+        }
+      ]
+    },
+    {
+      "start": 31.57,
+      "end": 33.69,
+      "text": " when the playing field is level for everybody",
+      "words": [
+        {
+          "word": " when",
+          "start": 31.57,
+          "end": 32.11
+        },
+        {
+          "word": " the",
+          "start": 32.11,
+          "end": 32.23
+        },
+        {
+          "word": " playing",
+          "start": 32.23,
+          "end": 32.45
+        },
+        {
+          "word": " field",
+          "start": 32.45,
+          "end": 32.73
+        },
+        {
+          "word": " is",
+          "start": 32.73,
+          "end": 32.87
+        },
+        {
+          "word": " level",
+          "start": 32.87,
+          "end": 33.07
+        },
+        {
+          "word": " for",
+          "start": 33.07,
+          "end": 33.31
+        },
+        {
+          "word": " everybody",
+          "start": 33.31,
+          "end": 33.69
+        }
+      ]
+    },
+    {
+      "start": 34.13,
+      "end": 36.11,
+      "text": " and the rules are clear and consistent.",
+      "words": [
+        {
+          "word": " and",
+          "start": 34.13,
+          "end": 34.41
+        },
+        {
+          "word": " the",
+          "start": 34.41,
+          "end": 34.53
+        },
+        {
+          "word": " rules",
+          "start": 34.53,
+          "end": 34.81
+        },
+        {
+          "word": " are",
+          "start": 34.81,
+          "end": 35.09
+        },
+        {
+          "word": " clear",
+          "start": 35.09,
+          "end": 35.37
+        },
+        {
+          "word": " and",
+          "start": 35.37,
+          "end": 35.65
+        },
+        {
+          "word": " consistent.",
+          "start": 35.65,
+          "end": 36.11
+        }
+      ]
+    },
+    {
+      "start": 37.11,
+      "end": 38.87,
+      "text": " That's important to our consumers,",
+      "words": [
+        {
+          "word": " That's",
+          "start": 37.11,
+          "end": 37.59
+        },
+        {
+          "word": " important",
+          "start": 37.59,
+          "end": 38.03
+        },
+        {
+          "word": " to",
+          "start": 38.03,
+          "end": 38.27
+        },
+        {
+          "word": " our",
+          "start": 38.27,
+          "end": 38.41
+        },
+        {
+          "word": " consumers,",
+          "start": 38.41,
+          "end": 38.87
+        }
+      ]
+    },
+    {
+      "start": 38.87,
+      "end": 41.89,
+      "text": " our farmers, our workers, our employers, and our farmers.",
+      "words": [
+        {
+          "word": " our",
+          "start": 38.87,
+          "end": 39.01
+        },
+        {
+          "word": " farmers,",
+          "start": 39.01,
+          "end": 39.01
+        },
+        {
+          "word": " our",
+          "start": 39.37,
+          "end": 39.59
+        },
+        {
+          "word": " workers,",
+          "start": 39.59,
+          "end": 39.91
+        },
+        {
+          "word": " our",
+          "start": 40.29,
+          "end": 40.41
+        },
+        {
+          "word": " employers,",
+          "start": 40.41,
+          "end": 40.79
+        },
+        {
+          "word": " and",
+          "start": 41.27,
+          "end": 41.51
+        },
+        {
+          "word": " our",
+          "start": 41.51,
+          "end": 41.61
+        },
+        {
+          "word": " farmers.",
+          "start": 41.61,
+          "end": 41.89
+        }
+      ]
+    },
+    {
+      "start": 42.63,
+      "end": 45.87,
+      "text": " You deserve a fair shake, even though there might be much",
+      "words": [
+        {
+          "word": " You",
+          "start": 42.63,
+          "end": 42.97
+        },
+        {
+          "word": " deserve",
+          "start": 42.97,
+          "end": 43.37
+        },
+        {
+          "word": " a",
+          "start": 43.37,
+          "end": 43.63
+        },
+        {
+          "word": " fair",
+          "start": 43.63,
+          "end": 43.73
+        },
+        {
+          "word": " shake,",
+          "start": 43.73,
+          "end": 44.09
+        },
+        {
+          "word": " even",
+          "start": 44.43,
+          "end": 44.75
+        },
+        {
+          "word": " though",
+          "start": 44.75,
+          "end": 44.97
+        },
+        {
+          "word": " there",
+          "start": 44.97,
+          "end": 45.17
+        },
+        {
+          "word": " might",
+          "start": 45.17,
+          "end": 45.35
+        },
+        {
+          "word": " be",
+          "start": 45.35,
+          "end": 45.59
+        },
+        {
+          "word": " much",
+          "start": 45.59,
+          "end": 45.87
+        }
+      ]
+    },
+    {
+      "start": 45.87,
+      "end": 47.03,
+      "text": " bigger players in the market.",
+      "words": [
+        {
+          "word": " bigger",
+          "start": 45.87,
+          "end": 46.17
+        },
+        {
+          "word": " players",
+          "start": 46.17,
+          "end": 46.53
+        },
+        {
+          "word": " in",
+          "start": 46.53,
+          "end": 46.71
+        },
+        {
+          "word": " the",
+          "start": 46.71,
+          "end": 46.77
+        },
+        {
+          "word": " market.",
+          "start": 46.77,
+          "end": 47.03
+        }
+      ]
+    },
+    {
+      "start": 47.69,
+      "end": 50.21,
+      "text": " Without a truly competitive marketplace,",
+      "words": [
+        {
+          "word": " Without",
+          "start": 47.69,
+          "end": 48.01
+        },
+        {
+          "word": " a",
+          "start": 48.01,
+          "end": 48.25
+        },
+        {
+          "word": " truly",
+          "start": 48.25,
+          "end": 48.57
+        },
+        {
+          "word": " competitive",
+          "start": 48.57,
+          "end": 49.27
+        },
+        {
+          "word": " marketplace,",
+          "start": 49.27,
+          "end": 50.21
+        }
+      ]
+    },
+    {
+      "start": 50.95,
+      "end": 55.33,
+      "text": " those big companies can raise costs or slack off on offering",
+      "words": [
+        {
+          "word": " those",
+          "start": 50.95,
+          "end": 51.15
+        },
+        {
+          "word": " big",
+          "start": 51.15,
+          "end": 51.37
+        },
+        {
+          "word": " companies",
+          "start": 51.37,
+          "end": 51.79
+        },
+        {
+          "word": " can",
+          "start": 51.79,
+          "end": 52.05
+        },
+        {
+          "word": " raise",
+          "start": 52.05,
+          "end": 52.29
+        },
+        {
+          "word": " costs",
+          "start": 52.29,
+          "end": 52.81
+        },
+        {
+          "word": " or",
+          "start": 52.81,
+          "end": 53.45
+        },
+        {
+          "word": " slack",
+          "start": 53.45,
+          "end": 53.85
+        },
+        {
+          "word": " off",
+          "start": 53.85,
+          "end": 54.27
+        },
+        {
+          "word": " on",
+          "start": 54.27,
+          "end": 54.57
+        },
+        {
+          "word": " offering",
+          "start": 54.57,
+          "end": 55.33
+        }
+      ]
+    },
+    {
+      "start": 55.33,
+      "end": 58.11,
+      "text": " good service or keep their workers' wages too low.",
+      "words": [
+        {
+          "word": " good",
+          "start": 55.33,
+          "end": 55.51
+        },
+        {
+          "word": " service",
+          "start": 55.51,
+          "end": 55.91
+        },
+        {
+          "word": " or",
+          "start": 55.91,
+          "end": 56.59
+        },
+        {
+          "word": " keep",
+          "start": 56.59,
+          "end": 56.81
+        },
+        {
+          "word": " their",
+          "start": 56.81,
+          "end": 56.99
+        },
+        {
+          "word": " workers'",
+          "start": 56.99,
+          "end": 57.29
+        },
+        {
+          "word": " wages",
+          "start": 57.47,
+          "end": 57.61
+        },
+        {
+          "word": " too",
+          "start": 57.61,
+          "end": 57.91
+        },
+        {
+          "word": " low.",
+          "start": 57.91,
+          "end": 58.11
+        }
+      ]
+    },
+    {
+      "start": 58.69,
+      "end": 62.39,
+      "text": " And in an era when large corporations often merge to",
+      "words": [
+        {
+          "word": " And",
+          "start": 58.69,
+          "end": 58.99
+        },
+        {
+          "word": " in",
+          "start": 58.99,
+          "end": 59.11
+        },
+        {
+          "word": " an",
+          "start": 59.11,
+          "end": 59.25
+        },
+        {
+          "word": " era",
+          "start": 59.25,
+          "end": 59.55
+        },
+        {
+          "word": " when",
+          "start": 59.55,
+          "end": 59.83
+        },
+        {
+          "word": " large",
+          "start": 59.83,
+          "end": 60.13
+        },
+        {
+          "word": " corporations",
+          "start": 60.13,
+          "end": 60.75
+        },
+        {
+          "word": " often",
+          "start": 60.75,
+          "end": 61.21
+        },
+        {
+          "word": " merge",
+          "start": 61.21,
+          "end": 61.65
+        },
+        {
+          "word": " to",
+          "start": 61.65,
+          "end": 62.39
+        }
+      ]
+    },
+    {
+      "start": 62.39,
+      "end": 65.77,
+      "text": " form even larger ones, our leaders have an even greater",
+      "words": [
+        {
+          "word": " form",
+          "start": 62.39,
+          "end": 62.65
+        },
+        {
+          "word": " even",
+          "start": 62.65,
+          "end": 62.89
+        },
+        {
+          "word": " larger",
+          "start": 62.89,
+          "end": 63.29
+        },
+        {
+          "word": " ones,",
+          "start": 63.29,
+          "end": 63.57
+        },
+        {
+          "word": " our",
+          "start": 64.05,
+          "end": 64.29
+        },
+        {
+          "word": " leaders",
+          "start": 64.29,
+          "end": 64.55
+        },
+        {
+          "word": " have",
+          "start": 64.55,
+          "end": 65.01
+        },
+        {
+          "word": " an",
+          "start": 65.01,
+          "end": 65.25
+        },
+        {
+          "word": " even",
+          "start": 65.25,
+          "end": 65.43
+        },
+        {
+          "word": " greater",
+          "start": 65.43,
+          "end": 65.77
+        }
+      ]
+    },
+    {
+      "start": 65.77,
+      "end": 68.79,
+      "text": " responsibility to look out for us as consumers.",
+      "words": [
+        {
+          "word": " responsibility",
+          "start": 65.77,
+          "end": 66.43
+        },
+        {
+          "word": " to",
+          "start": 66.43,
+          "end": 66.73
+        },
+        {
+          "word": " look",
+          "start": 66.73,
+          "end": 66.93
+        },
+        {
+          "word": " out",
+          "start": 66.93,
+          "end": 67.19
+        },
+        {
+          "word": " for",
+          "start": 67.19,
+          "end": 67.81
+        },
+        {
+          "word": " us",
+          "start": 67.81,
+          "end": 68.11
+        },
+        {
+          "word": " as",
+          "start": 68.11,
+          "end": 68.33
+        },
+        {
+          "word": " consumers.",
+          "start": 68.33,
+          "end": 68.79
+        }
+      ]
+    },
+    {
+      "start": 69.79,
+      "end": 72.83,
+      "text": " To keep America's economy growing and America's",
+      "words": [
+        {
+          "word": " To",
+          "start": 69.79,
+          "end": 70.25
+        },
+        {
+          "word": " keep",
+          "start": 70.25,
+          "end": 70.49
+        },
+        {
+          "word": " America's",
+          "start": 70.49,
+          "end": 71.03
+        },
+        {
+          "word": " economy",
+          "start": 71.03,
+          "end": 71.29
+        },
+        {
+          "word": " growing",
+          "start": 71.29,
+          "end": 71.69
+        },
+        {
+          "word": " and",
+          "start": 71.69,
+          "end": 72.23
+        },
+        {
+          "word": " America's",
+          "start": 72.23,
+          "end": 72.83
+        }
+      ]
+    },
+    {
+      "start": 72.83,
+      "end": 75.81,
+      "text": " businesses thriving, we need to protect the principle of",
+      "words": [
+        {
+          "word": " businesses",
+          "start": 72.83,
+          "end": 73.13
+        },
+        {
+          "word": " thriving,",
+          "start": 73.13,
+          "end": 73.61
+        },
+        {
+          "word": " we",
+          "start": 74.05,
+          "end": 74.19
+        },
+        {
+          "word": " need",
+          "start": 74.19,
+          "end": 74.31
+        },
+        {
+          "word": " to",
+          "start": 74.31,
+          "end": 74.43
+        },
+        {
+          "word": " protect",
+          "start": 74.43,
+          "end": 74.71
+        },
+        {
+          "word": " the",
+          "start": 74.71,
+          "end": 74.91
+        },
+        {
+          "word": " principle",
+          "start": 74.91,
+          "end": 75.31
+        },
+        {
+          "word": " of",
+          "start": 75.31,
+          "end": 75.81
+        }
+      ]
+    },
+    {
+      "start": 75.81,
+      "end": 76.47,
+      "text": " fair competition.",
+      "words": [
+        {
+          "word": " fair",
+          "start": 75.81,
+          "end": 75.95
+        },
+        {
+          "word": " competition.",
+          "start": 75.95,
+          "end": 76.47
+        }
+      ]
+    },
+    {
+      "start": 77.29,
+      "end": 79.93,
+      "text": " That's not, by the way, a Democratic idea or a",
+      "words": [
+        {
+          "word": " That's",
+          "start": 77.29,
+          "end": 77.77
+        },
+        {
+          "word": " not,",
+          "start": 77.77,
+          "end": 77.97
+        },
+        {
+          "word": " by",
+          "start": 78.11,
+          "end": 78.21
+        },
+        {
+          "word": " the",
+          "start": 78.21,
+          "end": 78.33
+        },
+        {
+          "word": " way,",
+          "start": 78.33,
+          "end": 78.49
+        },
+        {
+          "word": " a",
+          "start": 78.55,
+          "end": 78.69
+        },
+        {
+          "word": " Democratic",
+          "start": 78.69,
+          "end": 79.03
+        },
+        {
+          "word": " idea",
+          "start": 79.03,
+          "end": 79.61
+        },
+        {
+          "word": " or",
+          "start": 79.61,
+          "end": 79.81
+        },
+        {
+          "word": " a",
+          "start": 79.81,
+          "end": 79.93
+        }
+      ]
+    },
+    {
+      "start": 79.93,
+      "end": 80.81,
+      "text": " Republican idea.",
+      "words": [
+        {
+          "word": " Republican",
+          "start": 79.93,
+          "end": 80.29
+        },
+        {
+          "word": " idea.",
+          "start": 80.29,
+          "end": 80.81
+        }
+      ]
+    },
+    {
+      "start": 80.97,
+      "end": 83.77,
+      "text": " It is an American idea because it's the best way to",
+      "words": [
+        {
+          "word": " It",
+          "start": 80.97,
+          "end": 81.17
+        },
+        {
+          "word": " is",
+          "start": 81.17,
+          "end": 81.31
+        },
+        {
+          "word": " an",
+          "start": 81.31,
+          "end": 81.43
+        },
+        {
+          "word": " American",
+          "start": 81.43,
+          "end": 81.73
+        },
+        {
+          "word": " idea",
+          "start": 81.73,
+          "end": 82.19
+        },
+        {
+          "word": " because",
+          "start": 82.19,
+          "end": 82.89
+        },
+        {
+          "word": " it's",
+          "start": 82.89,
+          "end": 83.13
+        },
+        {
+          "word": " the",
+          "start": 83.13,
+          "end": 83.23
+        },
+        {
+          "word": " best",
+          "start": 83.23,
+          "end": 83.47
+        },
+        {
+          "word": " way",
+          "start": 83.47,
+          "end": 83.67
+        },
+        {
+          "word": " to",
+          "start": 83.67,
+          "end": 83.77
+        }
+      ]
+    },
+    {
+      "start": 83.77,
+      "end": 86.71,
+      "text": " make sure the best ideas rise to the top.",
+      "words": [
+        {
+          "word": " make",
+          "start": 83.77,
+          "end": 83.91
+        },
+        {
+          "word": " sure",
+          "start": 83.91,
+          "end": 84.23
+        },
+        {
+          "word": " the",
+          "start": 84.23,
+          "end": 84.51
+        },
+        {
+          "word": " best",
+          "start": 84.51,
+          "end": 84.69
+        },
+        {
+          "word": " ideas",
+          "start": 84.69,
+          "end": 85.25
+        },
+        {
+          "word": " rise",
+          "start": 85.25,
+          "end": 86.15
+        },
+        {
+          "word": " to",
+          "start": 86.15,
+          "end": 86.35
+        },
+        {
+          "word": " the",
+          "start": 86.35,
+          "end": 86.45
+        },
+        {
+          "word": " top.",
+          "start": 86.45,
+          "end": 86.71
+        }
+      ]
+    },
+    {
+      "start": 87.69,
+      "end": 89.89,
+      "text": " My administration has done a lot to keep the",
+      "words": [
+        {
+          "word": " My",
+          "start": 87.69,
+          "end": 88.01
+        },
+        {
+          "word": " administration",
+          "start": 88.01,
+          "end": 88.37
+        },
+        {
+          "word": " has",
+          "start": 88.37,
+          "end": 88.69
+        },
+        {
+          "word": " done",
+          "start": 88.69,
+          "end": 88.85
+        },
+        {
+          "word": " a",
+          "start": 88.85,
+          "end": 88.95
+        },
+        {
+          "word": " lot",
+          "start": 88.95,
+          "end": 89.15
+        },
+        {
+          "word": " to",
+          "start": 89.15,
+          "end": 89.53
+        },
+        {
+          "word": " keep",
+          "start": 89.53,
+          "end": 89.75
+        },
+        {
+          "word": " the",
+          "start": 89.75,
+          "end": 89.89
+        }
+      ]
+    },
+    {
+      "start": 89.89,
+      "end": 90.69,
+      "text": " marketplace fair.",
+      "words": [
+        {
+          "word": " marketplace",
+          "start": 89.89,
+          "end": 90.31
+        },
+        {
+          "word": " fair.",
+          "start": 90.31,
+          "end": 90.69
+        }
+      ]
+    },
+    {
+      "start": 91.33,
+      "end": 94.83,
+      "text": " We defended a free, open and accessible Internet that",
+      "words": [
+        {
+          "word": " We",
+          "start": 91.33,
+          "end": 91.67
+        },
+        {
+          "word": " defended",
+          "start": 91.67,
+          "end": 92.03
+        },
+        {
+          "word": " a",
+          "start": 92.03,
+          "end": 92.25
+        },
+        {
+          "word": " free,",
+          "start": 92.25,
+          "end": 92.61
+        },
+        {
+          "word": " open",
+          "start": 93.03,
+          "end": 93.17
+        },
+        {
+          "word": " and",
+          "start": 93.17,
+          "end": 93.41
+        },
+        {
+          "word": " accessible",
+          "start": 93.41,
+          "end": 93.83
+        },
+        {
+          "word": " Internet",
+          "start": 93.83,
+          "end": 94.33
+        },
+        {
+          "word": " that",
+          "start": 94.33,
+          "end": 94.83
+        }
+      ]
+    },
+    {
+      "start": 94.83,
+      "end": 97.55,
+      "text": " It doesn't let service providers pick winners and losers.",
+      "words": [
+        {
+          "word": " It",
+          "start": 94.83,
+          "end": 94.93
+        },
+        {
+          "word": " doesn't",
+          "start": 94.93,
+          "end": 95.13
+        },
+        {
+          "word": " let",
+          "start": 95.13,
+          "end": 95.31
+        },
+        {
+          "word": " service",
+          "start": 95.31,
+          "end": 95.67
+        },
+        {
+          "word": " providers",
+          "start": 95.67,
+          "end": 96.13
+        },
+        {
+          "word": " pick",
+          "start": 96.13,
+          "end": 96.83
+        },
+        {
+          "word": " winners",
+          "start": 96.83,
+          "end": 97.11
+        },
+        {
+          "word": " and",
+          "start": 97.11,
+          "end": 97.33
+        },
+        {
+          "word": " losers.",
+          "start": 97.33,
+          "end": 97.55
+        }
+      ]
+    },
+    {
+      "start": 98.25,
+      "end": 101.25,
+      "text": " We crack down on conflicts of interest by making sure",
+      "words": [
+        {
+          "word": " We",
+          "start": 98.25,
+          "end": 98.59
+        },
+        {
+          "word": " crack",
+          "start": 98.59,
+          "end": 98.83
+        },
+        {
+          "word": " down",
+          "start": 98.83,
+          "end": 99.17
+        },
+        {
+          "word": " on",
+          "start": 99.17,
+          "end": 99.45
+        },
+        {
+          "word": " conflicts",
+          "start": 99.45,
+          "end": 99.89
+        },
+        {
+          "word": " of",
+          "start": 99.89,
+          "end": 100.11
+        },
+        {
+          "word": " interest",
+          "start": 100.11,
+          "end": 100.43
+        },
+        {
+          "word": " by",
+          "start": 100.43,
+          "end": 100.69
+        },
+        {
+          "word": " making",
+          "start": 100.69,
+          "end": 100.95
+        },
+        {
+          "word": " sure",
+          "start": 100.95,
+          "end": 101.25
+        }
+      ]
+    },
+    {
+      "start": 101.25,
+      "end": 104.97,
+      "text": " professionals who give your retirement advice do so in",
+      "words": [
+        {
+          "word": " professionals",
+          "start": 101.25,
+          "end": 101.75
+        },
+        {
+          "word": " who",
+          "start": 101.75,
+          "end": 102.21
+        },
+        {
+          "word": " give",
+          "start": 102.21,
+          "end": 102.43
+        },
+        {
+          "word": " your",
+          "start": 102.43,
+          "end": 102.65
+        },
+        {
+          "word": " retirement",
+          "start": 102.65,
+          "end": 103.41
+        },
+        {
+          "word": " advice",
+          "start": 103.41,
+          "end": 103.85
+        },
+        {
+          "word": " do",
+          "start": 103.85,
+          "end": 104.49
+        },
+        {
+          "word": " so",
+          "start": 104.49,
+          "end": 104.71
+        },
+        {
+          "word": " in",
+          "start": 104.71,
+          "end": 104.97
+        }
+      ]
+    },
+    {
+      "start": 104.97,
+      "end": 106.63,
+      "text": " your best interests, not in theirs.",
+      "words": [
+        {
+          "word": " your",
+          "start": 104.97,
+          "end": 105.09
+        },
+        {
+          "word": " best",
+          "start": 105.09,
+          "end": 105.33
+        },
+        {
+          "word": " interests,",
+          "start": 105.33,
+          "end": 105.83
+        },
+        {
+          "word": " not",
+          "start": 106.05,
+          "end": 106.27
+        },
+        {
+          "word": " in",
+          "start": 106.27,
+          "end": 106.41
+        },
+        {
+          "word": " theirs.",
+          "start": 106.41,
+          "end": 106.63
+        }
+      ]
+    },
+    {
+      "start": 107.33,
+      "end": 110.33,
+      "text": " And in the last few months, we've made even more progress.",
+      "words": [
+        {
+          "word": " And",
+          "start": 107.33,
+          "end": 107.77
+        },
+        {
+          "word": " in",
+          "start": 107.77,
+          "end": 107.85
+        },
+        {
+          "word": " the",
+          "start": 107.85,
+          "end": 107.99
+        },
+        {
+          "word": " last",
+          "start": 107.99,
+          "end": 108.17
+        },
+        {
+          "word": " few",
+          "start": 108.17,
+          "end": 108.35
+        },
+        {
+          "word": " months,",
+          "start": 108.35,
+          "end": 108.63
+        },
+        {
+          "word": " we've",
+          "start": 109.01,
+          "end": 109.27
+        },
+        {
+          "word": " made",
+          "start": 109.27,
+          "end": 109.45
+        },
+        {
+          "word": " even",
+          "start": 109.45,
+          "end": 109.75
+        },
+        {
+          "word": " more",
+          "start": 109.75,
+          "end": 109.93
+        },
+        {
+          "word": " progress.",
+          "start": 109.93,
+          "end": 110.33
+        }
+      ]
+    },
+    {
+      "start": 111.25,
+      "end": 114.57,
+      "text": " This week, my Department of Agriculture took major steps",
+      "words": [
+        {
+          "word": " This",
+          "start": 111.25,
+          "end": 111.57
+        },
+        {
+          "word": " week,",
+          "start": 111.57,
+          "end": 111.83
+        },
+        {
+          "word": " my",
+          "start": 112.11,
+          "end": 112.29
+        },
+        {
+          "word": " Department",
+          "start": 112.29,
+          "end": 112.57
+        },
+        {
+          "word": " of",
+          "start": 112.57,
+          "end": 112.73
+        },
+        {
+          "word": " Agriculture",
+          "start": 112.73,
+          "end": 113.17
+        },
+        {
+          "word": " took",
+          "start": 113.17,
+          "end": 113.61
+        },
+        {
+          "word": " major",
+          "start": 113.61,
+          "end": 114.23
+        },
+        {
+          "word": " steps",
+          "start": 114.23,
+          "end": 114.57
+        }
+      ]
+    },
+    {
+      "start": 114.57,
+      "end": 117.97,
+      "text": " to protect farmers from unfair treatment by bigger processors.",
+      "words": [
+        {
+          "word": " to",
+          "start": 114.57,
+          "end": 114.77
+        },
+        {
+          "word": " protect",
+          "start": 114.77,
+          "end": 115.15
+        },
+        {
+          "word": " farmers",
+          "start": 115.15,
+          "end": 115.63
+        },
+        {
+          "word": " from",
+          "start": 115.63,
+          "end": 115.93
+        },
+        {
+          "word": " unfair",
+          "start": 115.93,
+          "end": 116.31
+        },
+        {
+          "word": " treatment",
+          "start": 116.31,
+          "end": 116.71
+        },
+        {
+          "word": " by",
+          "start": 116.71,
+          "end": 116.97
+        },
+        {
+          "word": " bigger",
+          "start": 116.97,
+          "end": 117.37
+        },
+        {
+          "word": " processors.",
+          "start": 117.37,
+          "end": 117.97
+        }
+      ]
+    },
+    {
+      "start": 118.85,
+      "end": 121.33,
+      "text": " These rules will help swine, beef cattle,",
+      "words": [
+        {
+          "word": " These",
+          "start": 118.85,
+          "end": 119.15
+        },
+        {
+          "word": " rules",
+          "start": 119.15,
+          "end": 119.45
+        },
+        {
+          "word": " will",
+          "start": 119.45,
+          "end": 119.69
+        },
+        {
+          "word": " help",
+          "start": 119.69,
+          "end": 119.89
+        },
+        {
+          "word": " swine,",
+          "start": 119.89,
+          "end": 120.43
+        },
+        {
+          "word": " beef",
+          "start": 120.87,
+          "end": 120.99
+        },
+        {
+          "word": " cattle,",
+          "start": 120.99,
+          "end": 121.33
+        }
+      ]
+    },
+    {
+      "start": 121.33,
+      "end": 126.23,
+      "text": " and especially poultry growers who have fewer choices in where they sell their products.",
+      "words": [
+        {
+          "word": " and",
+          "start": 121.33,
+          "end": 121.59
+        },
+        {
+          "word": " especially",
+          "start": 121.59,
+          "end": 122.03
+        },
+        {
+          "word": " poultry",
+          "start": 122.03,
+          "end": 122.59
+        },
+        {
+          "word": " growers",
+          "start": 122.59,
+          "end": 122.89
+        },
+        {
+          "word": " who",
+          "start": 122.89,
+          "end": 123.63
+        },
+        {
+          "word": " have",
+          "start": 123.63,
+          "end": 123.83
+        },
+        {
+          "word": " fewer",
+          "start": 123.83,
+          "end": 124.27
+        },
+        {
+          "word": " choices",
+          "start": 124.27,
+          "end": 124.77
+        },
+        {
+          "word": " in",
+          "start": 124.77,
+          "end": 125.15
+        },
+        {
+          "word": " where",
+          "start": 125.15,
+          "end": 125.33
+        },
+        {
+          "word": " they",
+          "start": 125.33,
+          "end": 125.51
+        },
+        {
+          "word": " sell",
+          "start": 125.51,
+          "end": 125.75
+        },
+        {
+          "word": " their",
+          "start": 125.75,
+          "end": 125.89
+        },
+        {
+          "word": " products.",
+          "start": 125.89,
+          "end": 126.23
+        }
+      ]
+    },
+    {
+      "start": 127.09,
+      "end": 131.83,
+      "text": " This month, the FDA started taking steps to make hearing aids more affordable for more",
+      "words": [
+        {
+          "word": " This",
+          "start": 127.09,
+          "end": 127.43
+        },
+        {
+          "word": " month,",
+          "start": 127.43,
+          "end": 127.69
+        },
+        {
+          "word": " the",
+          "start": 127.93,
+          "end": 127.99
+        },
+        {
+          "word": " FDA",
+          "start": 127.99,
+          "end": 128.25
+        },
+        {
+          "word": " started",
+          "start": 128.25,
+          "end": 128.67
+        },
+        {
+          "word": " taking",
+          "start": 128.67,
+          "end": 128.99
+        },
+        {
+          "word": " steps",
+          "start": 128.99,
+          "end": 129.35
+        },
+        {
+          "word": " to",
+          "start": 129.35,
+          "end": 129.55
+        },
+        {
+          "word": " make",
+          "start": 129.55,
+          "end": 129.79
+        },
+        {
+          "word": " hearing",
+          "start": 129.79,
+          "end": 130.29
+        },
+        {
+          "word": " aids",
+          "start": 130.29,
+          "end": 130.59
+        },
+        {
+          "word": " more",
+          "start": 130.59,
+          "end": 130.87
+        },
+        {
+          "word": " affordable",
+          "start": 130.87,
+          "end": 131.25
+        },
+        {
+          "word": " for",
+          "start": 131.25,
+          "end": 131.57
+        },
+        {
+          "word": " more",
+          "start": 131.57,
+          "end": 131.83
+        }
+      ]
+    },
+    {
+      "start": 131.83,
+      "end": 136.21,
+      "text": " than the nearly 30 million Americans suffering from the frustration of hearing loss.",
+      "words": [
+        {
+          "word": " than",
+          "start": 131.83,
+          "end": 132.07
+        },
+        {
+          "word": " the",
+          "start": 132.07,
+          "end": 132.51
+        },
+        {
+          "word": " nearly",
+          "start": 132.51,
+          "end": 132.75
+        },
+        {
+          "word": " 30",
+          "start": 132.75,
+          "end": 133.17
+        },
+        {
+          "word": " million",
+          "start": 133.17,
+          "end": 133.45
+        },
+        {
+          "word": " Americans",
+          "start": 133.45,
+          "end": 133.87
+        },
+        {
+          "word": " suffering",
+          "start": 133.87,
+          "end": 134.27
+        },
+        {
+          "word": " from",
+          "start": 134.27,
+          "end": 134.63
+        },
+        {
+          "word": " the",
+          "start": 134.63,
+          "end": 134.83
+        },
+        {
+          "word": " frustration",
+          "start": 134.83,
+          "end": 135.27
+        },
+        {
+          "word": " of",
+          "start": 135.27,
+          "end": 135.73
+        },
+        {
+          "word": " hearing",
+          "start": 135.73,
+          "end": 135.91
+        },
+        {
+          "word": " loss.",
+          "start": 135.91,
+          "end": 136.21
+        }
+      ]
+    },
+    {
+      "start": 136.93,
+      "end": 140.53,
+      "text": " We think people with moderate hearing loss should be able to buy a hearing aid over",
+      "words": [
+        {
+          "word": " We",
+          "start": 136.93,
+          "end": 137.23
+        },
+        {
+          "word": " think",
+          "start": 137.23,
+          "end": 137.43
+        },
+        {
+          "word": " people",
+          "start": 137.43,
+          "end": 137.73
+        },
+        {
+          "word": " with",
+          "start": 137.73,
+          "end": 137.95
+        },
+        {
+          "word": " moderate",
+          "start": 137.95,
+          "end": 138.27
+        },
+        {
+          "word": " hearing",
+          "start": 138.27,
+          "end": 138.55
+        },
+        {
+          "word": " loss",
+          "start": 138.55,
+          "end": 138.83
+        },
+        {
+          "word": " should",
+          "start": 138.83,
+          "end": 139.03
+        },
+        {
+          "word": " be",
+          "start": 139.03,
+          "end": 139.17
+        },
+        {
+          "word": " able",
+          "start": 139.17,
+          "end": 139.33
+        },
+        {
+          "word": " to",
+          "start": 139.33,
+          "end": 139.43
+        },
+        {
+          "word": " buy",
+          "start": 139.43,
+          "end": 139.73
+        },
+        {
+          "word": " a",
+          "start": 139.73,
+          "end": 139.85
+        },
+        {
+          "word": " hearing",
+          "start": 139.85,
+          "end": 140.07
+        },
+        {
+          "word": " aid",
+          "start": 140.07,
+          "end": 140.27
+        },
+        {
+          "word": " over",
+          "start": 140.27,
+          "end": 140.53
+        }
+      ]
+    },
+    {
+      "start": 140.53,
+      "end": 144.93,
+      "text": " the counter as easily as you can buy reading glasses at your local pharmacy.",
+      "words": [
+        {
+          "word": " the",
+          "start": 140.53,
+          "end": 140.67
+        },
+        {
+          "word": " counter",
+          "start": 140.67,
+          "end": 140.95
+        },
+        {
+          "word": " as",
+          "start": 140.95,
+          "end": 141.61
+        },
+        {
+          "word": " easily",
+          "start": 141.61,
+          "end": 141.99
+        },
+        {
+          "word": " as",
+          "start": 141.99,
+          "end": 142.17
+        },
+        {
+          "word": " you",
+          "start": 142.17,
+          "end": 142.25
+        },
+        {
+          "word": " can",
+          "start": 142.25,
+          "end": 142.39
+        },
+        {
+          "word": " buy",
+          "start": 142.39,
+          "end": 142.65
+        },
+        {
+          "word": " reading",
+          "start": 142.65,
+          "end": 143.09
+        },
+        {
+          "word": " glasses",
+          "start": 143.09,
+          "end": 143.49
+        },
+        {
+          "word": " at",
+          "start": 143.49,
+          "end": 144.09
+        },
+        {
+          "word": " your",
+          "start": 144.09,
+          "end": 144.21
+        },
+        {
+          "word": " local",
+          "start": 144.21,
+          "end": 144.45
+        },
+        {
+          "word": " pharmacy.",
+          "start": 144.45,
+          "end": 144.93
+        }
+      ]
+    },
+    {
+      "start": 145.57,
+      "end": 149.35,
+      "text": " This year, we also addressed two other problems that keep workers and wages down.",
+      "words": [
+        {
+          "word": " This",
+          "start": 145.57,
+          "end": 145.93
+        },
+        {
+          "word": " year,",
+          "start": 145.93,
+          "end": 146.09
+        },
+        {
+          "word": " we",
+          "start": 146.15,
+          "end": 146.27
+        },
+        {
+          "word": " also",
+          "start": 146.27,
+          "end": 146.49
+        },
+        {
+          "word": " addressed",
+          "start": 146.49,
+          "end": 146.85
+        },
+        {
+          "word": " two",
+          "start": 146.85,
+          "end": 147.21
+        },
+        {
+          "word": " other",
+          "start": 147.21,
+          "end": 147.43
+        },
+        {
+          "word": " problems",
+          "start": 147.43,
+          "end": 147.75
+        },
+        {
+          "word": " that",
+          "start": 147.75,
+          "end": 147.95
+        },
+        {
+          "word": " keep",
+          "start": 147.95,
+          "end": 148.15
+        },
+        {
+          "word": " workers",
+          "start": 148.15,
+          "end": 148.55
+        },
+        {
+          "word": " and",
+          "start": 148.55,
+          "end": 148.81
+        },
+        {
+          "word": " wages",
+          "start": 148.81,
+          "end": 149.01
+        },
+        {
+          "word": " down.",
+          "start": 149.01,
+          "end": 149.35
+        }
+      ]
+    },
+    {
+      "start": 149.35,
+      "end": 154.67,
+      "text": " down, the overuse of non-compete agreements that hurt workers in the job market, and",
+      "words": [
+        {
+          "word": " down,",
+          "start": 149.35,
+          "end": 149.43
+        },
+        {
+          "word": " the",
+          "start": 149.83,
+          "end": 150.15
+        },
+        {
+          "word": " overuse",
+          "start": 150.15,
+          "end": 150.83
+        },
+        {
+          "word": " of",
+          "start": 150.83,
+          "end": 151.03
+        },
+        {
+          "word": " non-compete",
+          "start": 151.03,
+          "end": 151.67
+        },
+        {
+          "word": " agreements",
+          "start": 151.67,
+          "end": 151.97
+        },
+        {
+          "word": " that",
+          "start": 151.97,
+          "end": 152.31
+        },
+        {
+          "word": " hurt",
+          "start": 152.31,
+          "end": 152.53
+        },
+        {
+          "word": " workers",
+          "start": 152.53,
+          "end": 152.95
+        },
+        {
+          "word": " in",
+          "start": 152.95,
+          "end": 153.25
+        },
+        {
+          "word": " the",
+          "start": 153.25,
+          "end": 153.33
+        },
+        {
+          "word": " job",
+          "start": 153.33,
+          "end": 153.55
+        },
+        {
+          "word": " market,",
+          "start": 153.55,
+          "end": 153.87
+        },
+        {
+          "word": " and",
+          "start": 154.29,
+          "end": 154.67
+        }
+      ]
+    },
+    {
+      "start": 154.67,
+      "end": 158.95,
+      "text": " the unfair practices of companies that collude to set wages below the market rate.",
+      "words": [
+        {
+          "word": " the",
+          "start": 154.67,
+          "end": 154.85
+        },
+        {
+          "word": " unfair",
+          "start": 154.85,
+          "end": 155.27
+        },
+        {
+          "word": " practices",
+          "start": 155.27,
+          "end": 155.85
+        },
+        {
+          "word": " of",
+          "start": 155.85,
+          "end": 156.11
+        },
+        {
+          "word": " companies",
+          "start": 156.11,
+          "end": 156.45
+        },
+        {
+          "word": " that",
+          "start": 156.45,
+          "end": 156.71
+        },
+        {
+          "word": " collude",
+          "start": 156.71,
+          "end": 157.17
+        },
+        {
+          "word": " to",
+          "start": 157.17,
+          "end": 157.37
+        },
+        {
+          "word": " set",
+          "start": 157.37,
+          "end": 157.59
+        },
+        {
+          "word": " wages",
+          "start": 157.59,
+          "end": 157.91
+        },
+        {
+          "word": " below",
+          "start": 157.91,
+          "end": 158.25
+        },
+        {
+          "word": " the",
+          "start": 158.25,
+          "end": 158.45
+        },
+        {
+          "word": " market",
+          "start": 158.45,
+          "end": 158.69
+        },
+        {
+          "word": " rate.",
+          "start": 158.69,
+          "end": 158.95
+        }
+      ]
+    },
+    {
+      "start": 159.61,
+      "end": 165.19,
+      "text": " And we backed new steps, including a law I just signed to fight robot scalpers that",
+      "words": [
+        {
+          "word": " And",
+          "start": 159.61,
+          "end": 159.93
+        },
+        {
+          "word": " we",
+          "start": 159.93,
+          "end": 160.07
+        },
+        {
+          "word": " backed",
+          "start": 160.07,
+          "end": 160.41
+        },
+        {
+          "word": " new",
+          "start": 160.41,
+          "end": 160.75
+        },
+        {
+          "word": " steps,",
+          "start": 160.75,
+          "end": 161.07
+        },
+        {
+          "word": " including",
+          "start": 161.31,
+          "end": 161.67
+        },
+        {
+          "word": " a",
+          "start": 161.67,
+          "end": 161.89
+        },
+        {
+          "word": " law",
+          "start": 161.89,
+          "end": 162.11
+        },
+        {
+          "word": " I",
+          "start": 162.11,
+          "end": 162.33
+        },
+        {
+          "word": " just",
+          "start": 162.33,
+          "end": 162.59
+        },
+        {
+          "word": " signed",
+          "start": 162.59,
+          "end": 162.99
+        },
+        {
+          "word": " to",
+          "start": 162.99,
+          "end": 163.53
+        },
+        {
+          "word": " fight",
+          "start": 163.53,
+          "end": 163.81
+        },
+        {
+          "word": " robot",
+          "start": 163.81,
+          "end": 164.35
+        },
+        {
+          "word": " scalpers",
+          "start": 164.35,
+          "end": 164.97
+        },
+        {
+          "word": " that",
+          "start": 164.97,
+          "end": 165.19
+        }
+      ]
+    },
+    {
+      "start": 165.19,
+      "end": 169.77,
+      "text": " artificially drive up ticket prices, and a rule that requires airlines to reimburse",
+      "words": [
+        {
+          "word": " artificially",
+          "start": 165.19,
+          "end": 165.75
+        },
+        {
+          "word": " drive",
+          "start": 165.75,
+          "end": 166.07
+        },
+        {
+          "word": " up",
+          "start": 166.07,
+          "end": 166.23
+        },
+        {
+          "word": " ticket",
+          "start": 166.23,
+          "end": 166.43
+        },
+        {
+          "word": " prices,",
+          "start": 166.43,
+          "end": 166.87
+        },
+        {
+          "word": " and",
+          "start": 167.33,
+          "end": 167.77
+        },
+        {
+          "word": " a",
+          "start": 167.77,
+          "end": 167.89
+        },
+        {
+          "word": " rule",
+          "start": 167.89,
+          "end": 168.05
+        },
+        {
+          "word": " that",
+          "start": 168.05,
+          "end": 168.29
+        },
+        {
+          "word": " requires",
+          "start": 168.29,
+          "end": 168.89
+        },
+        {
+          "word": " airlines",
+          "start": 168.89,
+          "end": 169.17
+        },
+        {
+          "word": " to",
+          "start": 169.17,
+          "end": 169.45
+        },
+        {
+          "word": " reimburse",
+          "start": 169.45,
+          "end": 169.77
+        }
+      ]
+    },
+    {
+      "start": 169.77,
+      "end": 174.09,
+      "text": " your baggage fees if your bags don't make it to your destination when you do.",
+      "words": [
+        {
+          "word": " your",
+          "start": 169.77,
+          "end": 170.07
+        },
+        {
+          "word": " baggage",
+          "start": 170.07,
+          "end": 170.41
+        },
+        {
+          "word": " fees",
+          "start": 170.41,
+          "end": 170.73
+        },
+        {
+          "word": " if",
+          "start": 170.73,
+          "end": 171.03
+        },
+        {
+          "word": " your",
+          "start": 171.03,
+          "end": 171.15
+        },
+        {
+          "word": " bags",
+          "start": 171.15,
+          "end": 171.51
+        },
+        {
+          "word": " don't",
+          "start": 171.51,
+          "end": 171.77
+        },
+        {
+          "word": " make",
+          "start": 171.77,
+          "end": 172.01
+        },
+        {
+          "word": " it",
+          "start": 172.01,
+          "end": 172.13
+        },
+        {
+          "word": " to",
+          "start": 172.13,
+          "end": 172.27
+        },
+        {
+          "word": " your",
+          "start": 172.27,
+          "end": 172.39
+        },
+        {
+          "word": " destination",
+          "start": 172.39,
+          "end": 173.01
+        },
+        {
+          "word": " when",
+          "start": 173.01,
+          "end": 173.73
+        },
+        {
+          "word": " you",
+          "start": 173.73,
+          "end": 173.93
+        },
+        {
+          "word": " do.",
+          "start": 173.93,
+          "end": 174.09
+        }
+      ]
+    },
+    {
+      "start": 175.13,
+      "end": 179.25,
+      "text": " Finally, it's this principle of competition that's at the very heart of our health",
+      "words": [
+        {
+          "word": " Finally,",
+          "start": 175.13,
+          "end": 175.57
+        },
+        {
+          "word": " it's",
+          "start": 176.11,
+          "end": 176.25
+        },
+        {
+          "word": " this",
+          "start": 176.25,
+          "end": 176.39
+        },
+        {
+          "word": " principle",
+          "start": 176.39,
+          "end": 176.75
+        },
+        {
+          "word": " of",
+          "start": 176.75,
+          "end": 176.89
+        },
+        {
+          "word": " competition",
+          "start": 176.89,
+          "end": 177.31
+        },
+        {
+          "word": " that's",
+          "start": 177.31,
+          "end": 177.79
+        },
+        {
+          "word": " at",
+          "start": 177.79,
+          "end": 177.93
+        },
+        {
+          "word": " the",
+          "start": 177.93,
+          "end": 178.09
+        },
+        {
+          "word": " very",
+          "start": 178.09,
+          "end": 178.31
+        },
+        {
+          "word": " heart",
+          "start": 178.31,
+          "end": 178.65
+        },
+        {
+          "word": " of",
+          "start": 178.65,
+          "end": 178.89
+        },
+        {
+          "word": " our",
+          "start": 178.89,
+          "end": 178.99
+        },
+        {
+          "word": " health",
+          "start": 178.99,
+          "end": 179.25
+        }
+      ]
+    },
+    {
+      "start": 179.25,
+      "end": 184.33,
+      "text": " reform. In fact, it's the reason we call it the Affordable Care Act. It makes insurance",
+      "words": [
+        {
+          "word": " reform.",
+          "start": 179.25,
+          "end": 179.53
+        },
+        {
+          "word": " In",
+          "start": 180.21,
+          "end": 180.47
+        },
+        {
+          "word": " fact,",
+          "start": 180.47,
+          "end": 180.65
+        },
+        {
+          "word": " it's",
+          "start": 180.73,
+          "end": 180.83
+        },
+        {
+          "word": " the",
+          "start": 180.83,
+          "end": 180.95
+        },
+        {
+          "word": " reason",
+          "start": 180.95,
+          "end": 181.17
+        },
+        {
+          "word": " we",
+          "start": 181.17,
+          "end": 181.35
+        },
+        {
+          "word": " call",
+          "start": 181.35,
+          "end": 181.57
+        },
+        {
+          "word": " it",
+          "start": 181.57,
+          "end": 181.79
+        },
+        {
+          "word": " the",
+          "start": 181.79,
+          "end": 182.21
+        },
+        {
+          "word": " Affordable",
+          "start": 182.21,
+          "end": 182.65
+        },
+        {
+          "word": " Care",
+          "start": 182.65,
+          "end": 183.09
+        },
+        {
+          "word": " Act.",
+          "start": 183.09,
+          "end": 183.31
+        },
+        {
+          "word": " It",
+          "start": 183.61,
+          "end": 183.79
+        },
+        {
+          "word": " makes",
+          "start": 183.79,
+          "end": 183.97
+        },
+        {
+          "word": " insurance",
+          "start": 183.97,
+          "end": 184.33
+        }
+      ]
+    },
+    {
+      "start": 184.33,
+      "end": 188.51,
+      "text": " companies compete for your business, which is helping millions afford the care that helps",
+      "words": [
+        {
+          "word": " companies",
+          "start": 184.33,
+          "end": 184.73
+        },
+        {
+          "word": " compete",
+          "start": 184.73,
+          "end": 185.17
+        },
+        {
+          "word": " for",
+          "start": 185.17,
+          "end": 185.41
+        },
+        {
+          "word": " your",
+          "start": 185.41,
+          "end": 185.51
+        },
+        {
+          "word": " business,",
+          "start": 185.51,
+          "end": 185.83
+        },
+        {
+          "word": " which",
+          "start": 185.83,
+          "end": 186.49
+        },
+        {
+          "word": " is",
+          "start": 186.49,
+          "end": 186.61
+        },
+        {
+          "word": " helping",
+          "start": 186.61,
+          "end": 186.83
+        },
+        {
+          "word": " millions",
+          "start": 186.83,
+          "end": 187.27
+        },
+        {
+          "word": " afford",
+          "start": 187.27,
+          "end": 187.63
+        },
+        {
+          "word": " the",
+          "start": 187.63,
+          "end": 187.83
+        },
+        {
+          "word": " care",
+          "start": 187.83,
+          "end": 188.05
+        },
+        {
+          "word": " that",
+          "start": 188.05,
+          "end": 188.21
+        },
+        {
+          "word": " helps",
+          "start": 188.21,
+          "end": 188.51
+        }
+      ]
+    },
+    {
+      "start": 188.51,
+      "end": 193.65,
+      "text": " them get and stay healthy. By the way, it's open enrollment season right now. You can",
+      "words": [
+        {
+          "word": " them",
+          "start": 188.51,
+          "end": 188.71
+        },
+        {
+          "word": " get",
+          "start": 188.71,
+          "end": 189.31
+        },
+        {
+          "word": " and",
+          "start": 189.31,
+          "end": 189.53
+        },
+        {
+          "word": " stay",
+          "start": 189.53,
+          "end": 189.81
+        },
+        {
+          "word": " healthy.",
+          "start": 189.81,
+          "end": 190.09
+        },
+        {
+          "word": " By",
+          "start": 190.81,
+          "end": 191.13
+        },
+        {
+          "word": " the",
+          "start": 191.13,
+          "end": 191.21
+        },
+        {
+          "word": " way,",
+          "start": 191.21,
+          "end": 191.37
+        },
+        {
+          "word": " it's",
+          "start": 191.49,
+          "end": 191.65
+        },
+        {
+          "word": " open",
+          "start": 191.65,
+          "end": 191.81
+        },
+        {
+          "word": " enrollment",
+          "start": 191.81,
+          "end": 192.17
+        },
+        {
+          "word": " season",
+          "start": 192.17,
+          "end": 192.49
+        },
+        {
+          "word": " right",
+          "start": 192.49,
+          "end": 192.77
+        },
+        {
+          "word": " now.",
+          "start": 192.77,
+          "end": 193.03
+        },
+        {
+          "word": " You",
+          "start": 193.43,
+          "end": 193.55
+        },
+        {
+          "word": " can",
+          "start": 193.55,
+          "end": 193.65
+        }
+      ]
+    },
+    {
+      "start": 193.65,
+      "end": 200.87,
+      "text": " still sign up on healthcare.gov until January 31st and get covered for 2017. Our free",
+      "words": [
+        {
+          "word": " still",
+          "start": 193.65,
+          "end": 193.85
+        },
+        {
+          "word": " sign",
+          "start": 193.85,
+          "end": 194.13
+        },
+        {
+          "word": " up",
+          "start": 194.13,
+          "end": 194.31
+        },
+        {
+          "word": " on",
+          "start": 194.31,
+          "end": 194.47
+        },
+        {
+          "word": " healthcare.gov",
+          "start": 194.47,
+          "end": 195.25
+        },
+        {
+          "word": " until",
+          "start": 195.25,
+          "end": 195.93
+        },
+        {
+          "word": " January",
+          "start": 195.93,
+          "end": 196.39
+        },
+        {
+          "word": " 31st",
+          "start": 196.39,
+          "end": 197.23
+        },
+        {
+          "word": " and",
+          "start": 197.23,
+          "end": 197.35
+        },
+        {
+          "word": " get",
+          "start": 197.35,
+          "end": 197.49
+        },
+        {
+          "word": " covered",
+          "start": 197.49,
+          "end": 197.85
+        },
+        {
+          "word": " for",
+          "start": 197.85,
+          "end": 198.17
+        },
+        {
+          "word": " 2017.",
+          "start": 198.17,
+          "end": 198.97
+        },
+        {
+          "word": " Our",
+          "start": 200.39,
+          "end": 200.59
+        },
+        {
+          "word": " free",
+          "start": 200.59,
+          "end": 200.87
+        }
+      ]
+    },
+    {
+      "start": 200.87,
+      "end": 205.81,
+      "text": " market economy only works when there's competition, and competition only works when rules are",
+      "words": [
+        {
+          "word": " market",
+          "start": 200.87,
+          "end": 201.15
+        },
+        {
+          "word": " economy",
+          "start": 201.15,
+          "end": 201.59
+        },
+        {
+          "word": " only",
+          "start": 201.59,
+          "end": 201.91
+        },
+        {
+          "word": " works",
+          "start": 201.91,
+          "end": 202.19
+        },
+        {
+          "word": " when",
+          "start": 202.19,
+          "end": 202.37
+        },
+        {
+          "word": " there's",
+          "start": 202.37,
+          "end": 202.57
+        },
+        {
+          "word": " competition,",
+          "start": 202.57,
+          "end": 203.01
+        },
+        {
+          "word": " and",
+          "start": 203.45,
+          "end": 203.61
+        },
+        {
+          "word": " competition",
+          "start": 203.61,
+          "end": 204.01
+        },
+        {
+          "word": " only",
+          "start": 204.01,
+          "end": 204.43
+        },
+        {
+          "word": " works",
+          "start": 204.43,
+          "end": 204.81
+        },
+        {
+          "word": " when",
+          "start": 204.81,
+          "end": 205.37
+        },
+        {
+          "word": " rules",
+          "start": 205.37,
+          "end": 205.67
+        },
+        {
+          "word": " are",
+          "start": 205.67,
+          "end": 205.81
+        }
+      ]
+    },
+    {
+      "start": 205.81,
+      "end": 208.07,
+      "text": " in place to keep it fair and open and honest.",
+      "words": [
+        {
+          "word": " in",
+          "start": 205.81,
+          "end": 205.93
+        },
+        {
+          "word": " place",
+          "start": 205.93,
+          "end": 206.11
+        },
+        {
+          "word": " to",
+          "start": 206.11,
+          "end": 206.29
+        },
+        {
+          "word": " keep",
+          "start": 206.29,
+          "end": 206.47
+        },
+        {
+          "word": " it",
+          "start": 206.47,
+          "end": 206.59
+        },
+        {
+          "word": " fair",
+          "start": 206.59,
+          "end": 206.83
+        },
+        {
+          "word": " and",
+          "start": 206.83,
+          "end": 207.27
+        },
+        {
+          "word": " open",
+          "start": 207.27,
+          "end": 207.51
+        },
+        {
+          "word": " and",
+          "start": 207.51,
+          "end": 207.83
+        },
+        {
+          "word": " honest.",
+          "start": 207.83,
+          "end": 208.07
+        }
+      ]
+    },
+    {
+      "start": 208.91,
+      "end": 211.49,
+      "text": " Whether you're building the next big thing or just want to be",
+      "words": [
+        {
+          "word": " Whether",
+          "start": 208.91,
+          "end": 209.11
+        },
+        {
+          "word": " you're",
+          "start": 209.11,
+          "end": 209.31
+        },
+        {
+          "word": " building",
+          "start": 209.31,
+          "end": 209.61
+        },
+        {
+          "word": " the",
+          "start": 209.61,
+          "end": 209.85
+        },
+        {
+          "word": " next",
+          "start": 209.85,
+          "end": 210.03
+        },
+        {
+          "word": " big",
+          "start": 210.03,
+          "end": 210.25
+        },
+        {
+          "word": " thing",
+          "start": 210.25,
+          "end": 210.59
+        },
+        {
+          "word": " or",
+          "start": 210.59,
+          "end": 210.91
+        },
+        {
+          "word": " just",
+          "start": 210.91,
+          "end": 211.09
+        },
+        {
+          "word": " want",
+          "start": 211.09,
+          "end": 211.27
+        },
+        {
+          "word": " to",
+          "start": 211.27,
+          "end": 211.37
+        },
+        {
+          "word": " be",
+          "start": 211.37,
+          "end": 211.49
+        }
+      ]
+    },
+    {
+      "start": 211.49,
+      "end": 214.85,
+      "text": " treated right as a customer, that's good for you and it's",
+      "words": [
+        {
+          "word": " treated",
+          "start": 211.49,
+          "end": 211.73
+        },
+        {
+          "word": " right",
+          "start": 211.73,
+          "end": 211.99
+        },
+        {
+          "word": " as",
+          "start": 211.99,
+          "end": 212.15
+        },
+        {
+          "word": " a",
+          "start": 212.15,
+          "end": 212.27
+        },
+        {
+          "word": " customer,",
+          "start": 212.27,
+          "end": 212.57
+        },
+        {
+          "word": " that's",
+          "start": 213.19,
+          "end": 213.37
+        },
+        {
+          "word": " good",
+          "start": 213.37,
+          "end": 213.47
+        },
+        {
+          "word": " for",
+          "start": 213.47,
+          "end": 213.65
+        },
+        {
+          "word": " you",
+          "start": 213.65,
+          "end": 213.85
+        },
+        {
+          "word": " and",
+          "start": 213.85,
+          "end": 214.71
+        },
+        {
+          "word": " it's",
+          "start": 214.71,
+          "end": 214.85
+        }
+      ]
+    },
+    {
+      "start": 214.85,
+      "end": 215.51,
+      "text": " good for the country.",
+      "words": [
+        {
+          "word": " good",
+          "start": 214.85,
+          "end": 214.97
+        },
+        {
+          "word": " for",
+          "start": 214.97,
+          "end": 215.15
+        },
+        {
+          "word": " the",
+          "start": 215.15,
+          "end": 215.23
+        },
+        {
+          "word": " country.",
+          "start": 215.23,
+          "end": 215.51
+        }
+      ]
+    },
+    {
+      "start": 216.45,
+      "end": 218.13,
+      "text": " Thanks, everybody, and have a great weekend.",
+      "words": [
+        {
+          "word": " Thanks,",
+          "start": 216.45,
+          "end": 216.83
+        },
+        {
+          "word": " everybody,",
+          "start": 216.93,
+          "end": 217.09
+        },
+        {
+          "word": " and",
+          "start": 217.47,
+          "end": 217.55
+        },
+        {
+          "word": " have",
+          "start": 217.55,
+          "end": 217.65
+        },
+        {
+          "word": " a",
+          "start": 217.65,
+          "end": 217.77
+        },
+        {
+          "word": " great",
+          "start": 217.77,
+          "end": 217.87
+        },
+        {
+          "word": " weekend.",
+          "start": 217.87,
+          "end": 218.13
+        }
+      ]
+    }
+  ]
+}

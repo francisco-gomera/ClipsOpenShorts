@@ -1,0 +1,32 @@
+[
+  {
+    "name": "single_speaker",
+    "description": "Monologue / Single speaker (Barack Obama Weekly Address, 3m 49s)",
+    "elapsed_seconds": 61.6,
+    "language": "en",
+    "segment_count": 60,
+    "word_count": 587,
+    "status": "success",
+    "output_path": "/app/docs/reference_dataset/single_speaker_transcript.json"
+  },
+  {
+    "name": "two_speaker_podcast",
+    "description": "Conversation / 2 speakers (White House Marc Maron WTF Podcast, 3m 45s)",
+    "elapsed_seconds": 57.87,
+    "language": "en",
+    "segment_count": 45,
+    "word_count": 674,
+    "status": "success",
+    "output_path": "/app/docs/reference_dataset/two_speaker_transcript.json"
+  },
+  {
+    "name": "speechless_video",
+    "description": "Voiceless / Animation (Big Buck Bunny, 2m 42s)",
+    "elapsed_seconds": 7.61,
+    "language": "en",
+    "segment_count": 1,
+    "word_count": 1,
+    "status": "success",
+    "output_path": "/app/docs/reference_dataset/speechless_transcript.json"
+  }
+]

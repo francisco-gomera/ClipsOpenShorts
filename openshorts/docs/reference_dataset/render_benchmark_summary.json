@@ -1,0 +1,16 @@
+{
+  "clip_start": 10.0,
+  "clip_end": 40.0,
+  "clip_duration": 30.0,
+  "cut_seconds": 10.52,
+  "reframe_seconds": 77.47,
+  "subtitles_seconds": 32.48,
+  "total_render_pipeline_seconds": 120.46,
+  "frames": [
+    "frame_05s.png",
+    "frame_10s.png",
+    "frame_15s.png",
+    "frame_20s.png",
+    "frame_25s.png"
+  ]
+}
