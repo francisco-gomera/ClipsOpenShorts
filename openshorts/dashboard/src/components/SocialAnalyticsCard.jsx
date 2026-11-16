@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { BarChart3, ExternalLink } from 'lucide-react';
 import { apiJson } from '../lib/api';
 
@@ -42,10 +42,10 @@ export default function SocialAnalyticsCard() {
   return (
     <div className="card p-6">
       <div className="flex items-baseline justify-between gap-4 mb-1">
-        <h3 className="font-display lowercase text-lg text-ink flex items-center gap-2">
-          <BarChart3 size={16} className="text-brass" /> Your posts
+        <h3 className="font-display lowercase text-lg text-text-primary flex items-center gap-2">
+          <BarChart3 size={16} className="text-primary" /> Your posts
         </h3>
-        <span className="text-muted text-xs lowercase">
+        <span className="text-text-secondary text-xs lowercase">
           posted in the last 30 days
           {data.refreshing ? ' · updating, reload in a minute'
             : data.updated_at ? ` · updated ${fmtDay(data.updated_at)}` : ''}
@@ -53,14 +53,14 @@ export default function SocialAnalyticsCard() {
       </div>
 
       {!data.posts_count ? (
-        <p className="text-muted text-sm lowercase">
+        <p className="text-text-secondary text-sm lowercase">
           Nothing published yet. Post a clip from your results and its views show up here.
         </p>
       ) : (
         <>
           <div className="flex items-end gap-3 mb-3">
-            <span className="readout text-2xl text-ink">{fmtNum(total)}</span>
-            <span className="text-muted text-sm lowercase mb-0.5">
+            <span className="readout text-2xl text-text-primary">{fmtNum(total)}</span>
+            <span className="text-text-secondary text-sm lowercase mb-0.5">
               views on {data.posts_count} post{data.posts_count === 1 ? '' : 's'}
             </span>
           </div>
@@ -68,28 +68,28 @@ export default function SocialAnalyticsCard() {
           {perPlatform.length > 0 && (
             <div className="flex flex-wrap gap-x-4 gap-y-1 mb-4 text-sm">
               {perPlatform.map(([platform, v]) => (
-                <span key={platform} className="text-ink2 lowercase">
-                  {platform} <span className="text-brass">{fmtNum(Number(v))}</span>
+                <span key={platform} className="text-text-secondary lowercase">
+                  {platform} <span className="text-primary">{fmtNum(Number(v))}</span>
                 </span>
               ))}
             </div>
           )}
 
           {top.length > 0 && (
-            <div className="space-y-2 border-t border-rule pt-3">
+            <div className="space-y-2 border-t border-border pt-3">
               {top.map((p, i) => (
                 <div key={p.post_url || i}
                      className="flex items-center justify-between gap-3 text-sm">
-                  <span className="text-ink2 truncate lowercase">
+                  <span className="text-text-secondary truncate lowercase">
                     {p.platform} · {fmtDay(p.published_at)}
                     {/^https?:\/\//.test(p.post_url || '') && (
                       <a href={p.post_url} target="_blank" rel="noreferrer"
-                         className="inline-flex align-middle ml-1.5 text-muted hover:text-ink">
+                         className="inline-flex align-middle ml-1.5 text-text-secondary hover:text-text-primary">
                         <ExternalLink size={12} />
                       </a>
                     )}
                   </span>
-                  <span className="text-ink shrink-0">{fmtNum(p.views)} views</span>
+                  <span className="text-text-primary shrink-0">{fmtNum(p.views)} views</span>
                 </div>
               ))}
             </div>

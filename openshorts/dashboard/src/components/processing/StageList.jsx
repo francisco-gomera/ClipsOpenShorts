@@ -16,7 +16,11 @@ export default function StageList({
   isRetrying = false,
 }) {
   return (
-    <div className="space-y-2" role="list" aria-label="Etapas de procesamiento">
+    <div
+      className="divide-y divide-border"
+      role="list"
+      aria-label="Etapas de procesamiento"
+    >
       {STAGE_KEYS.map((key) => {
         const stageData = stages[key] || { name: key, status: 'pending' };
         return (

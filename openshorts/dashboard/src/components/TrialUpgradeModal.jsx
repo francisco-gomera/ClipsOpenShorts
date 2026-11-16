@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Loader2, Rocket, CheckCircle2 } from 'lucide-react';
 import { apiJson } from '../lib/api';
 import Modal from './ui/Modal';
@@ -54,16 +54,16 @@ export default function TrialUpgradeModal({ plan, onActivated, onClose }) {
       {done ? (
         <div className="text-center py-4">
           <div className="inline-flex p-3 bg-paper3 rounded-full text-ok mb-4"><CheckCircle2 size={24} /></div>
-          <h2 className="font-display lowercase text-xl text-ink mb-1">You're all set</h2>
-          <p className="text-muted text-sm">Your plan is active{planMinutes ? ` with ${planMinutes} minutes` : ''}. Go ahead and generate your clips.</p>
+          <h2 className="font-display lowercase text-xl text-text-primary mb-1">You're all set</h2>
+          <p className="text-text-secondary text-sm">Your plan is active{planMinutes ? ` with ${planMinutes} minutes` : ''}. Go ahead and generate your clips.</p>
         </div>
       ) : (
         <>
-          <div className="inline-flex p-3 bg-paper3 rounded-full text-brass mb-4"><Rocket size={24} /></div>
-          <h2 className="font-display lowercase text-xl text-ink mb-1">You've used your free trial minutes</h2>
-          <p className="text-muted text-sm mb-6">
-            Activate your{plan ? <> <span className="capitalize font-medium text-ink">{plan}</span></> : ''} plan now to unlock{' '}
-            {planMinutes ? <><b className="text-ink font-medium">{planMinutes} minutes</b> every month</> : 'your full monthly minutes'} and keep creating.
+          <div className="inline-flex p-3 bg-paper3 rounded-full text-primary mb-4"><Rocket size={24} /></div>
+          <h2 className="font-display lowercase text-xl text-text-primary mb-1">You've used your free trial minutes</h2>
+          <p className="text-text-secondary text-sm mb-6">
+            Activate your{plan ? <> <span className="capitalize font-medium text-text-primary">{plan}</span></> : ''} plan now to unlock{' '}
+            {planMinutes ? <><b className="text-text-primary font-medium">{planMinutes} minutes</b> every month</> : 'your full monthly minutes'} and keep creating.
             Your card is charged today and your 3-day trial ends now.
           </p>
 
@@ -79,7 +79,7 @@ export default function TrialUpgradeModal({ plan, onActivated, onClose }) {
           <button
             onClick={onClose}
             disabled={busy}
-            className="w-full mt-2 text-muted hover:text-ink text-sm lowercase py-2 disabled:opacity-60 transition-colors"
+            className="w-full mt-2 text-text-secondary hover:text-text-primary text-sm lowercase py-2 disabled:opacity-60 transition-colors"
           >
             Maybe later
           </button>

@@ -6,6 +6,7 @@ export default function CollapsibleLogs({ logs = [], defaultOpen = false }) {
   const [copied, setCopied] = useState(false);
   const logContainerRef = useRef(null);
 
+  // Auto-scroll to bottom when new logs arrive while open
   useEffect(() => {
     if (isOpen && logContainerRef.current) {
       logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
@@ -23,8 +24,8 @@ export default function CollapsibleLogs({ logs = [], defaultOpen = false }) {
   const lineCount = logs ? logs.length : 0;
 
   return (
-    <div className="rounded-card border border-rule/70 bg-paper/60 overflow-hidden">
-      {/* Cabecera interactiva */}
+    <div className="rounded-card border border-border bg-surface overflow-hidden">
+      {/* Collapsible header */}
       <div
         role="button"
         tabIndex={0}
@@ -35,16 +36,19 @@ export default function CollapsibleLogs({ logs = [], defaultOpen = false }) {
             setIsOpen(!isOpen);
           }
         }}
-        className="w-full px-3.5 py-2.5 flex items-center justify-between text-left hover:bg-black/5 cursor-pointer focus:outline-none focus:ring-1 focus:ring-brass transition-colors"
+        className="w-full px-4 py-3 flex items-center justify-between text-left
+          hover:bg-surface-elevated cursor-pointer transition-colors duration-150
+          focus:outline-none focus:ring-2 focus:ring-primary/40 focus:ring-inset"
         aria-expanded={isOpen}
+        aria-controls="system-logs-panel"
       >
         <div className="flex items-center gap-2">
-          <Terminal size={14} className="text-muted" />
-          <span className="text-xs font-mono font-medium text-ink2">
-            Registro de ejecución técnica
+          <Terminal size={14} className="text-text-secondary" aria-hidden="true" />
+          <span className="text-xs font-brand font-semibold text-text-secondary uppercase tracking-widest">
+            System Logs
           </span>
-          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-black/20 text-muted border border-rule/30">
-            {lineCount} {lineCount === 1 ? 'línea' : 'líneas'}
+          <span className="text-[10px] font-ui px-1.5 py-0.5 rounded bg-surface-elevated text-text-secondary border border-border">
+            {lineCount} {lineCount === 1 ? 'line' : 'lines'}
           </span>
         </div>
 
@@ -53,39 +57,55 @@ export default function CollapsibleLogs({ logs = [], defaultOpen = false }) {
             <button
               type="button"
               onClick={handleCopy}
-              className="text-[11px] font-mono flex items-center gap-1 text-muted hover:text-ink px-2 py-0.5 rounded border border-rule/40 hover:bg-black/10 transition-colors"
-              title="Copiar registro completo"
+              className="text-[11px] font-ui flex items-center gap-1 text-text-secondary
+                hover:text-text-primary px-2 py-0.5 rounded border border-border
+                hover:bg-surface-elevated transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40"
+              title="Copy full log"
+              aria-label="Copy full log"
             >
-              {copied ? <Check size={11} className="text-emerald-400" /> : <Copy size={11} />}
-              <span>{copied ? 'Copiado' : 'Copiar'}</span>
+              {copied
+                ? <Check size={11} className="text-success" aria-hidden="true" />
+                : <Copy size={11} aria-hidden="true" />}
+              <span>{copied ? 'Copied' : 'Copy'}</span>
             </button>
           )}
-          {isOpen ? <ChevronUp size={15} className="text-muted" /> : <ChevronDown size={15} />}
+          {isOpen
+            ? <ChevronUp size={15} className="text-text-secondary" aria-hidden="true" />
+            : <ChevronDown size={15} className="text-text-secondary" aria-hidden="true" />
+          }
         </div>
       </div>
 
-      {/* Contenido desplegable */}
-      {isOpen && (
+      {/* Log content — smooth height transition */}
+      <div
+        id="system-logs-panel"
+        className={`transition-all duration-200 ${isOpen ? 'block' : 'hidden'}`}
+      >
         <div
           ref={logContainerRef}
-          className="p-3 bg-black/30 border-t border-rule/40 max-h-56 overflow-y-auto font-mono text-[11px] leading-relaxed text-ink2 space-y-1 select-text scrollbar-thin"
+          className="p-3 bg-background border-t border-border max-h-[300px] overflow-y-auto
+            font-mono text-[11px] leading-relaxed text-text-secondary space-y-1 select-text
+            scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent"
+          role="log"
+          aria-live="polite"
+          aria-label="Registro técnico del sistema"
         >
           {logs && logs.length > 0 ? (
             logs.map((log, index) => (
               <div key={index} className="break-all whitespace-pre-wrap">
-                <span className="text-muted/50 select-none mr-2">
+                <span className="text-text-secondary/40 select-none mr-2" aria-hidden="true">
                   {String(index + 1).padStart(3, '0')}
                 </span>
                 <span>{log}</span>
               </div>
             ))
           ) : (
-            <div className="text-muted/60 italic py-2 text-center">
-              Sin registros adicionales por el momento.
+            <div className="text-text-secondary/60 italic py-2 text-center">
+              No logs yet.
             </div>
           )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { X } from 'lucide-react';
+﻿import { X } from 'lucide-react';
 
 /**
  * The single modal shell for the app (design.md).
@@ -28,7 +28,7 @@ export default function Modal({ isOpen, onClose, title, eyebrow, size = 'md', ch
        run taller than a centred dialog whose 4px side margins wasted the only
        width there was. From sm up it is the centred dialog it always was. */
     <div
-      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/70 p-0 sm:p-4 animate-fade"
+      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade" style={{ backgroundColor: 'rgba(16,24,32,0.85)', backdropFilter: 'blur(4px)' }}
       onMouseDown={(e) => { if (e.target === e.currentTarget && onClose) onClose(); }}
       role="dialog"
       aria-modal="true"
@@ -45,22 +45,22 @@ export default function Modal({ isOpen, onClose, title, eyebrow, size = 'md', ch
           <button
             onClick={onClose}
             aria-label="close"
-            className="absolute top-3 right-3 sm:top-4 sm:right-4 z-10 p-2 rounded-full text-muted hover:text-ink hover:bg-paper3 transition-colors"
+            className="absolute top-3 right-3 sm:top-4 sm:right-4 z-10 p-2 rounded-full text-text-secondary hover:text-text-primary hover:bg-paper3 transition-colors"
           >
             <X size={18} />
           </button>
         )}
         {(title || eyebrow) && (
-          <div className="px-4 sm:px-6 pt-3 sm:pt-6 pb-4 border-b border-rule shrink-0">
+          <div className="px-4 sm:px-6 pt-3 sm:pt-6 pb-4 border-b border-border shrink-0">
             {eyebrow && <p className="eyebrow mb-1.5">{eyebrow}</p>}
-            {title && <h2 className="font-display lowercase text-xl sm:text-2xl text-ink leading-tight break-words pr-10">{title}</h2>}
+            {title && <h2 className="font-display lowercase text-xl sm:text-2xl text-text-primary leading-tight break-words pr-10">{title}</h2>}
           </div>
         )}
         <div className="px-4 sm:px-6 py-5 overflow-y-auto overscroll-contain custom-scrollbar grow">
           {children}
         </div>
         {footer && (
-          <div className="px-4 sm:px-6 py-4 border-t border-rule shrink-0 safe-bottom">
+          <div className="px-4 sm:px-6 py-4 border-t border-border shrink-0 safe-bottom">
             {footer}
           </div>
         )}

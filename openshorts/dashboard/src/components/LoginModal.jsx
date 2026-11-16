@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Mail, Lock, Check, Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import Modal from './ui/Modal';
@@ -39,12 +39,12 @@ export default function LoginModal({ onClose, queued = false }) {
 
   return (
     <Modal isOpen onClose={onClose} eyebrow="ACCOUNT" title="Sign in to OpenShorts" size="md">
-      <p className="text-muted text-sm mb-6 lowercase">Access your plan and generate shorts with no API keys.</p>
+      <p className="text-text-secondary text-sm mb-6 lowercase">Access your plan and generate shorts with no API keys.</p>
 
       {queued && (
         <div className="flex items-start gap-2 border border-rule2 rounded-input bg-paper2 px-3 py-2 mb-5">
           <Check size={14} className="mt-0.5 shrink-0 text-ok" />
-          <p className="text-xs text-ink2 leading-relaxed m-0">
+          <p className="text-xs text-text-secondary leading-relaxed m-0">
             Your video is saved. Sign in and the clips start on their own — you will not have to paste it again.
           </p>
         </div>
@@ -53,14 +53,14 @@ export default function LoginModal({ onClose, queued = false }) {
       {sent ? (
         <div className="text-center py-6">
           <span className="badge-ok px-3 py-1"><Check size={14} /> sent</span>
-          <p className="text-ink font-medium lowercase mt-4">Check your inbox</p>
-          <p className="text-muted text-sm mt-1">We sent a sign-in link to <b className="text-ink font-medium">{email}</b>. It expires in 15 minutes.</p>
+          <p className="text-text-primary font-medium lowercase mt-4">Check your inbox</p>
+          <p className="text-text-secondary text-sm mt-1">We sent a sign-in link to <b className="text-text-primary font-medium">{email}</b>. It expires in 15 minutes.</p>
         </div>
       ) : (
         <>
           <form onSubmit={submit} className="space-y-3">
             <div className="relative">
-              <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+              <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" />
               <input
                 type="email"
                 value={email}
@@ -72,7 +72,7 @@ export default function LoginModal({ onClose, queued = false }) {
             </div>
             {needsPassword && (
               <div className="relative">
-                <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+                <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" />
                 <input
                   type="password"
                   value={password}
@@ -96,9 +96,9 @@ export default function LoginModal({ onClose, queued = false }) {
           {googleAuthEnabled && (
             <>
               <div className="flex items-center gap-3 my-5">
-                <div className="flex-1 border-t border-rule" />
+                <div className="flex-1 border-t border-border" />
                 <span className="readout">or</span>
-                <div className="flex-1 border-t border-rule" />
+                <div className="flex-1 border-t border-border" />
               </div>
               <button
                 onClick={loginWithGoogle}
@@ -112,11 +112,11 @@ export default function LoginModal({ onClose, queued = false }) {
 
           {/* The account is created by this button, so the terms have to be
               reachable from it: a magic-link signup never passes the footer. */}
-          <p className="text-muted text-xs mt-5 text-center leading-relaxed">
+          <p className="text-text-secondary text-xs mt-5 text-center leading-relaxed">
             By signing in you agree to our{' '}
-            <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-ink2 underline underline-offset-2 hover:text-brass transition-colors">Terms of Service</a>
+            <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-text-secondary underline underline-offset-2 hover:text-primary transition-colors">Terms of Service</a>
             {' '}and{' '}
-            <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-ink2 underline underline-offset-2 hover:text-brass transition-colors">Privacy Policy</a>.
+            <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-text-secondary underline underline-offset-2 hover:text-primary transition-colors">Privacy Policy</a>.
           </p>
         </>
       )}

@@ -171,26 +171,26 @@ export default function MediaInput({ onProcess, isProcessing }) {
 
     return (
         <div className="card p-4 sm:p-6 animate-fade">
-            <div className="flex gap-4 sm:gap-6 mb-6 border-b border-rule" data-tutorial="source-tabs">
+            <div className="flex gap-4 sm:gap-6 mb-6 border-b border-border" data-tutorial="source-tabs">
                 <button
                     onClick={() => setMode('file')}
                     className={`flex items-center gap-2 pb-3 px-1 -mb-px border-b-2 text-sm lowercase whitespace-nowrap transition-colors ${mode === 'file'
-                        ? 'text-ink border-brass'
-                        : 'text-muted border-transparent hover:text-ink2'
+                        ? 'text-text-primary border-primary'
+                        : 'text-text-secondary border-transparent hover:text-text-secondary'
                         }`}
                 >
-                    <Upload size={16} className={`hidden sm:block ${mode === 'file' ? 'text-brass' : ''}`} />
+                    <Upload size={16} className={`hidden sm:block ${mode === 'file' ? 'text-text-primary' : ''}`} />
                     Upload File
                 </button>
                 {youtubeUrlEnabled && (
                     <button
                         onClick={() => setMode('url')}
                         className={`flex items-center gap-2 pb-3 px-1 -mb-px border-b-2 text-sm lowercase whitespace-nowrap transition-colors ${mode === 'url'
-                            ? 'text-ink border-brass'
-                            : 'text-muted border-transparent hover:text-ink2'
+                            ? 'text-text-primary border-primary'
+                            : 'text-text-secondary border-transparent hover:text-text-secondary'
                             }`}
                     >
-                        <Link2 size={16} className={`hidden sm:block ${mode === 'url' ? 'text-brass' : ''}`} />
+                        <Link2 size={16} className={`hidden sm:block ${mode === 'url' ? 'text-text-primary' : ''}`} />
                         Video URL
                     </button>
                 )}
@@ -213,7 +213,7 @@ export default function MediaInput({ onProcess, isProcessing }) {
                                     type="button"
                                     onClick={() => setShowInfo((v) => !v)}
                                     aria-label="Supported platforms"
-                                    className="p-1.5 text-muted hover:text-brass transition-colors"
+                                    className="p-1.5 text-text-secondary hover:text-text-primary transition-colors"
                                 >
                                     <Info size={16} />
                                 </button>
@@ -222,12 +222,12 @@ export default function MediaInput({ onProcess, isProcessing }) {
                                         <p className="eyebrow mb-2">Paste a link from</p>
                                         <div className="flex flex-wrap gap-1.5">
                                             {SUPPORTED_PLATFORMS.map((p) => (
-                                                <span key={p} className="text-xs px-2 py-0.5 rounded-full bg-paper3 text-ink2">
+                                                <span key={p} className="text-xs px-2 py-0.5 rounded-full bg-primary-soft text-text-secondary">
                                                     {p}
                                                 </span>
                                             ))}
                                         </div>
-                                        <p className="text-xs text-muted mt-2.5 leading-relaxed">
+                                        <p className="text-xs text-text-secondary mt-2.5 leading-relaxed">
                                             …and 1,000+ more sites. If a link has a public video, we can usually fetch it.
                                         </p>
                                     </div>
@@ -236,7 +236,7 @@ export default function MediaInput({ onProcess, isProcessing }) {
                         </div>
                         {/* URL Media Preview */}
                         {ytId && (
-                            <div className="rounded-card overflow-hidden bg-paper2 border border-rule p-3 animate-fade flex flex-col sm:flex-row gap-3 items-center">
+                            <div className="rounded-card overflow-hidden bg-surface border border-border p-3 animate-fade flex flex-col sm:flex-row gap-3 items-center">
                                 <div className="relative w-full sm:w-44 h-28 rounded-input overflow-hidden bg-black shrink-0">
                                     <img
                                         src={`https://img.youtube.com/vi/${ytId}/hqdefault.jpg`}
@@ -251,12 +251,12 @@ export default function MediaInput({ onProcess, isProcessing }) {
                                     <p className="text-xs font-semibold text-ok flex items-center gap-1.5">
                                         <CheckCircle2 size={14} /> Video identified
                                     </p>
-                                    <p className="text-xs text-muted truncate">{url}</p>
+                                    <p className="text-xs text-text-secondary truncate">{url}</p>
                                     <a
                                         href={url}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="text-xs text-brass hover:underline inline-flex items-center gap-1 pt-1"
+                                        className="text-xs text-text-primary hover:underline inline-flex items-center gap-1 pt-1"
                                     >
                                         Open source link <ExternalLink size={12} />
                                     </a>
@@ -267,7 +267,7 @@ export default function MediaInput({ onProcess, isProcessing }) {
                 ) : (
                     <div
                         data-tutorial="drop-zone"
-                        className={`border-2 border-dashed rounded-card p-4 sm:p-6 text-center transition-colors ${file ? 'border-brass bg-paper2' : 'border-rule2 hover:border-brass'
+                        className={`border-2 border-dashed rounded-card p-4 sm:p-6 text-center transition-colors ${file ? 'border-primary bg-surface' : 'border-border hover:border-primary'
                             }`}
                         onDragOver={(e) => e.preventDefault()}
                         onDrop={handleDrop}
@@ -285,10 +285,10 @@ export default function MediaInput({ onProcess, isProcessing }) {
                                     )}
                                     <div className="min-w-0 flex-1 text-left space-y-1">
                                         <div className="flex items-center gap-2">
-                                            <FileVideo size={16} className="text-brass shrink-0" />
-                                            <span className="font-medium text-sm text-ink truncate">{file.name}</span>
+                                            <FileVideo size={16} className="text-text-primary shrink-0" />
+                                            <span className="font-medium text-sm text-text-primary truncate">{file.name}</span>
                                         </div>
-                                        <p className="text-xs text-muted">
+                                        <p className="text-xs text-text-secondary">
                                             {(file.size / (1024 * 1024)).toFixed(1)} MB
                                             {fileSeconds != null ? ` · ${Math.round(fileSeconds)}s duration` : ''}
                                         </p>
@@ -317,9 +317,9 @@ export default function MediaInput({ onProcess, isProcessing }) {
                                     onChange={(e) => setFile(e.target.files?.[0] || null)}
                                     className="hidden"
                                 />
-                                <Upload className="mx-auto mb-3 text-muted" size={24} />
-                                <p className="text-ink font-medium text-sm">Click to upload or drag and drop</p>
-                                <p className="readout mt-1.5 text-xs text-muted">MP4, MOV up to 500MB · at least {MIN_SOURCE_SECONDS}s long</p>
+                                <Upload className="mx-auto mb-3 text-text-secondary" size={24} />
+                                <p className="text-text-primary font-medium text-sm">Click to upload or drag and drop</p>
+                                <p className="readout mt-1.5 text-xs text-text-secondary">MP4, MOV up to 500MB · at least {MIN_SOURCE_SECONDS}s long</p>
                             </label>
                         )}
                     </div>
@@ -349,7 +349,7 @@ export default function MediaInput({ onProcess, isProcessing }) {
                                     type="button"
                                     onClick={() => setOutputFormat(f.value)}
                                     className={`py-3 px-2 rounded-input border flex flex-col items-center gap-2 transition-colors
-                                        ${active ? 'border-[color:var(--color-accent)] text-ink' : 'border-rule2 text-muted hover:border-[color:var(--color-accent)]'}`}
+                                        ${active ? 'border-[color:var(--color-accent)] text-text-primary' : 'border-border text-text-secondary hover:border-[color:var(--color-accent)]'}`}
                                 >
                                     {/* Aspect-ratio glyph */}
                                     <span
@@ -362,7 +362,7 @@ export default function MediaInput({ onProcess, isProcessing }) {
                                         }}
                                     />
                                     <span className="block font-mono text-sm leading-none">{f.label}</span>
-                                    <span className="block text-[11px] sm:text-[10px] leading-tight text-center text-muted">{f.hint}</span>
+                                    <span className="block text-[11px] sm:text-[10px] leading-tight text-center text-text-secondary">{f.hint}</span>
                                 </button>
                             );
                         })}
@@ -374,12 +374,12 @@ export default function MediaInput({ onProcess, isProcessing }) {
                     <button
                         type="button"
                         onClick={() => setShowAdvanced((v) => !v)}
-                        className="flex items-center gap-1.5 text-xs text-muted hover:text-ink2 lowercase transition-colors"
+                        className="flex items-center gap-1.5 text-xs text-text-secondary hover:text-text-secondary lowercase transition-colors"
                     >
                         <ChevronDown size={14} className={`transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
                         advanced options
                         {(targetClips || clipMinSeconds || clipMaxSeconds || !autoHook) && (
-                            <span className="text-brass">·</span>
+                            <span className="text-text-primary">·</span>
                         )}
                     </button>
                     {showAdvanced && (
@@ -416,12 +416,12 @@ export default function MediaInput({ onProcess, isProcessing }) {
                                     className="input-field"
                                 />
                             </div>
-                            <p className="col-span-1 sm:col-span-3 text-[11px] leading-relaxed text-muted">
+                            <p className="col-span-1 sm:col-span-3 text-[11px] leading-relaxed text-text-secondary">
                                 Targets, not guarantees: the AI returns fewer clips when the
                                 material doesn't hold them. Leave blank to let it decide.
                             </p>
-                            <div className="col-span-1 sm:col-span-3 flex flex-wrap items-center justify-between gap-3 pt-3 sm:pt-1 border-t border-rule">
-                                <span className="text-xs text-ink2">vertical layout</span>
+                            <div className="col-span-1 sm:col-span-3 flex flex-wrap items-center justify-between gap-3 pt-3 sm:pt-1 border-t border-border">
+                                <span className="text-xs text-text-secondary">vertical layout</span>
                                 <select
                                     value={layout}
                                     onChange={(e) => setLayout(e.target.value)}
@@ -434,8 +434,8 @@ export default function MediaInput({ onProcess, isProcessing }) {
                                     <option value="none">Single crop only</option>
                                 </select>
                             </div>
-                            <div className="col-span-1 sm:col-span-3 flex flex-wrap items-center justify-between gap-3 pt-3 sm:pt-1 border-t border-rule">
-                                <label className="flex items-center gap-2 text-xs text-ink2 cursor-pointer select-none">
+                            <div className="col-span-1 sm:col-span-3 flex flex-wrap items-center justify-between gap-3 pt-3 sm:pt-1 border-t border-border">
+                                <label className="flex items-center gap-2 text-xs text-text-secondary cursor-pointer select-none">
                                     <input
                                         type="checkbox"
                                         checked={autoHook}
@@ -460,7 +460,7 @@ export default function MediaInput({ onProcess, isProcessing }) {
                                     </select>
                                 )}
                                 {autoHook && (
-                                    <p className="w-full text-[11px] leading-relaxed text-muted">
+                                    <p className="w-full text-[11px] leading-relaxed text-text-secondary">
                                         You can change each clip&apos;s hook text, style, position and size
                                         afterwards with its hook button.
                                     </p>
@@ -470,7 +470,7 @@ export default function MediaInput({ onProcess, isProcessing }) {
                     )}
                 </div>
 
-                <label className="flex items-start gap-2.5 mt-5 text-left text-[13px] sm:text-xs leading-relaxed text-muted cursor-pointer select-none">
+                <label className="flex items-start gap-2.5 mt-5 text-left text-[13px] sm:text-xs leading-relaxed text-text-secondary cursor-pointer select-none">
                     <input
                         type="checkbox"
                         checked={acknowledged}
@@ -478,7 +478,7 @@ export default function MediaInput({ onProcess, isProcessing }) {
                         className="mt-0.5 w-4 h-4 shrink-0 accent-[var(--color-accent)] cursor-pointer"
                     />
                     <span>
-                        I confirm I own this content or have the rights to process it. I am responsible for any content I submit. See our <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-ink2 underline underline-offset-2 hover:text-brass transition-colors" onClick={(e) => e.stopPropagation()}>Terms</a> and <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-ink2 underline underline-offset-2 hover:text-brass transition-colors" onClick={(e) => e.stopPropagation()}>Privacy Policy</a>.
+                        I confirm I own this content or have the rights to process it. I am responsible for any content I submit. See our <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-text-secondary underline underline-offset-2 hover:text-text-primary transition-colors" onClick={(e) => e.stopPropagation()}>Terms</a> and <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-text-secondary underline underline-offset-2 hover:text-text-primary transition-colors" onClick={(e) => e.stopPropagation()}>Privacy Policy</a>.
                     </span>
                 </label>
 

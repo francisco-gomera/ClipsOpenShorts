@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+﻿import React, { useState, useRef, useEffect } from 'react';
 import { CreditCard, LogOut, Sparkles } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -26,21 +26,21 @@ export default function ProfileMenu({ onUpgrade = null }) {
       <button
         onClick={() => setOpen((v) => !v)}
         aria-label="Account menu"
-        className="w-8 h-8 rounded-full bg-paper3 border border-rule hover:border-rule2 text-brass flex items-center justify-center text-sm font-medium transition-colors"
+        className="w-8 h-8 rounded-full bg-primary-soft border border-border text-primary flex items-center justify-center text-sm font-medium transition-colors"
       >
         {initial}
       </button>
 
       {open && (
-        <div className="card absolute right-0 top-full mt-2 w-56 z-30 shadow-none overflow-hidden animate-fade">
-          <div className="px-4 py-3 border-b border-rule">
+        <div className="absolute right-0 top-full mt-2 w-56 z-30 overflow-hidden animate-fade bg-surface-elevated border border-border rounded-input">
+          <div className="px-4 py-3 border-b border-border">
             <p className="eyebrow">Signed in as</p>
-            <p className="text-sm text-ink truncate mt-0.5" title={user.email}>{user.email}</p>
+            <p className="text-sm text-text-primary truncate mt-0.5" title={user.email}>{user.email}</p>
           </div>
           {!isManaged && (
             <button
               onClick={() => { setOpen(false); window.location.hash = '#/pricing'; }}
-              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm lowercase text-brass hover:bg-paper3 transition-colors"
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm lowercase text-primary hover:bg-paper3 transition-colors"
             >
               <Sparkles size={16} /> Start free
             </button>
@@ -52,22 +52,22 @@ export default function ProfileMenu({ onUpgrade = null }) {
                 if (onUpgrade) onUpgrade({ source: 'menu' });
                 else window.location.hash = '#/pricing';
               }}
-              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm lowercase text-brass hover:bg-paper3 transition-colors"
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm lowercase text-primary hover:bg-paper3 transition-colors"
             >
               <Sparkles size={16} /> Upgrade · no watermark
             </button>
           )}
           <button
             onClick={() => { setOpen(false); window.location.hash = '#/account'; }}
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm lowercase text-ink2 hover:bg-paper3 transition-colors"
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm lowercase text-text-secondary hover:bg-paper3 transition-colors"
           >
-            <CreditCard size={16} className="text-muted" /> Account &amp; billing
+            <CreditCard size={16} className="text-text-secondary" /> Account &amp; billing
           </button>
           <button
             onClick={() => { setOpen(false); logout(); }}
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm lowercase text-ink2 hover:bg-paper3 transition-colors border-t border-rule"
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm lowercase text-text-secondary hover:bg-paper3 transition-colors border-t border-border"
           >
-            <LogOut size={16} className="text-muted" /> Sign out
+            <LogOut size={16} className="text-text-secondary" /> Sign out
           </button>
         </div>
       )}

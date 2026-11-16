@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+﻿import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Upload, Sparkles, Youtube, Instagram, Share2, ChevronDown, Check, Activity, LayoutDashboard, Settings, Plus, History, FolderOpen, X, Shield, LayoutGrid, Image, Globe, RotateCcw, Calendar, AlertTriangle, KeyRound, Bot, Users, Smartphone, ExternalLink, Copy, CheckCircle2, Mail, Loader2, Download, Menu, Lock, Rocket, Film } from 'lucide-react';
 import KeyInput from './components/KeyInput';
 import MediaInput from './components/MediaInput';
@@ -143,13 +143,13 @@ const formatRetention = (seconds) => {
 
 const ProfileNetworkIcons = ({ profile, size = 12 }) => (
   <span className="flex items-center gap-1.5">
-    <span className={profile?.connected?.includes('tiktok') ? 'text-ink' : 'text-muted opacity-40'}>
+    <span className={profile?.connected?.includes('tiktok') ? 'text-text-primary' : 'text-text-secondary opacity-40'}>
       <TikTokIcon size={size} />
     </span>
-    <span className={profile?.connected?.includes('instagram') ? 'text-ink' : 'text-muted opacity-40'}>
+    <span className={profile?.connected?.includes('instagram') ? 'text-text-primary' : 'text-text-secondary opacity-40'}>
       <Instagram size={size} />
     </span>
-    <span className={profile?.connected?.includes('youtube') ? 'text-ink' : 'text-muted opacity-40'}>
+    <span className={profile?.connected?.includes('youtube') ? 'text-text-primary' : 'text-text-secondary opacity-40'}>
       <Youtube size={size} />
     </span>
   </span>
@@ -170,19 +170,19 @@ const UserProfileSelector = ({ profiles, selectedUserId, onSelect, onConnect }) 
         aria-label="social profile"
         /* Phone: avatar + chevron only. A 180px pill next to the menu button,
            the section title and the minutes meter overflowed a 360px header. */
-        className="flex items-center justify-between gap-1 bg-paper2 border border-rule2 rounded-input px-2 sm:px-3 py-2 text-sm text-ink2 hover:bg-paper3 transition-colors sm:min-w-[180px]"
+        className="flex items-center justify-between gap-1 bg-surface border border-border rounded-input px-2 sm:px-3 py-2 text-sm text-text-secondary hover:bg-primary-soft transition-colors sm:min-w-[180px]"
       >
         <span className="flex items-center gap-2">
-          <div className="w-5 h-5 rounded-full bg-paper3 border border-rule flex items-center justify-center font-mono text-micro text-brass shrink-0">
+          <div className="w-5 h-5 rounded-full bg-primary-soft border border-border flex items-center justify-center font-mono text-micro text-text-primary shrink-0">
             {autoId ? "S" : (selectedProfile?.username?.substring(0, 1).toUpperCase() || "U")}
           </div>
           {autoId ? (
             <span className="hidden sm:flex"><ProfileNetworkIcons profile={selectedProfile} size={13} /></span>
           ) : (
-            <span className="hidden sm:block font-medium text-ink truncate max-w-[100px]">{selectedProfile?.username || "Select User"}</span>
+            <span className="hidden sm:block font-medium text-text-primary truncate max-w-[100px]">{selectedProfile?.username || "Select User"}</span>
           )}
         </span>
-        <ChevronDown size={14} className={`text-muted transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown size={14} className={`text-text-secondary transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       {isOpen && (
@@ -195,33 +195,33 @@ const UserProfileSelector = ({ profiles, selectedUserId, onSelect, onConnect }) 
                   onSelect(profile.username);
                   setIsOpen(false);
                 }}
-                className="w-full flex items-center justify-between px-4 py-3 hover:bg-paper3 transition-colors text-left group border-b border-rule last:border-0"
+                className="w-full flex items-center justify-between px-4 py-3 hover:bg-primary-soft transition-colors text-left group border-b border-border last:border-0"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-paper3 flex items-center justify-center font-mono text-micro text-ink border border-rule shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-primary-soft flex items-center justify-center font-mono text-micro text-text-primary border border-border shrink-0">
                     {isAutoProfileId(profile.username) ? "S" : profile.username.substring(0, 2).toUpperCase()}
                   </div>
                   <div className="min-w-0">
-                    <div className="text-sm font-medium text-ink2 group-hover:text-ink transition-colors truncate">
+                    <div className="text-sm font-medium text-text-secondary group-hover:text-text-primary transition-colors truncate">
                       {isAutoProfileId(profile.username)
                         ? `Social profile ${profiles.indexOf(profile) + 1}`
                         : profile.username}
                     </div>
                     <div className="flex gap-2 mt-0.5">
                       {/* Status indicators */}
-                      <div className={`flex items-center gap-1 ${profile.connected.includes('tiktok') ? 'text-ink2' : 'text-muted opacity-40'}`}>
+                      <div className={`flex items-center gap-1 ${profile.connected.includes('tiktok') ? 'text-text-secondary' : 'text-text-secondary opacity-40'}`}>
                         <TikTokIcon size={10} />
                       </div>
-                      <div className={`flex items-center gap-1 ${profile.connected.includes('instagram') ? 'text-ink2' : 'text-muted opacity-40'}`}>
+                      <div className={`flex items-center gap-1 ${profile.connected.includes('instagram') ? 'text-text-secondary' : 'text-text-secondary opacity-40'}`}>
                         <Instagram size={10} />
                       </div>
-                      <div className={`flex items-center gap-1 ${profile.connected.includes('youtube') ? 'text-ink2' : 'text-muted opacity-40'}`}>
+                      <div className={`flex items-center gap-1 ${profile.connected.includes('youtube') ? 'text-text-secondary' : 'text-text-secondary opacity-40'}`}>
                         <Youtube size={10} />
                       </div>
                     </div>
                   </div>
                 </div>
-                {selectedUserId === profile.username && <Check size={14} className="text-brass shrink-0" />}
+                {selectedUserId === profile.username && <Check size={14} className="text-text-primary shrink-0" />}
               </button>
             ))}
           </div>
@@ -231,7 +231,7 @@ const UserProfileSelector = ({ profiles, selectedUserId, onSelect, onConnect }) 
           {onConnect && (
             <button
               onClick={() => { setIsOpen(false); onConnect(); }}
-              className="w-full flex items-center gap-2 px-4 py-3 text-sm text-brass hover:bg-paper3 transition-colors text-left border-t border-rule"
+              className="w-full flex items-center gap-2 px-4 py-3 text-sm text-text-primary hover:bg-primary-soft transition-colors text-left border-t border-border"
             >
               <Share2 size={14} /> Connect / manage accounts
             </button>
@@ -335,17 +335,17 @@ function DiagnosticErrorCard({ error, logs, onRetry, onReset, isRetrying }) {
       <div className="w-12 h-12 rounded-full bg-danger/10 border border-danger/20 flex items-center justify-center text-danger mb-4 shadow-sm">
         <AlertTriangle size={24} />
       </div>
-      <h3 className="text-base font-semibold text-ink mb-1.5">
+      <h3 className="text-base font-semibold text-text-primary mb-1.5">
         {diag.title}
       </h3>
-      <p className="text-xs text-muted leading-relaxed mb-4">
+      <p className="text-xs text-text-secondary leading-relaxed mb-4">
         {diag.cause}
       </p>
-      <div className="w-full p-3.5 rounded-card bg-paper2 border border-rule text-left mb-6 space-y-1.5">
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-ink2 block">
+      <div className="w-full p-3.5 rounded-card bg-surface border border-border text-left mb-6 space-y-1.5">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-text-secondary block">
           Recommended Action
         </span>
-        <p className="text-xs text-muted leading-relaxed">
+        <p className="text-xs text-text-secondary leading-relaxed">
           {diag.action}
         </p>
       </div>
@@ -391,27 +391,27 @@ function ClipSkeletonCard({ clipNumber, substage = 'rendering', percent = 0 }) {
     : 'Rendering...';
 
   return (
-    <div className="card p-4 rounded-card border border-rule/70 bg-paper2/60 animate-pulse space-y-3">
+    <div className="card p-4 rounded-card border border-border/70 bg-surface/60 animate-pulse space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded bg-paper3/80 flex items-center justify-center text-brass">
+          <div className="w-6 h-6 rounded bg-primary-soft/80 flex items-center justify-center text-text-primary">
             <Film size={13} />
           </div>
-          <span className="text-xs font-semibold text-ink">Clip {clipNumber}</span>
+          <span className="text-xs font-semibold text-text-primary">Clip {clipNumber}</span>
         </div>
-        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-brass/10 text-brass border border-brass/20 flex items-center gap-1">
+        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-primary/10 text-text-primary border border-primary/20 flex items-center gap-1">
           <Loader2 size={10} className="animate-spin" />
           {label} {percent > 0 ? `${Math.round(percent)}%` : ''}
         </span>
       </div>
-      <div className="w-full h-32 rounded-input bg-paper3/30 border border-rule/30 flex flex-col items-center justify-center gap-1.5 text-center px-3">
-        <Loader2 size={20} className="animate-spin text-brass/70" />
-        <span className="text-[11px] text-muted font-medium">Processing vertical clip</span>
-        <span className="text-[10px] text-muted/70">Appears here as soon as rendering completes</span>
+      <div className="w-full h-32 rounded-input bg-primary-soft/30 border border-border/30 flex flex-col items-center justify-center gap-1.5 text-center px-3">
+        <Loader2 size={20} className="animate-spin text-text-primary/70" />
+        <span className="text-[11px] text-text-secondary font-medium">Processing vertical clip</span>
+        <span className="text-[10px] text-text-secondary/70">Appears here as soon as rendering completes</span>
       </div>
       <div className="space-y-1.5 pt-1">
-        <div className="h-3 w-3/4 rounded bg-paper3/60" />
-        <div className="h-2.5 w-1/2 rounded bg-paper3/40" />
+        <div className="h-3 w-3/4 rounded bg-primary-soft/60" />
+        <div className="h-2.5 w-1/2 rounded bg-primary-soft/40" />
       </div>
     </div>
   );
@@ -1618,7 +1618,7 @@ function App() {
     <>
       <a
         href="#landing"
-        className="flex items-center gap-2 px-3 py-2 text-xs lowercase text-muted hover:text-ink2 transition-colors"
+        className="flex items-center gap-2 px-3 py-2 text-xs lowercase text-text-secondary hover:text-text-secondary transition-colors"
       >
         <Globe size={14} className="shrink-0" />
         <span className={collapsed ? 'hidden lg:block truncate' : 'truncate'}>landing page</span>
@@ -1627,7 +1627,7 @@ function App() {
         href={brandConfig.githubUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="flex items-center gap-2 px-3 py-2 text-xs lowercase text-muted hover:text-ink2 transition-colors"
+        className="flex items-center gap-2 px-3 py-2 text-xs lowercase text-text-secondary hover:text-text-secondary transition-colors"
       >
         <svg height="14" viewBox="0 0 16 16" version="1.1" width="14" aria-hidden="true" fill="currentColor" className="shrink-0"><path fillRule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
         <span className={collapsed ? 'hidden lg:block truncate' : 'truncate'}>open source</span>
@@ -1635,7 +1635,7 @@ function App() {
       {billingEnabled && (
         <a
           href="#/pricing"
-          className="flex items-center gap-2 px-3 py-2 text-xs lowercase text-muted hover:text-ink2 transition-colors"
+          className="flex items-center gap-2 px-3 py-2 text-xs lowercase text-text-secondary hover:text-text-secondary transition-colors"
         >
           <Sparkles size={14} className="shrink-0" />
           <span className={collapsed ? 'hidden lg:block truncate' : 'truncate'}>plans &amp; pricing</span>
@@ -1643,7 +1643,7 @@ function App() {
       )}
       <a
         href={`mailto:${brandConfig.supportEmail}`}
-        className="flex items-center gap-2 px-3 py-2 text-xs lowercase text-muted hover:text-ink2 transition-colors"
+        className="flex items-center gap-2 px-3 py-2 text-xs lowercase text-text-secondary hover:text-text-secondary transition-colors"
       >
         <Mail size={14} className="shrink-0" />
         <span className={collapsed ? 'hidden lg:block truncate' : 'truncate'}>{brandConfig.supportEmail}</span>
@@ -1654,12 +1654,12 @@ function App() {
   // Desktop rail: icon-only from md, labelled from lg. Below md it is gone
   // entirely — an unlabelled 80px rail ate a fifth of a phone screen.
   const Sidebar = () => (
-    <div className="hidden md:flex w-20 lg:w-64 bg-paper2 border-r border-rule flex-col h-full shrink-0 transition-all duration-300">
+    <div className="hidden md:flex w-20 lg:w-64 bg-surface border-r border-border flex-col h-full shrink-0 transition-all duration-300">
       <a href="#app" onClick={() => goToTab('dashboard')} className="p-6 flex items-center gap-3" title={`${brandConfig.name} home`}>
-        <div className="w-8 h-8 bg-paper3 rounded-input flex items-center justify-center shrink-0 overflow-hidden border border-rule">
+        <div className="w-8 h-8 bg-primary-soft rounded-btn flex items-center justify-center shrink-0 overflow-hidden border border-border">
           <img src={brandConfig.logo} alt="Logo" className="w-full h-full object-cover" />
         </div>
-        <span className="font-display lowercase text-lg text-ink hidden lg:block">{brandConfig.name}</span>
+        <span className="text-lg text-text-primary hidden lg:block" style={{ fontFamily: 'var(--font-brand)' }}>{brandConfig.name}</span>
       </a>
 
       <nav className="flex-1 px-4 py-4 space-y-1">
@@ -1673,12 +1673,12 @@ function App() {
               onClick={() => goToTab(item.id)}
               title={tabLocked(item.id) ? 'Finish your first clips to unlock' : item.label}
               disabled={tabLocked(item.id)}
-              className={`relative w-full flex items-center gap-3 px-3 py-2.5 rounded-input transition-colors ${isActive ? 'bg-paper3 text-ink' : 'text-muted hover:text-ink2 hover:bg-paper3/50'} ${tabLocked(item.id) ? 'opacity-40 cursor-not-allowed hover:bg-transparent hover:text-muted' : ''}`}
+              className={`relative w-full flex items-center gap-3 px-3 py-2.5 rounded-btn transition-colors ${isActive ? 'bg-primary-soft text-text-primary' : 'text-text-secondary hover:text-text-primary hover:bg-primary-soft/40'} ${tabLocked(item.id) ? 'opacity-40 cursor-not-allowed hover:bg-transparent hover:text-text-secondary' : ''}`}
             >
               {isActive && (
-                <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 bg-brass rounded-full" aria-hidden="true" />
+                <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 bg-primary rounded-full" aria-hidden="true" />
               )}
-              <NavIcon size={18} className={`shrink-0 ${isActive ? 'text-brass' : ''}`} />
+              <NavIcon size={18} className={`shrink-0 ${isActive ? 'text-primary' : ''}`} />
               <span className="text-sm lowercase hidden lg:block flex-1 text-left truncate">{item.label}</span>
               {tabLocked(item.id)
                 ? <Lock size={12} className="shrink-0 hidden lg:block" />
@@ -1690,7 +1690,7 @@ function App() {
         })}
       </nav>
 
-      <div className="p-4 border-t border-rule space-y-1">
+      <div className="p-4 border-t border-border space-y-1">
         <NavFooterLinks collapsed />
       </div>
     </div>
@@ -1709,18 +1709,18 @@ function App() {
         onClick={() => setNavOpen(false)}
         aria-hidden="true"
       />
-      <div className="relative w-[17rem] max-w-[82vw] h-full bg-paper2 border-r border-rule flex flex-col animate-slide-in-left">
-        <div className="flex items-center justify-between px-5 h-14 border-b border-rule shrink-0">
+      <div className="relative w-[17rem] max-w-[82vw] h-full bg-surface border-r border-border flex flex-col animate-slide-in-left">
+        <div className="flex items-center justify-between px-5 h-14 border-b border-border shrink-0">
           <a href="#app" className="flex items-center gap-2.5" onClick={() => goToTab('dashboard')}>
-            <div className="w-7 h-7 bg-paper3 rounded-input overflow-hidden border border-rule shrink-0">
+            <div className="w-7 h-7 bg-primary-soft rounded-btn overflow-hidden border border-border shrink-0">
               <img src={brandConfig.logo} alt="" className="w-full h-full object-cover" />
             </div>
-            <span className="font-display lowercase text-lg text-ink">{brandConfig.name}</span>
+            <span className="text-lg text-text-primary" style={{ fontFamily: 'var(--font-brand)' }}>{brandConfig.name}</span>
           </a>
           <button
             onClick={() => setNavOpen(false)}
             aria-label="close navigation"
-            className="p-2 -mr-2 text-muted hover:text-ink transition-colors"
+            className="p-2 -mr-2 text-text-secondary hover:text-text-primary transition-colors"
           >
             <X size={18} />
           </button>
@@ -1737,12 +1737,12 @@ function App() {
                 disabled={tabLocked(item.id)}
                 aria-current={isActive ? 'page' : undefined}
                 title={tabLocked(item.id) ? 'Finish your first clips to unlock' : undefined}
-                className={`relative w-full flex items-center gap-3 px-3 py-3 rounded-input transition-colors ${isActive ? 'bg-paper3 text-ink' : 'text-muted active:bg-paper3/60'} ${tabLocked(item.id) ? 'opacity-40 cursor-not-allowed' : ''}`}
+                className={`relative w-full flex items-center gap-3 px-3 py-3 rounded-btn transition-colors ${isActive ? 'bg-primary-soft text-text-primary' : 'text-text-secondary active:bg-primary-soft/40'} ${tabLocked(item.id) ? 'opacity-40 cursor-not-allowed' : ''}`}
               >
                 {isActive && (
-                  <span className="absolute left-0 top-2 bottom-2 w-0.5 bg-brass rounded-full" aria-hidden="true" />
+                  <span className="absolute left-0 top-2 bottom-2 w-0.5 bg-primary rounded-full" aria-hidden="true" />
                 )}
-                <NavIcon size={18} className={`shrink-0 ${isActive ? 'text-brass' : ''}`} />
+                <NavIcon size={18} className={`shrink-0 ${isActive ? 'text-primary' : ''}`} />
                 <span className="text-[0.95rem] lowercase flex-1 text-left truncate">{item.label}</span>
                 {tabLocked(item.id)
                   ? <Lock size={12} className="shrink-0" />
@@ -1753,7 +1753,7 @@ function App() {
           })}
         </nav>
 
-        <div className="px-3 py-3 border-t border-rule space-y-0.5 safe-bottom shrink-0">
+        <div className="px-3 py-3 border-t border-border space-y-0.5 safe-bottom shrink-0">
           <NavFooterLinks />
         </div>
       </div>
@@ -1767,7 +1767,7 @@ function App() {
     const tabs = navItems.filter((n) => n.primary);
     const moreActive = !tabs.some((t) => t.id === activeTab);
     return (
-      <nav className="md:hidden shrink-0 border-t border-rule bg-paper2/95 backdrop-blur-sm safe-bottom">
+      <nav className="md:hidden shrink-0 border-t border-border bg-surface/95 backdrop-blur-sm safe-bottom">
         <div className="flex items-stretch">
           {tabs.map((item) => {
             const NavIcon = item.icon;
@@ -1780,9 +1780,9 @@ function App() {
                 disabled={tabLocked(item.id)}
                 aria-current={isActive ? 'page' : undefined}
                 title={tabLocked(item.id) ? 'Finish your first clips to unlock' : undefined}
-                className={`flex-1 min-w-0 flex flex-col items-center justify-center gap-1 py-2 min-h-[56px] transition-colors ${isActive ? 'text-ink' : 'text-muted active:text-ink2'} ${tabLocked(item.id) ? 'opacity-40 cursor-not-allowed' : ''}`}
+                className={`flex-1 min-w-0 flex flex-col items-center justify-center gap-1 py-2 min-h-[56px] transition-colors ${isActive ? 'text-text-primary' : 'text-text-secondary active:text-text-secondary'} ${tabLocked(item.id) ? 'opacity-40 cursor-not-allowed' : ''}`}
               >
-                <NavIcon size={19} className={isActive ? 'text-brass' : ''} />
+                <NavIcon size={19} className={isActive ? 'text-text-primary' : ''} />
                 <span className="text-[10.5px] lowercase leading-none truncate max-w-full px-0.5">{item.short}</span>
               </button>
             );
@@ -1791,9 +1791,9 @@ function App() {
             onClick={() => setNavOpen(true)}
             aria-label="more sections"
             aria-expanded={navOpen}
-            className={`flex-1 min-w-0 flex flex-col items-center justify-center gap-1 py-2 min-h-[56px] transition-colors ${moreActive ? 'text-ink' : 'text-muted active:text-ink2'}`}
+            className={`flex-1 min-w-0 flex flex-col items-center justify-center gap-1 py-2 min-h-[56px] transition-colors ${moreActive ? 'text-text-primary' : 'text-text-secondary active:text-text-secondary'}`}
           >
-            <Menu size={19} className={moreActive ? 'text-brass' : ''} />
+            <Menu size={19} className={moreActive ? 'text-text-primary' : ''} />
             <span className="text-[10.5px] lowercase leading-none">more</span>
           </button>
         </div>
@@ -1805,24 +1805,24 @@ function App() {
     /* h-dvh where supported: on mobile Safari/Chrome `100vh` is the tallest the
        viewport ever gets, so a h-screen shell hides its own bottom bar behind
        the browser chrome until the user scrolls. */
-    <div className="flex h-screen supports-[height:100dvh]:h-[100dvh] bg-paper overflow-hidden">
+    <div className="flex h-screen supports-[height:100dvh]:h-[100dvh] bg-background overflow-hidden">
       <Sidebar />
       {navOpen && <MobileNavDrawer />}
 
       <main className="flex-1 min-w-0 flex flex-col h-full overflow-hidden relative">
         {/* Top Header */}
-        <header className="h-14 border-b border-rule bg-paper flex items-center justify-between gap-2 px-3 sm:px-6 shrink-0 z-10">
+        <header className="h-14 border-b border-border bg-background flex items-center justify-between gap-2 px-3 sm:px-6 shrink-0 z-10">
           <div className="flex items-center gap-2 sm:gap-4 min-w-0">
             {/* Mobile: the drawer handle, and the section name the icon rail
                 used to carry. Without it a phone has no "where am I". */}
             <button
               onClick={() => setNavOpen(true)}
               aria-label="open navigation"
-              className="md:hidden -ml-1 p-2 rounded-input text-muted active:bg-paper3 transition-colors shrink-0"
+              className="md:hidden -ml-1 p-2 rounded-input text-text-secondary active:bg-primary-soft transition-colors shrink-0"
             >
               <Menu size={20} />
             </button>
-            <span data-tutorial="nav-clips" className="md:hidden font-display lowercase text-base text-ink truncate">
+            <span data-tutorial="nav-clips" className="md:hidden font-display lowercase text-base text-text-primary truncate">
               {activeNav?.label || brandConfig.name}
             </span>
             {status !== 'idle' && (
@@ -1890,12 +1890,12 @@ function App() {
 
         {/* Persistent Missing Keys Banner — visible on every screen */}
         {keysMissing && activeTab !== 'settings' && (
-          <div className="mx-3 sm:mx-6 mt-3 px-3.5 sm:px-4 py-3 bg-paper2 border border-rule rounded-card flex flex-wrap items-center justify-between gap-2.5 sm:gap-4 shrink-0 animate-fade">
-            <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 text-sm text-ink2 min-w-0 flex-1">
+          <div className="mx-3 sm:mx-6 mt-3 px-3.5 sm:px-4 py-3 bg-surface border border-border rounded-card flex flex-wrap items-center justify-between gap-2.5 sm:gap-4 shrink-0 animate-fade">
+            <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 text-sm text-text-secondary min-w-0 flex-1">
               <KeyRound size={16} className="shrink-0 text-warn mt-0.5 sm:mt-0" />
               <div className="min-w-0">
-                <span className="font-medium text-ink">Required API key missing.</span>{' '}
-                <span className="text-muted">
+                <span className="font-medium text-text-primary">Required API key missing.</span>{' '}
+                <span className="text-text-secondary">
                   Set your Gemini API key to use {brandConfig.name}.
                 </span>
               </div>
@@ -1911,16 +1911,16 @@ function App() {
 
         {/* Session Recovery Banner */}
         {sessionRecovered && (
-          <div className="mx-3 sm:mx-6 mt-2 px-3.5 sm:px-4 py-3 bg-paper2 border border-rule rounded-card flex items-start justify-between gap-3 animate-fade shrink-0">
-            <div className="flex items-start sm:items-center gap-2 text-sm text-ink2 flex-wrap min-w-0">
-              <RotateCcw size={16} className="text-brass shrink-0 mt-0.5 sm:mt-0" />
+          <div className="mx-3 sm:mx-6 mt-2 px-3.5 sm:px-4 py-3 bg-surface border border-border rounded-card flex items-start justify-between gap-3 animate-fade shrink-0">
+            <div className="flex items-start sm:items-center gap-2 text-sm text-text-secondary flex-wrap min-w-0">
+              <RotateCcw size={16} className="text-text-primary shrink-0 mt-0.5 sm:mt-0" />
               <span className="font-medium">Session recovered</span>
-              <span className="text-muted text-xs">Your previous work has been restored.</span>
+              <span className="text-text-secondary text-xs">Your previous work has been restored.</span>
             </div>
             <button
               onClick={() => setSessionRecovered(false)}
               aria-label="dismiss"
-              className="text-muted hover:text-ink transition-colors shrink-0 -m-1 p-1"
+              className="text-text-secondary hover:text-text-primary transition-colors shrink-0 -m-1 p-1"
             >
               <X size={16} />
             </button>
@@ -1942,9 +1942,9 @@ function App() {
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-8">
                 <div>
                   <p className="eyebrow mb-1.5">08 · SETTINGS</p>
-                  <h1 className="font-display lowercase text-2xl text-ink">Settings</h1>
+                  <h1 className="font-display lowercase text-2xl text-text-primary">Settings</h1>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-muted mt-1">
+                <div className="flex items-center gap-2 text-xs text-text-secondary mt-1">
                   <Shield size={12} className="text-ok shrink-0" /> Privacy: keys only live in your browser (sent to backend just to process)
                 </div>
               </div>
@@ -1955,14 +1955,14 @@ function App() {
                 <div className="card p-6 mb-2">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-input bg-paper3 flex items-center justify-center shrink-0">
-                        <Shield size={16} className="text-brass" />
+                      <div className="w-9 h-9 rounded-input bg-primary-soft flex items-center justify-center shrink-0">
+                        <Shield size={16} className="text-text-primary" />
                       </div>
-                      <h2 className="text-base font-medium text-ink lowercase">Included in your plan</h2>
+                      <h2 className="text-base font-medium text-text-primary lowercase">Included in your plan</h2>
                     </div>
                     <span className="badge-ok">Managed</span>
                   </div>
-                  <p className="text-xs text-muted mb-5 leading-relaxed">
+                  <p className="text-xs text-text-secondary mb-5 leading-relaxed">
                     Your plan includes the <strong>Clip Generator</strong> and <strong>YouTube Studio</strong>,
                     fully managed — no API keys required. AI Shorts &amp; dubbing use your own fal.ai / ElevenLabs
                     keys (below). Connect your social accounts to publish directly.
@@ -1980,14 +1980,14 @@ function App() {
                 <div className="card p-6 mb-2">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-input bg-paper3 flex items-center justify-center shrink-0">
-                        <Sparkles size={16} className="text-brass" />
+                      <div className="w-9 h-9 rounded-input bg-primary-soft flex items-center justify-center shrink-0">
+                        <Sparkles size={16} className="text-text-primary" />
                       </div>
-                      <h2 className="text-base font-medium text-ink lowercase">Choose your plan</h2>
+                      <h2 className="text-base font-medium text-text-primary lowercase">Choose your plan</h2>
                     </div>
                     <span className="badge-ok">Free plan available</span>
                   </div>
-                  <p className="text-xs text-muted mb-5 leading-relaxed">
+                  <p className="text-xs text-text-secondary mb-5 leading-relaxed">
                     Generate shorts with zero setup — no API keys needed. Start free with 20 min/month, or go paid from $12/mo. Cancel anytime.
                   </p>
                   <button onClick={() => setShowPlanChoice(true)} className="btn-primary py-2 px-4 text-sm">
@@ -2001,19 +2001,19 @@ function App() {
               <div className="card p-4 sm:p-6 mt-8">
                 <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-input bg-paper3 flex items-center justify-center shrink-0">
-                      <Share2 size={16} className="text-brass" />
+                    <div className="w-9 h-9 rounded-input bg-primary-soft flex items-center justify-center shrink-0">
+                      <Share2 size={16} className="text-text-primary" />
                     </div>
-                    <h2 className="text-base font-medium text-ink lowercase">Social Integration</h2>
+                    <h2 className="text-base font-medium text-text-primary lowercase">Social Integration</h2>
                   </div>
-                  <span className="text-xs px-2 py-0.5 rounded-full border border-rule text-muted">Optional</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full border border-border text-text-secondary">Optional</span>
                 </div>
-                <p className="text-xs text-muted mb-6 leading-relaxed">
+                <p className="text-xs text-text-secondary mb-6 leading-relaxed">
                   Optional. Required to publish your clips to TikTok, Instagram Reels, and YouTube Shorts via <strong>Upload-Post</strong>.
                   Includes a <strong>free tier</strong> (no credit card required).
                 </p>
                 <div className="space-y-4">
-                  <label className="block text-sm text-muted">Upload-Post API Key</label>
+                  <label className="block text-sm text-text-secondary">Upload-Post API Key</label>
                   <div className="flex flex-col sm:flex-row gap-2">
                     <input
                       type="password"
@@ -2026,24 +2026,24 @@ function App() {
                       Connect
                     </button>
                   </div>
-                  <div className="text-xs text-muted leading-relaxed">
+                  <div className="text-xs text-text-secondary leading-relaxed">
                     Connect your Upload-Post account to enable one-click publishing.
                     <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
-                      <a href="https://app.upload-post.com/login" target="_blank" rel="noopener noreferrer" className="p-2 border border-rule rounded-input hover:bg-paper3 transition-colors flex flex-col gap-1">
-                        <span className="text-ink2 font-medium">1. Login</span>
-                        <span className="text-xs text-muted">Register account</span>
+                      <a href="https://app.upload-post.com/login" target="_blank" rel="noopener noreferrer" className="p-2 border border-border rounded-input hover:bg-primary-soft transition-colors flex flex-col gap-1">
+                        <span className="text-text-secondary font-medium">1. Login</span>
+                        <span className="text-xs text-text-secondary">Register account</span>
                       </a>
-                      <a href="https://app.upload-post.com/manage-users" target="_blank" rel="noopener noreferrer" className="p-2 border border-rule rounded-input hover:bg-paper3 transition-colors flex flex-col gap-1">
-                        <span className="text-ink2 font-medium">2. Profiles</span>
-                        <span className="text-xs text-muted">Create & Connect</span>
+                      <a href="https://app.upload-post.com/manage-users" target="_blank" rel="noopener noreferrer" className="p-2 border border-border rounded-input hover:bg-primary-soft transition-colors flex flex-col gap-1">
+                        <span className="text-text-secondary font-medium">2. Profiles</span>
+                        <span className="text-xs text-text-secondary">Create & Connect</span>
                       </a>
-                      <a href="https://app.upload-post.com/api-keys" target="_blank" rel="noopener noreferrer" className="p-2 border border-rule rounded-input hover:bg-paper3 transition-colors flex flex-col gap-1">
-                        <span className="text-ink2 font-medium">3. API Key</span>
-                        <span className="text-xs text-muted">Generate key</span>
+                      <a href="https://app.upload-post.com/api-keys" target="_blank" rel="noopener noreferrer" className="p-2 border border-border rounded-input hover:bg-primary-soft transition-colors flex flex-col gap-1">
+                        <span className="text-text-secondary font-medium">3. API Key</span>
+                        <span className="text-xs text-text-secondary">Generate key</span>
                       </a>
                     </div>
                     <br />
-                    <span className="text-muted">
+                    <span className="text-text-secondary">
                       Keys are only stored in your browser. They are sent to the backend only to process your request, never stored server-side.
                     </span>
                   </div>
@@ -2056,19 +2056,19 @@ function App() {
               <div className="card p-4 sm:p-6 mt-8">
                 <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-input bg-paper3 flex items-center justify-center shrink-0">
-                      <Globe size={16} className="text-brass" />
+                    <div className="w-9 h-9 rounded-input bg-primary-soft flex items-center justify-center shrink-0">
+                      <Globe size={16} className="text-text-primary" />
                     </div>
-                    <h2 className="text-base font-medium text-ink lowercase">Video Translation</h2>
+                    <h2 className="text-base font-medium text-text-primary lowercase">Video Translation</h2>
                   </div>
                   <span className="readout">BYOK</span>
                 </div>
-                <p className="text-xs text-muted mb-6 leading-relaxed">
+                <p className="text-xs text-text-secondary mb-6 leading-relaxed">
                   For <strong>AI Shorts &amp; dubbing</strong> — bring your own key. Translate your clips to different
                   languages using <strong>ElevenLabs</strong> AI dubbing (billed by ElevenLabs). Not covered by your plan.
                 </p>
                 <div className="space-y-4">
-                  <label className="block text-sm text-muted">ElevenLabs API Key</label>
+                  <label className="block text-sm text-text-secondary">ElevenLabs API Key</label>
                   <div className="flex flex-col sm:flex-row gap-2">
                     <input
                       type="password"
@@ -2090,20 +2090,20 @@ function App() {
                       {elevenLabsSaved ? <><Check size={12} /> saved</> : 'Save'}
                     </button>
                   </div>
-                  <div className="text-xs text-muted leading-relaxed">
+                  <div className="text-xs text-text-secondary leading-relaxed">
                     Get your API key from ElevenLabs to enable video translation.
                     <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      <a href="https://elevenlabs.io/sign-up" target="_blank" rel="noopener noreferrer" className="p-2 border border-rule rounded-input hover:bg-paper3 transition-colors flex flex-col gap-1">
-                        <span className="text-ink2 font-medium">1. Sign Up</span>
-                        <span className="text-xs text-muted">Create account</span>
+                      <a href="https://elevenlabs.io/sign-up" target="_blank" rel="noopener noreferrer" className="p-2 border border-border rounded-input hover:bg-primary-soft transition-colors flex flex-col gap-1">
+                        <span className="text-text-secondary font-medium">1. Sign Up</span>
+                        <span className="text-xs text-text-secondary">Create account</span>
                       </a>
-                      <a href="https://elevenlabs.io/app/settings/api-keys" target="_blank" rel="noopener noreferrer" className="p-2 border border-rule rounded-input hover:bg-paper3 transition-colors flex flex-col gap-1">
-                        <span className="text-ink2 font-medium">2. API Key</span>
-                        <span className="text-xs text-muted">Generate key</span>
+                      <a href="https://elevenlabs.io/app/settings/api-keys" target="_blank" rel="noopener noreferrer" className="p-2 border border-border rounded-input hover:bg-primary-soft transition-colors flex flex-col gap-1">
+                        <span className="text-text-secondary font-medium">2. API Key</span>
+                        <span className="text-xs text-text-secondary">Generate key</span>
                       </a>
                     </div>
                     <br />
-                    <span className="text-muted">
+                    <span className="text-text-secondary">
                       Keys are only stored in your browser. They are sent to the backend only to process your request, never stored server-side.
                     </span>
                   </div>
@@ -2113,20 +2113,20 @@ function App() {
               <div className="card p-4 sm:p-6 mt-8">
                 <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-input bg-paper3 flex items-center justify-center shrink-0">
-                      <Sparkles size={16} className="text-brass" />
+                    <div className="w-9 h-9 rounded-input bg-primary-soft flex items-center justify-center shrink-0">
+                      <Sparkles size={16} className="text-text-primary" />
                     </div>
-                    <h2 className="text-base font-medium text-ink lowercase">AI Shorts (UGC Videos)</h2>
+                    <h2 className="text-base font-medium text-text-primary lowercase">AI Shorts (UGC Videos)</h2>
                   </div>
                   <span className="readout">BYOK</span>
                 </div>
-                <p className="text-xs text-muted mb-6 leading-relaxed">
+                <p className="text-xs text-text-secondary mb-6 leading-relaxed">
                   Generate UGC-style videos with AI actors for any product or business using <strong>fal.ai</strong>.
                   <strong> Not covered by your plan</strong> — bring your own fal.ai + ElevenLabs keys (billed by those
                   providers, ~$0.65-2 per video). Your plan still covers the AI script &amp; orchestration.
                 </p>
                 <div className="space-y-4">
-                  <label className="block text-sm text-muted">fal.ai API Key</label>
+                  <label className="block text-sm text-text-secondary">fal.ai API Key</label>
                   <div className="flex flex-col sm:flex-row gap-2">
                     <input
                       type="password"
@@ -2148,20 +2148,20 @@ function App() {
                       {falSaved ? <><Check size={12} /> saved</> : 'Save'}
                     </button>
                   </div>
-                  <div className="text-xs text-muted leading-relaxed">
+                  <div className="text-xs text-text-secondary leading-relaxed">
                     Get your API key from fal.ai to enable AI actor video generation.
                     <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      <a href="https://fal.ai/dashboard/keys" target="_blank" rel="noopener noreferrer" className="p-2 border border-rule rounded-input hover:bg-paper3 transition-colors flex flex-col gap-1">
-                        <span className="text-ink2 font-medium">1. Sign Up</span>
-                        <span className="text-xs text-muted">Create fal.ai account</span>
+                      <a href="https://fal.ai/dashboard/keys" target="_blank" rel="noopener noreferrer" className="p-2 border border-border rounded-input hover:bg-primary-soft transition-colors flex flex-col gap-1">
+                        <span className="text-text-secondary font-medium">1. Sign Up</span>
+                        <span className="text-xs text-text-secondary">Create fal.ai account</span>
                       </a>
-                      <a href="https://fal.ai/dashboard/keys" target="_blank" rel="noopener noreferrer" className="p-2 border border-rule rounded-input hover:bg-paper3 transition-colors flex flex-col gap-1">
-                        <span className="text-ink2 font-medium">2. API Key</span>
-                        <span className="text-xs text-muted">Generate key</span>
+                      <a href="https://fal.ai/dashboard/keys" target="_blank" rel="noopener noreferrer" className="p-2 border border-border rounded-input hover:bg-primary-soft transition-colors flex flex-col gap-1">
+                        <span className="text-text-secondary font-medium">2. API Key</span>
+                        <span className="text-xs text-text-secondary">Generate key</span>
                       </a>
                     </div>
                     <br />
-                    <span className="text-muted">
+                    <span className="text-text-secondary">
                       Keys are only stored in your browser. Sent to backend only to process requests.
                     </span>
                   </div>
@@ -2185,20 +2185,20 @@ function App() {
                   <p className="eyebrow flex items-center gap-2">
                     <Bot size={12} /> 03 · AI AGENT · AUTONOMOUS SKILL
                   </p>
-                  <h1 className="font-display lowercase text-3xl md:text-4xl text-ink">
+                  <h1 className="font-display lowercase text-3xl md:text-4xl text-text-primary">
                     Your Personal Clipping Team
                   </h1>
-                  <p className="text-muted text-base md:text-lg leading-relaxed max-w-2xl">
+                  <p className="text-text-secondary text-base md:text-lg leading-relaxed max-w-2xl">
                     Drop your videos in a folder and a team of AI clippers picks the viral moments, edits them, and queues them for your approval — like having a 24/7 short-form editing crew on autopilot.
                   </p>
                 </div>
 
                 {/* Mobile-format warning */}
-                <div className="px-4 py-3 rounded-card border border-rule bg-paper2 flex items-start gap-3">
+                <div className="px-4 py-3 rounded-card border border-border bg-surface flex items-start gap-3">
                   <Smartphone size={18} className="text-warn shrink-0 mt-0.5" />
-                  <div className="text-sm text-ink2">
-                    <p className="font-medium text-ink mb-1">Upload videos already in vertical (9:16) mobile format.</p>
-                    <p className="text-muted leading-relaxed">
+                  <div className="text-sm text-text-secondary">
+                    <p className="font-medium text-text-primary mb-1">Upload videos already in vertical (9:16) mobile format.</p>
+                    <p className="text-text-secondary leading-relaxed">
                       The agent does not reframe horizontal footage. Make sure every source video is shot or pre-cropped to mobile/portrait format before dropping it into the input folder.
                     </p>
                   </div>
@@ -2207,31 +2207,31 @@ function App() {
                 {/* Workflow */}
                 <div className="grid md:grid-cols-3 gap-4">
                   <div className="card p-5 space-y-2">
-                    <div className="w-10 h-10 rounded-input bg-paper3 flex items-center justify-center">
-                      <Upload size={18} className="text-brass" />
+                    <div className="w-10 h-10 rounded-input bg-primary-soft flex items-center justify-center">
+                      <Upload size={18} className="text-text-primary" />
                     </div>
-                    <h3 className="font-medium text-ink lowercase">1. Drop your videos</h3>
-                    <p className="text-xs text-muted leading-relaxed">
+                    <h3 className="font-medium text-text-primary lowercase">1. Drop your videos</h3>
+                    <p className="text-xs text-text-secondary leading-relaxed">
                       Put your long-form vertical footage in the watched folder. The skill picks one video per run.
                     </p>
                   </div>
 
                   <div className="card p-5 space-y-2">
-                    <div className="w-10 h-10 rounded-input bg-paper3 flex items-center justify-center">
-                      <Users size={18} className="text-brass" />
+                    <div className="w-10 h-10 rounded-input bg-primary-soft flex items-center justify-center">
+                      <Users size={18} className="text-text-primary" />
                     </div>
-                    <h3 className="font-medium text-ink lowercase">2. AI clippers work</h3>
-                    <p className="text-xs text-muted leading-relaxed">
+                    <h3 className="font-medium text-text-primary lowercase">2. AI clippers work</h3>
+                    <p className="text-xs text-text-secondary leading-relaxed">
                       Whisper transcribes, Gemini 3 Flash spots viral beats, FFmpeg cuts each clip and adds a hook overlay.
                     </p>
                   </div>
 
                   <div className="card p-5 space-y-2">
-                    <div className="w-10 h-10 rounded-input bg-paper3 flex items-center justify-center">
-                      <CheckCircle2 size={18} className="text-brass" />
+                    <div className="w-10 h-10 rounded-input bg-primary-soft flex items-center justify-center">
+                      <CheckCircle2 size={18} className="text-text-primary" />
                     </div>
-                    <h3 className="font-medium text-ink lowercase">3. You validate, it ships</h3>
-                    <p className="text-xs text-muted leading-relaxed">
+                    <h3 className="font-medium text-text-primary lowercase">3. You validate, it ships</h3>
+                    <p className="text-xs text-text-secondary leading-relaxed">
                       Approve the candidates you like and the skill auto-publishes them to TikTok, Reels and YouTube Shorts via Upload-Post.
                     </p>
                   </div>
@@ -2241,8 +2241,8 @@ function App() {
                 <div className="card p-6 md:p-8 space-y-5">
                   <div className="flex items-start justify-between gap-4 flex-wrap">
                     <div>
-                      <h2 className="font-display lowercase text-xl text-ink mb-1">skill-autoshorts</h2>
-                      <p className="text-sm text-muted">
+                      <h2 className="font-display lowercase text-xl text-text-primary mb-1">skill-autoshorts</h2>
+                      <p className="text-sm text-text-secondary">
                         The Claude Code skill that powers this workflow. Install it once and trigger it whenever you want a fresh batch of clips.
                       </p>
                     </div>
@@ -2256,11 +2256,11 @@ function App() {
                     </a>
                   </div>
 
-                  <div className="bg-paper border border-rule rounded-card p-4 font-mono text-xs text-ink2 flex items-center justify-between gap-3">
+                  <div className="bg-background border border-border rounded-card p-4 font-mono text-xs text-text-secondary flex items-center justify-between gap-3">
                     <span className="truncate">git clone https://github.com/mutonby/skill-autoshorts</span>
                     <button
                       onClick={() => navigator.clipboard.writeText('git clone https://github.com/mutonby/skill-autoshorts')}
-                      className="text-muted hover:text-ink transition-colors shrink-0"
+                      className="text-text-secondary hover:text-text-primary transition-colors shrink-0"
                       title="Copy"
                     >
                       <Copy size={14} />
@@ -2268,20 +2268,20 @@ function App() {
                   </div>
 
                   <div className="grid sm:grid-cols-2 gap-3 text-sm">
-                    <div className="flex items-start gap-2 text-ink2">
-                      <Check size={16} className="text-brass shrink-0 mt-0.5" />
+                    <div className="flex items-start gap-2 text-text-secondary">
+                      <Check size={16} className="text-text-primary shrink-0 mt-0.5" />
                       <span>Daily batch — picks one long video per run</span>
                     </div>
-                    <div className="flex items-start gap-2 text-ink2">
-                      <Check size={16} className="text-brass shrink-0 mt-0.5" />
+                    <div className="flex items-start gap-2 text-text-secondary">
+                      <Check size={16} className="text-text-primary shrink-0 mt-0.5" />
                       <span>Whisper transcription with word-level timing</span>
                     </div>
-                    <div className="flex items-start gap-2 text-ink2">
-                      <Check size={16} className="text-brass shrink-0 mt-0.5" />
+                    <div className="flex items-start gap-2 text-text-secondary">
+                      <Check size={16} className="text-text-primary shrink-0 mt-0.5" />
                       <span>Gemini 3 Flash multimodal moment detection</span>
                     </div>
-                    <div className="flex items-start gap-2 text-ink2">
-                      <Check size={16} className="text-brass shrink-0 mt-0.5" />
+                    <div className="flex items-start gap-2 text-text-secondary">
+                      <Check size={16} className="text-text-primary shrink-0 mt-0.5" />
                       <span>Auto-publish to TikTok, Reels & YouTube Shorts</span>
                     </div>
                   </div>
@@ -2312,9 +2312,9 @@ function App() {
                   />
                 ) : (
                   <div className="max-w-2xl mx-auto card p-8 text-center">
-                    <Rocket size={28} className="mx-auto mb-4 text-brass" />
-                    <h1 className="font-display lowercase text-2xl text-ink mb-2">your channel, clipped on its own</h1>
-                    <p className="text-muted text-sm mb-6">
+                    <Rocket size={28} className="mx-auto mb-4 text-text-primary" />
+                    <h1 className="font-display lowercase text-2xl text-text-primary mb-2">your channel, clipped on its own</h1>
+                    <p className="text-text-secondary text-sm mb-6">
                       Connect your YouTube channel and every new video turns into shorts automatically.
                       Sign in to set it up.
                     </p>
@@ -2364,21 +2364,21 @@ function App() {
               <div className="max-w-xl w-full text-center space-y-5 sm:space-y-8">
                 <div className="space-y-2.5 sm:space-y-4">
                   <p className="eyebrow hidden sm:block">01 · CLIP GENERATOR</p>
-                  <h1 className="font-display lowercase text-3xl sm:text-4xl md:text-5xl text-ink">
+                  <h1 className="font-display lowercase text-3xl sm:text-4xl md:text-5xl text-text-primary">
                     Create Viral Shorts
                   </h1>
-                  <p className="text-muted text-[15px] sm:text-lg leading-snug sm:leading-normal max-w-sm sm:max-w-none mx-auto">
+                  <p className="text-text-secondary text-[15px] sm:text-lg leading-snug sm:leading-normal max-w-sm sm:max-w-none mx-auto">
                     Drop your long-form video below to instantly generate viral clips with AI.
                   </p>
                   {/* The same pipeline is an MCP server: point people at the
                       one place that explains how to drive it from an agent. */}
                   {!tutorialLock && (
-                  <p className="text-xs text-muted">
+                  <p className="text-xs text-text-secondary">
                     Or let an agent do it:{' '}
                     <a
                       href={billingEnabled ? '#/account' : '#app'}
                       onClick={(e) => { if (!billingEnabled) { e.preventDefault(); goToTab('settings'); } }}
-                      className="text-ink2 underline underline-offset-2 hover:text-brass transition-colors"
+                      className="text-text-secondary underline underline-offset-2 hover:text-text-primary transition-colors"
                     >
                       connect Claude, ChatGPT or n8n →
                     </a>
@@ -2388,7 +2388,7 @@ function App() {
 
                 <MediaInput onProcess={handleProcess} isProcessing={status === 'processing'} />
 
-                <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-8 text-muted text-xs sm:text-sm">
+                <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-8 text-text-secondary text-xs sm:text-sm">
                   <span className="flex items-center gap-2"><Youtube size={16} /> YouTube</span>
                   <span className="flex items-center gap-2"><Instagram size={16} /> Instagram</span>
                   <span className="flex items-center gap-2"><TikTokIcon size={16} /> TikTok</span>
@@ -2396,16 +2396,16 @@ function App() {
 
                 {/* Recent Projects on Dashboard Idle Screen */}
                 {recentProjects.length > 0 && (
-                  <div className="w-full text-left mt-6 pt-5 border-t border-rule space-y-3">
+                  <div className="w-full text-left mt-6 pt-5 border-t border-border space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-medium text-ink2 uppercase tracking-wider flex items-center gap-1.5">
-                        <FolderOpen size={14} className="text-brass" />
+                      <span className="text-xs font-medium text-text-secondary uppercase tracking-wider flex items-center gap-1.5">
+                        <FolderOpen size={14} className="text-text-primary" />
                         Recent Projects
                       </span>
                       <button
                         type="button"
                         onClick={() => goToTab('history')}
-                        className="text-xs text-brass hover:underline flex items-center gap-1"
+                        className="text-xs text-text-primary hover:underline flex items-center gap-1"
                       >
                         View all projects →
                       </button>
@@ -2415,19 +2415,19 @@ function App() {
                         <div
                           key={p.id || p.job_id}
                           onClick={() => restoreProject(p.id || p.job_id)}
-                          className="group flex items-center justify-between p-3 rounded-card bg-paper2 border border-rule hover:border-brass/50 hover:bg-paper3 cursor-pointer transition-all"
+                          className="group flex items-center justify-between p-3 rounded-card bg-surface border border-border hover:border-primary/50 hover:bg-primary-soft cursor-pointer transition-all"
                         >
                           <div className="min-w-0 flex-1 pr-3">
-                            <p className="text-sm font-medium text-ink group-hover:text-brass truncate transition-colors">
+                            <p className="text-sm font-medium text-text-primary group-hover:text-text-primary truncate transition-colors">
                               {p.title || p.id || 'Untitled Project'}
                             </p>
-                            <p className="text-xs text-muted mt-0.5">
+                            <p className="text-xs text-text-secondary mt-0.5">
                               {p.clip_count ?? p.clips?.length ?? 0} clips · {new Date(p.created_at || p.updated_at || Date.now()).toLocaleDateString()}
                             </p>
                           </div>
                           <button
                             type="button"
-                            className="btn-quiet py-1 px-2.5 text-xs shrink-0 group-hover:border-brass/50"
+                            className="btn-quiet py-1 px-2.5 text-xs shrink-0 group-hover:border-primary/50"
                           >
                             Open →
                           </button>
@@ -2448,8 +2448,8 @@ function App() {
               {/* Left Panel: Preview & Status */}
               <div className={`${status === 'complete' ? 'w-full md:w-[30%] lg:w-[25%]' : 'w-full md:w-[55%] lg:w-[60%]'} md:h-full flex flex-col shrink-0 md:shrink card p-3.5 sm:p-6 md:overflow-y-auto custom-scrollbar transition-all duration-700 ease-in-out`}>
                 <div className="mb-4 sm:mb-6 flex items-center justify-between gap-2">
-                  <h2 className="text-sm font-medium text-ink lowercase flex items-center gap-2">
-                    <Activity className={`text-brass ${status === 'processing' ? 'animate-pulse' : ''}`} size={18} />
+                  <h2 className="text-sm font-medium text-text-primary lowercase flex items-center gap-2">
+                    <Activity className={`text-text-primary ${status === 'processing' ? 'animate-pulse' : ''}`} size={18} />
                     Live Analysis
                   </h2>
                   <span className={status === 'processing' ? 'badge-brass' :
@@ -2465,18 +2465,18 @@ function App() {
                 {status === 'processing' && partialJob && !partialJob.chosen && plan === 'free' && isManaged && (
                   <button
                     onClick={() => openUpsell({ source: 'partial_processing', partialJob })}
-                    className="mb-4 w-full text-left rounded-card border border-brass/40 bg-brass/5 px-4 py-3 text-sm hover:border-brass transition-colors"
+                    className="mb-4 w-full text-left rounded-card border border-primary/40 bg-primary/5 px-4 py-3 text-sm hover:border-primary transition-colors"
                   >
-                    <span className="text-ink">Clipping the first {partialJob.processed_minutes} of {partialJob.total_minutes} minutes with your free minutes.</span>{' '}
-                    <span className="text-brass font-medium">Clip the whole video →</span>
+                    <span className="text-text-primary">Clipping the first {partialJob.processed_minutes} of {partialJob.total_minutes} minutes with your free minutes.</span>{' '}
+                    <span className="text-text-primary font-medium">Clip the whole video →</span>
                   </button>
                 )}
 
                 {/* Waiting in line: say where and for how long, and that paid
                     plans go first (they do: plan priority in the job queue). */}
                 {status === 'processing' && queueInfo && (
-                  <div className="mb-4 rounded-card border border-brass/40 bg-brass/5 px-4 py-3 text-sm">
-                    <p className="text-ink">
+                  <div className="mb-4 rounded-card border border-primary/40 bg-primary/5 px-4 py-3 text-sm">
+                    <p className="text-text-primary">
                       {queueInfo.ahead === 0
                         ? 'You are next in line. Starting in a moment…'
                         : <>You are <b>#{queueInfo.position}</b> in line · about <b>{Math.max(1, Math.round(queueInfo.eta_seconds / 60))} min</b></>}
@@ -2484,7 +2484,7 @@ function App() {
                     {billingEnabled && !['starter', 'creator', 'pro'].includes(plan) && queueInfo.ahead > 0 && (
                       <button
                         onClick={() => { track('QueueUpsellClick', { props: { position: String(queueInfo.position) } }); if (isManaged) openUpsell({ source: 'queue' }); else setShowPlanChoice(true); }}
-                        className="mt-2 text-xs lowercase text-brass hover:underline"
+                        className="mt-2 text-xs lowercase text-text-primary hover:underline"
                       >
                         paid plans skip the line →
                       </button>
@@ -2508,8 +2508,8 @@ function App() {
                     without this the screen would say nothing about what the job
                     is actually doing. The log tail is the real answer. */}
                 {status === 'processing' && (
-                  <div className="sm:hidden mb-3 flex items-start gap-2 text-xs text-ink2 min-w-0">
-                    <Loader2 size={14} className="animate-spin text-brass shrink-0 mt-px" />
+                  <div className="sm:hidden mb-3 flex items-start gap-2 text-xs text-text-secondary min-w-0">
+                    <Loader2 size={14} className="animate-spin text-text-primary shrink-0 mt-px" />
                     <span className="min-w-0 leading-snug break-words">
                       {logs.length ? logs[logs.length - 1] : 'starting up…'}
                     </span>
@@ -2542,15 +2542,15 @@ function App() {
                     below. Wrapping them all together dropped a lone half-width
                     "schedule week" pill under the title on a phone. */}
                 <div className="mb-4 sm:mb-6 shrink-0 space-y-3">
-                  <h2 className="font-display lowercase text-lg sm:text-xl text-ink flex flex-wrap items-center gap-2">
+                  <h2 className="font-display lowercase text-lg sm:text-xl text-text-primary flex flex-wrap items-center gap-2">
                     <span className="mr-auto">Generated Shorts</span>
                     {results?.clips?.length > 0 && (
-                      <span className="readout bg-paper3 px-2.5 py-1 rounded-full">
+                      <span className="readout bg-primary-soft px-2.5 py-1 rounded-full">
                         {results.clips.length} Clips
                       </span>
                     )}
                     {results?.cost_analysis && !isManaged && (
-                      <span className="readout bg-paper3 px-2.5 py-1 rounded-full" title={`Input: ${results.cost_analysis.input_tokens} | Output: ${results.cost_analysis.output_tokens}`}>
+                      <span className="readout bg-primary-soft px-2.5 py-1 rounded-full" title={`Input: ${results.cost_analysis.input_tokens} | Output: ${results.cost_analysis.output_tokens}`}>
                         GEMINI · ${results.cost_analysis.total_cost.toFixed(5)}
                       </span>
                     )}
@@ -2587,10 +2587,10 @@ function App() {
                     {partialJob && !partialJob.chosen && (
                       <button
                         onClick={() => openUpsell({ source: 'partial_banner', partialJob })}
-                        className="w-full text-left px-3 py-2.5 rounded-input bg-paper3 border border-brass/40 hover:border-brass text-sm transition-colors"
+                        className="w-full text-left px-3 py-2.5 rounded-input bg-primary-soft border border-primary/40 hover:border-primary text-sm transition-colors"
                       >
-                        <span className="text-ink">These clips come from the first {partialJob.processed_minutes} of {partialJob.total_minutes} minutes.</span>{' '}
-                        <span className="text-brass font-medium">Clip the whole video →</span>
+                        <span className="text-text-primary">These clips come from the first {partialJob.processed_minutes} of {partialJob.total_minutes} minutes.</span>{' '}
+                        <span className="text-text-primary font-medium">Clip the whole video →</span>
                       </button>
                     )}
                     {/* Peak-moment upsell: they just SAW their clips — sell while
@@ -2598,30 +2598,30 @@ function App() {
                     {firstVideoJob && !partialJob && (
                       <button
                         onClick={() => openUpsell({ source: 'first_video_banner' })}
-                        className="w-full text-left px-3 py-2.5 rounded-input bg-paper3 border border-brass/40 hover:border-brass text-sm transition-colors"
+                        className="w-full text-left px-3 py-2.5 rounded-input bg-primary-soft border border-primary/40 hover:border-primary text-sm transition-colors"
                       >
-                        <span className="text-ink">Your first video is on us: we clipped all of it.</span>{' '}
-                        <span className="text-muted">That used this month's free minutes.</span>{' '}
-                        <span className="text-brass font-medium">Keep clipping →</span>
+                        <span className="text-text-primary">Your first video is on us: we clipped all of it.</span>{' '}
+                        <span className="text-text-secondary">That used this month's free minutes.</span>{' '}
+                        <span className="text-text-primary font-medium">Keep clipping →</span>
                       </button>
                     )}
                     {plan === 'free' && (!partialJob || partialJob.chosen) && !firstVideoJob && (
                       <button
                         onClick={() => openUpsell({ source: 'results_banner' })}
-                        className="w-full text-left px-3 py-2.5 rounded-input bg-paper3 border border-brass/40 hover:border-brass text-sm transition-colors"
+                        className="w-full text-left px-3 py-2.5 rounded-input bg-primary-soft border border-primary/40 hover:border-primary text-sm transition-colors"
                       >
-                        <span className="text-ink">Like these clips?</span>{' '}
-                        <span className="text-muted">Upgrade and these exact clips lose the watermark on the spot, and stay for good.</span>{' '}
-                        <span className="text-brass font-medium">Remove the watermark →</span>
+                        <span className="text-text-primary">Like these clips?</span>{' '}
+                        <span className="text-text-secondary">Upgrade and these exact clips lose the watermark on the spot, and stay for good.</span>{' '}
+                        <span className="text-text-primary font-medium">Remove the watermark →</span>
                       </button>
                     )}
                     {showAutopilotNudge && (
-                      <div className="w-full flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 px-3 py-2.5 rounded-input bg-paper3 border border-rule text-sm">
+                      <div className="w-full flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 px-3 py-2.5 rounded-input bg-primary-soft border border-border text-sm">
                         <div className="flex items-start gap-3 flex-1 min-w-0">
-                          <Rocket size={16} className="text-brass shrink-0 mt-0.5" />
+                          <Rocket size={16} className="text-text-primary shrink-0 mt-0.5" />
                           <div className="min-w-0 leading-relaxed">
-                            <span className="text-ink">Want this for every new video, without coming back?</span>{' '}
-                            <span className="text-muted">
+                            <span className="text-text-primary">Want this for every new video, without coming back?</span>{' '}
+                            <span className="text-text-secondary">
                               Autopilot watches your YouTube channel and clips each new upload on its own
                               {plan === 'free' ? ', included in every paid plan.' : '.'}
                             </span>
@@ -2629,7 +2629,7 @@ function App() {
                           <button
                             onClick={() => dismissAutopilotNudge('AutopilotNudgeDismissed')}
                             aria-label="dismiss"
-                            className="sm:hidden shrink-0 -m-1 p-1 text-muted hover:text-ink"
+                            className="sm:hidden shrink-0 -m-1 p-1 text-text-secondary hover:text-text-primary"
                           >
                             <X size={16} />
                           </button>
@@ -2643,7 +2643,7 @@ function App() {
                         <button
                           onClick={() => dismissAutopilotNudge('AutopilotNudgeDismissed')}
                           aria-label="dismiss"
-                          className="hidden sm:block shrink-0 p-1 text-muted hover:text-ink"
+                          className="hidden sm:block shrink-0 p-1 text-text-secondary hover:text-text-primary"
                         >
                           <X size={14} />
                         </button>
@@ -2653,11 +2653,11 @@ function App() {
                         publishing them is one connect away. Hidden once any
                         network is linked or the user dismisses it. */}
                     {showSocialNudge && (
-                      <div className="w-full flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 px-3 py-2.5 rounded-input bg-paper3 border border-rule text-sm">
+                      <div className="w-full flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 px-3 py-2.5 rounded-input bg-primary-soft border border-border text-sm">
                         <div className="flex items-start gap-3 flex-1 min-w-0">
                           <div className="min-w-0 leading-relaxed">
-                            <span className="text-ink">Publish these clips straight from here.</span>{' '}
-                            <span className="text-muted">Connect your YouTube, TikTok or Instagram once — after that every clip is one click from posted.</span>
+                            <span className="text-text-primary">Publish these clips straight from here.</span>{' '}
+                            <span className="text-text-secondary">Connect your YouTube, TikTok or Instagram once — after that every clip is one click from posted.</span>
                           </div>
                           {/* On a phone the dismiss X rides the copy, so the CTA
                               below can run the full width of the card. */}
@@ -2668,7 +2668,7 @@ function App() {
                               try { localStorage.setItem('os_social_nudge_dismissed', '1'); } catch (_) { /* ignore */ }
                             }}
                             aria-label="dismiss"
-                            className="sm:hidden shrink-0 -m-1 p-1 text-muted hover:text-ink"
+                            className="sm:hidden shrink-0 -m-1 p-1 text-text-secondary hover:text-text-primary"
                           >
                             <X size={16} />
                           </button>
@@ -2686,7 +2686,7 @@ function App() {
                             try { localStorage.setItem('os_social_nudge_dismissed', '1'); } catch (_) { /* ignore */ }
                           }}
                           aria-label="dismiss"
-                          className="hidden sm:block shrink-0 p-1 text-muted hover:text-ink"
+                          className="hidden sm:block shrink-0 p-1 text-text-secondary hover:text-text-primary"
                         >
                           <X size={14} />
                         </button>
@@ -2695,9 +2695,9 @@ function App() {
                     {/* Self-host only: cloud archives clips to the video library,
                         here they really are gone once the retention sweep runs. */}
                     {!billingEnabled && jobRetentionSeconds > 0 && (
-                      <div className="px-3 py-2.5 rounded-input bg-paper3 border border-paper3 text-sm">
-                        <span className="text-ink">Clips are kept for {formatRetention(jobRetentionSeconds)}, then deleted.</span>{' '}
-                        <span className="text-muted">Download what you want to keep, or raise JOB_RETENTION_SECONDS in your env.</span>
+                      <div className="px-3 py-2.5 rounded-input bg-primary-soft border border-paper3 text-sm">
+                        <span className="text-text-primary">Clips are kept for {formatRetention(jobRetentionSeconds)}, then deleted.</span>{' '}
+                        <span className="text-text-secondary">Download what you want to keep, or raise JOB_RETENTION_SECONDS in your env.</span>
                       </div>
                     )}
                   </div>
@@ -2743,10 +2743,10 @@ function App() {
                     </div>
                   ) : (
                     status === 'processing' ? (
-                      <div className="h-full min-h-[160px] flex flex-col items-center justify-center text-muted space-y-3 text-center px-4">
-                        <Loader2 size={28} className="animate-spin text-brass" />
-                        <p className="text-sm font-medium text-ink2 lowercase">Analyzing video moments...</p>
-                        <p className="text-xs text-muted/80 max-w-[28ch] leading-relaxed">
+                      <div className="h-full min-h-[160px] flex flex-col items-center justify-center text-text-secondary space-y-3 text-center px-4">
+                        <Loader2 size={28} className="animate-spin text-text-primary" />
+                        <p className="text-sm font-medium text-text-secondary lowercase">Analyzing video moments...</p>
+                        <p className="text-xs text-text-secondary/80 max-w-[28ch] leading-relaxed">
                           Clips will appear here progressively as each finishes rendering.
                         </p>
                       </div>
@@ -2798,20 +2798,20 @@ function App() {
         }
       >
         <div className="space-y-4">
-          <p className="text-sm text-muted">
-            {brandConfig.name} needs a <strong className="text-ink2">Gemini</strong> API key to identify and score viral clips.
+          <p className="text-sm text-text-secondary">
+            {brandConfig.name} needs a <strong className="text-text-secondary">Gemini</strong> API key to identify and score viral clips.
           </p>
 
           {/* Gemini block */}
-          <div className={`rounded-input p-4 space-y-2 border ${!apiKey ? 'border-rule2' : 'border-rule opacity-70'}`}>
-            <p className="text-xs font-medium text-ink flex items-center gap-2">
+          <div className={`rounded-input p-4 space-y-2 border ${!apiKey ? 'border-border' : 'border-border opacity-70'}`}>
+            <p className="text-xs font-medium text-text-primary flex items-center gap-2">
               {apiKey ? <Check size={12} className="text-ok" /> : <AlertTriangle size={12} className="text-warn" />}
               Gemini API Key {apiKey && <span className="text-ok">— set</span>}
             </p>
             {!apiKey && (
               <>
-                <ol className="text-xs text-muted space-y-1 list-decimal list-inside">
-                  <li>Go to <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-brass underline">aistudio.google.com/app/apikey</a></li>
+                <ol className="text-xs text-text-secondary space-y-1 list-decimal list-inside">
+                  <li>Go to <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-text-primary underline">aistudio.google.com/app/apikey</a></li>
                   <li>Sign in with your Google account</li>
                   <li>Click "Create API Key"</li>
                   <li>Copy the key and paste it below</li>
@@ -2831,20 +2831,20 @@ function App() {
           </div>
 
           {/* Upload-Post block */}
-          <div className={`rounded-input p-4 space-y-2 border ${!uploadPostKey ? 'border-rule2' : 'border-rule opacity-70'}`}>
-            <p className="text-xs font-medium text-ink flex items-center gap-2">
-              {uploadPostKey ? <Check size={12} className="text-ok" /> : <AlertTriangle size={12} className="text-muted" />}
+          <div className={`rounded-input p-4 space-y-2 border ${!uploadPostKey ? 'border-border' : 'border-border opacity-70'}`}>
+            <p className="text-xs font-medium text-text-primary flex items-center gap-2">
+              {uploadPostKey ? <Check size={12} className="text-ok" /> : <AlertTriangle size={12} className="text-text-secondary" />}
               Upload-Post API Key (Optional) {uploadPostKey && <span className="text-ok">— set</span>}
             </p>
             {!uploadPostKey && (
               <>
-                <p className="text-xs text-muted">
+                <p className="text-xs text-text-secondary">
                   Optional. Required only to publish your clips directly to TikTok, Instagram Reels, and YouTube Shorts. Free tier available, no credit card needed.
                 </p>
-                <ol className="text-xs text-muted space-y-1 list-decimal list-inside">
-                  <li>Register at <a href="https://app.upload-post.com/login" target="_blank" rel="noopener noreferrer" className="text-brass underline">app.upload-post.com</a></li>
+                <ol className="text-xs text-text-secondary space-y-1 list-decimal list-inside">
+                  <li>Register at <a href="https://app.upload-post.com/login" target="_blank" rel="noopener noreferrer" className="text-text-primary underline">app.upload-post.com</a></li>
                   <li>Connect your TikTok, Instagram, or YouTube accounts</li>
-                  <li>Go to <a href="https://app.upload-post.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-brass underline">API Keys</a> and generate one</li>
+                  <li>Go to <a href="https://app.upload-post.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-text-primary underline">API Keys</a> and generate one</li>
                   <li>Paste it below</li>
                 </ol>
                 <input
@@ -2877,12 +2877,12 @@ function App() {
       {qualityGate && (
         <Modal isOpen={true} onClose={() => setQualityGate(null)} size="md" eyebrow="HEADS UP" title="low source quality">
           <div className="space-y-4">
-            <p className="text-sm text-ink2">
-              YouTube only offers <span className="text-brass font-semibold">{qualityGate.info.max_height}p</span> for this video
+            <p className="text-sm text-text-secondary">
+              YouTube only offers <span className="text-text-primary font-semibold">{qualityGate.info.max_height}p</span> for this video
               (below the {qualityGate.info.min_height}p we recommend). Processing anyway will produce lower-quality clips.
             </p>
             {qualityGate.info.cookies_invalid && (
-              <p className="text-xs text-muted">
+              <p className="text-xs text-text-secondary">
                 Your YouTube cookies look expired — refreshing them (export again from an incognito window) often unlocks HD.
               </p>
             )}

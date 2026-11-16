@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { ArrowDown, ArrowRight, Check, ChevronDown, Github, MoveRight, Cpu, KeyRound, Send, Server, HardDrive } from 'lucide-react';
 import PricingSection from './PricingSection';
 
@@ -77,7 +77,7 @@ const TRUST_CARDS = [
           href="https://github.com/mutonby/openshorts"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-ink underline decoration-1 underline-offset-2 hover:text-brass transition-colors"
+          className="text-text-primary underline decoration-1 underline-offset-2 hover:text-primary transition-colors"
         >
           GitHub
         </a>
@@ -112,22 +112,22 @@ const FAQItem = ({ question, answer, isOpen, onClick }) => (
       onClick={onClick}
       className="w-full flex items-center justify-between px-1 py-5 text-left"
     >
-      <span className="text-ink font-medium pr-4">{question}</span>
+      <span className="text-text-primary font-medium pr-4">{question}</span>
       <ChevronDown
         size={18}
-        className={`text-muted flex-shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+        className={`text-text-secondary flex-shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`}
       />
     </button>
     {isOpen && (
       <div className="px-1 pb-6">
-        <p className="text-muted text-sm leading-relaxed">{answer}</p>
+        <p className="text-text-secondary text-sm leading-relaxed">{answer}</p>
       </div>
     )}
   </div>
 );
 
 const DemoFigure = ({ src, label, className = '', children }) => (
-  <figure className={`border border-rule rounded-card overflow-hidden bg-paper2 ${className}`}>
+  <figure className={`border border-border rounded-card overflow-hidden bg-paper2 ${className}`}>
     <div className="relative">
       <video
         src={src}
@@ -140,7 +140,7 @@ const DemoFigure = ({ src, label, className = '', children }) => (
       />
       {children}
     </div>
-    <figcaption className="readout px-3 py-2 border-t border-rule">{label}</figcaption>
+    <figcaption className="readout px-3 py-2 border-t border-border">{label}</figcaption>
   </figure>
 );
 
@@ -153,12 +153,12 @@ export default function PricingPage({ onRequireLogin }) {
   };
 
   return (
-    <div className="min-h-screen bg-paper text-ink2 animate-fade">
+    <div className="min-h-screen bg-surface text-text-secondary animate-fade">
       {/* Header */}
       <header className="px-6 pt-20 pb-12">
         <div className="max-w-6xl mx-auto text-center">
           <p className="eyebrow mb-5">Pricing</p>
-          <h1 className="font-display lowercase text-ink tracking-tight text-4xl md:text-6xl leading-[1.02] mb-5">
+          <h1 className="font-display lowercase text-text-primary tracking-tight text-4xl md:text-6xl leading-[1.02] mb-5">
             start clipping in minutes.
           </h1>
           <p className="readout">first video free (up to 60 min) · then 20 min/month · no credit card</p>
@@ -171,8 +171,8 @@ export default function PricingPage({ onRequireLogin }) {
           <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-5 md:gap-6">
             <DemoFigure src="/demo/clip-source.mp4" label="input · 16:9" />
 
-            <MoveRight size={20} className="text-brass hidden md:block" aria-hidden="true" />
-            <ArrowDown size={20} className="text-brass md:hidden justify-self-center" aria-hidden="true" />
+            <MoveRight size={20} className="text-primary hidden md:block" aria-hidden="true" />
+            <ArrowDown size={20} className="text-primary md:hidden justify-self-center" aria-hidden="true" />
 
             <DemoFigure
               src="/demo/clip-vertical.mp4"
@@ -180,70 +180,70 @@ export default function PricingPage({ onRequireLogin }) {
               className="w-44 sm:w-48 justify-self-center md:justify-self-auto"
             />
           </div>
-          <p className="text-center text-xs text-muted lowercase mt-4">
+          <p className="text-center text-xs text-text-secondary lowercase mt-4">
             real output from the clip generator — same footage, reframed by AI face tracking.
           </p>
         </div>
       </section>
 
       {/* Pricing grid */}
-      <section id="pricing-plans" className="px-6 py-16 border-t border-rule scroll-mt-8">
+      <section id="pricing-plans" className="px-6 py-16 border-t border-border scroll-mt-8">
         <div className="max-w-6xl mx-auto">
           <PricingSection onRequireLogin={onRequireLogin} />
         </div>
       </section>
 
       {/* Hosted vs self-hosted: same software, different running costs. */}
-      <section className="px-6 py-16 border-t border-rule">
+      <section className="px-6 py-16 border-t border-border">
         <div className="max-w-5xl mx-auto">
           <div className="mb-8">
             <p className="eyebrow mb-3">Hosted or self-hosted</p>
-            <h2 className="font-display text-3xl md:text-4xl lowercase text-ink tracking-tight">
+            <h2 className="font-display text-3xl md:text-4xl lowercase text-text-primary tracking-tight">
               what you are actually paying for
             </h2>
-            <p className="text-muted text-sm mt-3 max-w-2xl leading-relaxed">
+            <p className="text-text-secondary text-sm mt-3 max-w-2xl leading-relaxed">
               The software is the same and it is open source either way. What a plan buys you is the
               hardware, the API keys and the setup, so here is exactly what that means.
             </p>
           </div>
 
-          <div className="hidden md:grid grid-cols-[9rem_1fr_1fr] gap-x-6 pb-2 mb-2 border-b border-rule">
+          <div className="hidden md:grid grid-cols-[9rem_1fr_1fr] gap-x-6 pb-2 mb-2 border-b border-border">
             <span />
             <span className="eyebrow">Hosted on this site</span>
             <span className="eyebrow">Self-hosted</span>
           </div>
 
-          <div className="divide-y divide-rule border-b border-rule">
+          <div className="divide-y divide-rule border-b border-border">
             {HOSTED_VS_SELF.map(({ icon: Icon, label, hosted, self }) => (
               <div key={label} className="py-4 grid gap-2 md:grid-cols-[9rem_1fr_1fr] md:gap-x-6 md:items-start">
-                <div className="flex items-center gap-2 text-ink2">
-                  <Icon size={15} className="text-muted shrink-0" />
+                <div className="flex items-center gap-2 text-text-secondary">
+                  <Icon size={15} className="text-text-secondary shrink-0" />
                   <span className="text-sm font-medium">{label}</span>
                 </div>
                 <div>
                   <span className="eyebrow block mb-1 md:hidden">Hosted on this site</span>
-                  <p className="text-sm text-ink2 leading-relaxed">
+                  <p className="text-sm text-text-secondary leading-relaxed">
                     <Check size={14} className="text-ok inline-block mr-1.5 -mt-0.5" />
                     {hosted}
                   </p>
                 </div>
                 <div>
                   <span className="eyebrow block mb-1 mt-2 md:hidden">Self-hosted</span>
-                  <p className="text-sm text-muted leading-relaxed">{self}</p>
+                  <p className="text-sm text-text-secondary leading-relaxed">{self}</p>
                 </div>
               </div>
             ))}
           </div>
 
           <div className="mt-6 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
-            <p className="text-xs text-muted leading-relaxed max-w-xl">
+            <p className="text-xs text-text-secondary leading-relaxed max-w-xl">
               Self-hosting is genuinely free and always will be. It costs you a machine, your own API
               keys and the time to keep it running.
             </p>
             <a
               href="https://github.com/mutonby/openshorts"
               target="_blank" rel="noopener noreferrer"
-              className="shrink-0 text-sm text-muted hover:text-ink transition-colors inline-flex items-center gap-1.5"
+              className="shrink-0 text-sm text-text-secondary hover:text-text-primary transition-colors inline-flex items-center gap-1.5"
             >
               <Github size={15} /> View the source
             </a>
@@ -252,7 +252,7 @@ export default function PricingPage({ onRequireLogin }) {
       </section>
 
       {/* Trust strip */}
-      <section className="px-6 py-16 border-t border-rule">
+      <section className="px-6 py-16 border-t border-border">
         <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-4">
           {TRUST_CARDS.map((card) => (
             <div key={card.eyebrow} className="card p-6">
@@ -260,22 +260,22 @@ export default function PricingPage({ onRequireLogin }) {
                 <Check size={16} className="text-ok shrink-0" />
                 <span className="eyebrow">{card.eyebrow}</span>
               </div>
-              <p className="text-sm text-muted leading-relaxed">{card.body}</p>
+              <p className="text-sm text-text-secondary leading-relaxed">{card.body}</p>
             </div>
           ))}
         </div>
       </section>
 
       {/* Mini FAQ */}
-      <section className="px-6 py-16 border-t border-rule">
+      <section className="px-6 py-16 border-t border-border">
         <div className="max-w-3xl mx-auto">
           <div className="mb-10">
             <p className="eyebrow mb-3">Billing · FAQ</p>
-            <h2 className="font-display text-3xl md:text-4xl lowercase text-ink tracking-tight">
+            <h2 className="font-display text-3xl md:text-4xl lowercase text-text-primary tracking-tight">
               common questions
             </h2>
           </div>
-          <div className="divide-y divide-rule border-y border-rule">
+          <div className="divide-y divide-rule border-y border-border">
             {FAQS.map((faq, i) => (
               <FAQItem
                 key={i}
@@ -290,9 +290,9 @@ export default function PricingPage({ onRequireLogin }) {
       </section>
 
       {/* Closing statement */}
-      <section className="px-6 py-24 border-t border-rule">
+      <section className="px-6 py-24 border-t border-border">
         <div className="max-w-3xl mx-auto text-center">
-          <h2 className="font-display text-4xl md:text-5xl lowercase text-ink tracking-tight mb-10">
+          <h2 className="font-display text-4xl md:text-5xl lowercase text-text-primary tracking-tight mb-10">
             twenty free minutes. every month. no card until you decide.
           </h2>
           <div className="flex flex-wrap items-center justify-center gap-4">

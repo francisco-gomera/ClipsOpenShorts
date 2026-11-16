@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Sparkles, Zap, Globe, FileVideo, Subtitles, Youtube, Instagram, Shield, Github, ArrowRight, Check, ChevronDown, Monitor, Cpu, Languages, Type, Upload, Scissors, Link2, Bot } from 'lucide-react';
 import PricingSection from './components/PricingSection';
 import SiteNav from './components/SiteNav';
@@ -73,8 +73,8 @@ const DEMOS = [
 const SectionHeader = ({ eyebrow, title, children }) => (
   <div className="mb-12">
     <p className="eyebrow mb-3">{eyebrow}</p>
-    <h2 className="font-display text-3xl md:text-4xl lowercase text-ink tracking-tight mb-4">{title}</h2>
-    {children && <p className="text-muted max-w-2xl leading-relaxed">{children}</p>}
+    <h2 className="font-display text-3xl md:text-4xl lowercase text-text-primary tracking-tight mb-4">{title}</h2>
+    {children && <p className="text-text-secondary max-w-2xl leading-relaxed">{children}</p>}
   </div>
 );
 
@@ -148,8 +148,8 @@ function ShowcaseMedia({ media }) {
         {CAPTION_STYLES.map(([id, label]) => (
           <figure key={id} className="m-0 min-w-0">
             <video src={`/demo/caption-${id}.mp4`} poster={`/screens/caption-${id}.webp`} autoPlay muted loop playsInline
-              preload="metadata" className="w-full aspect-[9/16] object-cover block rounded-card border border-rule" />
-            <figcaption className="readout text-[10px] text-muted mt-2 text-center">{label}</figcaption>
+              preload="metadata" className="w-full aspect-[9/16] object-cover block rounded-card border border-border" />
+            <figcaption className="readout text-[10px] text-text-secondary mt-2 text-center">{label}</figcaption>
           </figure>
         ))}
       </div>
@@ -157,7 +157,7 @@ function ShowcaseMedia({ media }) {
   }
   return (
     <img src={media.src} alt={media.alt} width={media.w} height={media.h} loading="lazy"
-      className="w-full h-auto block rounded-card border border-rule" />
+      className="w-full h-auto block rounded-card border border-border" />
   );
 }
 
@@ -180,18 +180,18 @@ function FeatureShowcase() {
             role="tab"
             aria-selected={i === active}
             onClick={() => { setActive(i); setAuto(false); }}
-            className={`relative shrink-0 text-left rounded-card border px-4 py-3 text-sm lowercase transition-colors overflow-hidden ${i === active ? 'border-brass text-ink bg-paper2' : 'border-rule text-muted hover:text-ink'}`}
+            className={`relative shrink-0 text-left rounded-card border px-4 py-3 text-sm lowercase transition-colors overflow-hidden ${i === active ? 'border-primary text-text-primary bg-paper2' : 'border-border text-text-secondary hover:text-text-primary'}`}
           >
             {f.tab}
             {i === active && auto && (
-              <span key={`p-${active}`} className="showcase-progress absolute left-0 bottom-0 h-0.5 bg-brass" aria-hidden="true" />
+              <span key={`p-${active}`} className="showcase-progress absolute left-0 bottom-0 h-0.5 bg-primary" aria-hidden="true" />
             )}
           </button>
         ))}
       </div>
       <div key={item.id} className="showcase-in min-w-0" role="tabpanel">
-        <h3 className="font-display text-3xl md:text-4xl lowercase text-ink mb-3">{item.title}</h3>
-        <p className="text-muted max-w-2xl mb-6 leading-relaxed">{item.body}</p>
+        <h3 className="font-display text-3xl md:text-4xl lowercase text-text-primary mb-3">{item.title}</h3>
+        <p className="text-text-secondary max-w-2xl mb-6 leading-relaxed">{item.body}</p>
         <ShowcaseMedia media={item.media} />
       </div>
     </div>
@@ -203,29 +203,29 @@ const FeatureCard = ({ icon, title, description }) => {
   return (
     <div className="card card-hover p-6">
       <div className="w-10 h-10 rounded-input bg-paper3 flex items-center justify-center mb-4">
-        <Icon size={18} className="text-brass" />
+        <Icon size={18} className="text-primary" />
       </div>
-      <h3 className="font-display text-xl lowercase text-ink mb-2">{title}</h3>
-      <p className="text-muted text-sm leading-relaxed">{description}</p>
+      <h3 className="font-display text-xl lowercase text-text-primary mb-2">{title}</h3>
+      <p className="text-text-secondary text-sm leading-relaxed">{description}</p>
     </div>
   );
 };
 
 const StepCard = ({ number, title, description }) => (
   <div className="flex gap-5">
-    <span className="font-mono text-micro text-brass uppercase pt-1.5 flex-shrink-0">
+    <span className="font-mono text-micro text-primary uppercase pt-1.5 flex-shrink-0">
       {String(number).padStart(2, '0')}
     </span>
     <div>
-      <h3 className="text-ink font-medium mb-1">{title}</h3>
-      <p className="text-muted text-sm leading-relaxed">{description}</p>
+      <h3 className="text-text-primary font-medium mb-1">{title}</h3>
+      <p className="text-text-secondary text-sm leading-relaxed">{description}</p>
     </div>
   </div>
 );
 
 const ComparisonRow = ({ feature, openshorts, opusclip, kapwing }) => (
-  <tr className="border-b border-rule">
-    <td className="py-3 px-4 text-sm text-ink2">{feature}</td>
+  <tr className="border-b border-border">
+    <td className="py-3 px-4 text-sm text-text-secondary">{feature}</td>
     <td className="py-3 px-4 text-center">{openshorts}</td>
     <td className="py-3 px-4 text-center">{opusclip}</td>
     <td className="py-3 px-4 text-center">{kapwing}</td>
@@ -238,12 +238,12 @@ const FAQItem = ({ question, answer, isOpen, onClick }) => (
       onClick={onClick}
       className="w-full flex items-center justify-between px-1 py-5 text-left"
     >
-      <span className="text-ink font-medium pr-4">{question}</span>
-      <ChevronDown size={18} className={`text-muted flex-shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      <span className="text-text-primary font-medium pr-4">{question}</span>
+      <ChevronDown size={18} className={`text-text-secondary flex-shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
     </button>
     {isOpen && (
       <div className="px-1 pb-6">
-        <p className="faq-answer text-muted text-sm leading-relaxed">{answer}</p>
+        <p className="faq-answer text-text-secondary text-sm leading-relaxed">{answer}</p>
       </div>
     )}
   </div>
@@ -251,7 +251,7 @@ const FAQItem = ({ question, answer, isOpen, onClick }) => (
 
 // Internal links to the per-platform pages. The same links, in the same order,
 // are in seo/landing-fallback.js so they exist in the static HTML too.
-const LINK = 'text-ink2 underline underline-offset-2 hover:text-ink transition-colors';
+const LINK = 'text-text-secondary underline underline-offset-2 hover:text-text-primary transition-colors';
 
 const WORKS_WITH = [
   ['/platforms/youtube', 'youtube'],
@@ -561,17 +561,17 @@ export default function Landing({ onLaunchApp }) {
     }
   ];
 
-  const checkIcon = <Check size={16} className="text-brass mx-auto" />;
-  const checkMuted = <Check size={16} className="text-muted mx-auto" />;
-  const xIcon = <span className="text-muted text-sm">Paid</span>;
+  const checkIcon = <Check size={16} className="text-primary mx-auto" />;
+  const checkMuted = <Check size={16} className="text-text-secondary mx-auto" />;
+  const xIcon = <span className="text-text-secondary text-sm">Paid</span>;
 
   return (
-    <div className="min-h-screen bg-paper text-ink2 overflow-x-clip">
+    <div className="min-h-screen bg-surface text-text-secondary overflow-x-clip">
       {/* Navigation: the shared site nav (seo/nav.js), same items as every page */}
       <SiteNav className="fixed top-0 w-full z-50" />
 
       {/* Hero — Marquee Hero: blueprint grid, content left, apparatus right */}
-      <section className="hero-blueprint relative overflow-clip border-b border-rule pt-32 pb-20 px-6">
+      <section className="hero-blueprint relative overflow-clip border-b border-border pt-32 pb-20 px-6">
         <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_auto] gap-14 items-center">
           <div className="min-w-0">
             <p className="eyebrow mb-6">00 · Free AI Clip Generator · Open Source</p>
@@ -582,7 +582,7 @@ export default function Landing({ onLaunchApp }) {
               <span className="block"><em>viral shorts</em> out.</span>
             </h1>
 
-            <p className="hero-description text-muted max-w-2xl mb-8 leading-relaxed lowercase">
+            <p className="hero-description text-text-secondary max-w-2xl mb-8 leading-relaxed lowercase">
               paste a youtube link or upload a podcast, stream or interview. the ai picks the 3 to 15 moments worth posting,
               reframes them to 9:16 around the people talking, and burns in the captions. ready for tiktok, reels and shorts in minutes.
             </p>
@@ -593,7 +593,7 @@ export default function Landing({ onLaunchApp }) {
             <form onSubmit={handleHeroSubmit} className="mb-5">
               <div className="hero-input-row flex flex-col sm:flex-row items-stretch gap-3">
                 <div className="relative flex-1 min-w-0">
-                  <Link2 size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
+                  <Link2 size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
                   <input
                     type="url"
                     value={heroUrl}
@@ -620,22 +620,22 @@ export default function Landing({ onLaunchApp }) {
               <span className="badge-ok whitespace-nowrap">
                 <Check size={12} /> no credit card required
               </span>
-              <span className="text-muted lowercase">first video free (up to 60 min) · then 20 min every month</span>
+              <span className="text-text-secondary lowercase">first video free (up to 60 min) · then 20 min every month</span>
             </div>
 
-            <p className="text-sm text-muted lowercase">
-              <a href="#pricing" className="underline underline-offset-2 hover:text-ink">paid plans from $12/mo</a> without watermark. prefer to run it yourself?{' '}
+            <p className="text-sm text-text-secondary lowercase">
+              <a href="#pricing" className="underline underline-offset-2 hover:text-text-primary">paid plans from $12/mo</a> without watermark. prefer to run it yourself?{' '}
               <a
                 href="https://github.com/mutonby/openshorts"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-ink2 underline hover:text-ink transition-colors"
+                className="text-text-secondary underline hover:text-text-primary transition-colors"
               >
                 self-host free on github →
               </a>
             </p>
 
-            <p className="mt-4 text-sm text-muted lowercase">
+            <p className="mt-4 text-sm text-text-secondary lowercase">
               works with links from{' '}
               {WORKS_WITH.map(([href, label], i) => (
                 <React.Fragment key={href}>
@@ -676,7 +676,7 @@ export default function Landing({ onLaunchApp }) {
       </section>
 
       {/* Proof: real usage numbers. Update by hand; never round them up. */}
-      <section className="border-b border-rule">
+      <section className="border-b border-border">
         <div className="max-w-6xl mx-auto px-6 py-12 grid grid-cols-2 md:grid-cols-4 gap-y-8 md:divide-x divide-rule text-center">
           {[
             ['20,000+', 'accounts created'],
@@ -685,7 +685,7 @@ export default function Landing({ onLaunchApp }) {
             ['6.1k', 'github stars'],
           ].map(([n, label]) => (
             <div key={label} className="px-4">
-              <div className="font-display text-4xl md:text-5xl text-ink tabular-nums">{n}</div>
+              <div className="font-display text-4xl md:text-5xl text-text-primary tabular-nums">{n}</div>
               <div className="eyebrow mt-2">{label}</div>
             </div>
           ))}
@@ -702,9 +702,9 @@ export default function Landing({ onLaunchApp }) {
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {PLATFORMS.map((p) => (
               <div key={p.title} className="card p-6 flex flex-col">
-                <p.icon size={18} className="text-brass mb-4" />
-                <h3 className="font-display text-xl lowercase text-ink mb-2">{p.title}</h3>
-                <p className="text-muted text-sm leading-relaxed mb-4">{p.text}</p>
+                <p.icon size={18} className="text-primary mb-4" />
+                <h3 className="font-display text-xl lowercase text-text-primary mb-2">{p.title}</h3>
+                <p className="text-text-secondary text-sm leading-relaxed mb-4">{p.text}</p>
                 <ul className="mt-auto space-y-1.5 text-sm lowercase">
                   {p.links.map(([href, label]) => (
                     <li key={href}><a href={href} className={LINK}>{label} →</a></li>
@@ -720,14 +720,14 @@ export default function Landing({ onLaunchApp }) {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-20 px-6 border-t border-rule">
+      <section id="features" className="py-20 px-6 border-t border-border">
         <div className="max-w-6xl mx-auto">
           <SectionHeader eyebrow="01 · Features" title="AI clipping that finds the moments worth posting">
             Screens from the app and clips it made. Pick a feature, or let it play.
           </SectionHeader>
           <FeatureShowcase />
           <details className="mt-12 group">
-            <summary className="list-none cursor-pointer text-sm text-muted hover:text-ink lowercase [&::-webkit-details-marker]:hidden">
+            <summary className="list-none cursor-pointer text-sm text-text-secondary hover:text-text-primary lowercase [&::-webkit-details-marker]:hidden">
               the full feature list <ChevronDown size={14} className="inline transition-transform group-open:rotate-180" />
             </summary>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5 mt-6">
@@ -742,34 +742,34 @@ export default function Landing({ onLaunchApp }) {
       {/* One video in, many clips out: the real clips OpenShorts cut from one
           CC BY episode with default settings, with the score the AI gave each.
           The pattern the market leader opens with, shown with our own output. */}
-      <section className="py-20 px-6 border-b border-rule">
+      <section className="py-20 px-6 border-b border-border">
         <div className="max-w-6xl mx-auto">
           <SectionHeader eyebrow="02 · One Video, Six Clips" title="one 27-minute episode in. six ready-to-post clips out.">
             No prompts, no settings and no scrubbing: the AI scored every moment, kept the six that stand on their own and cut them with captions and a hook.
           </SectionHeader>
           <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,15rem)_auto_minmax(0,1fr)] gap-6 items-center">
             <figure className="m-0 max-w-[16rem] lg:max-w-none">
-              <div className="relative rounded-card overflow-hidden border border-rule">
+              <div className="relative rounded-card overflow-hidden border border-border">
                 <img src="/screens/ep-source.webp" alt="The original 16:9 podcast episode" width="640" height="360" loading="lazy" className="block w-full h-auto" />
-                <span className="absolute bottom-2 right-2 readout bg-paper/80 px-2 py-0.5 rounded">26:54</span>
+                <span className="absolute bottom-2 right-2 readout bg-surface/80 px-2 py-0.5 rounded">26:54</span>
               </div>
-              <figcaption className="text-xs text-muted mt-2">the full episode, 16:9</figcaption>
+              <figcaption className="text-xs text-text-secondary mt-2">the full episode, 16:9</figcaption>
             </figure>
-            <ArrowRight size={28} className="text-brass mx-auto rotate-90 lg:rotate-0" aria-hidden="true" />
+            <ArrowRight size={28} className="text-primary mx-auto rotate-90 lg:rotate-0" aria-hidden="true" />
             <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
               {EPISODE_CLIPS.map((c) => (
                 <figure key={c.n} className="m-0 min-w-0">
-                  <div className="relative rounded-card overflow-hidden border border-rule bg-paper2">
+                  <div className="relative rounded-card overflow-hidden border border-border bg-paper2">
                     <LazyLoopVideo src={`/demo/ep-clip-${c.n}.mp4`} poster={`/screens/ep-clip-${c.n}.webp`} />
-                    <span className="absolute top-1.5 left-1.5 readout text-[10px] bg-paper/85 text-ok px-1.5 py-0.5 rounded">score {c.score}</span>
+                    <span className="absolute top-1.5 left-1.5 readout text-[10px] bg-surface/85 text-ok px-1.5 py-0.5 rounded">score {c.score}</span>
                   </div>
-                  <figcaption className="text-xs text-ink2 mt-2 leading-snug">{c.title}</figcaption>
+                  <figcaption className="text-xs text-text-secondary mt-2 leading-snug">{c.title}</figcaption>
                 </figure>
               ))}
             </div>
           </div>
-          <p className="mt-6 text-xs text-muted">
-            Source: <a href="https://www.youtube.com/watch?v=-KbQj_vboOU" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-ink">Turn the Tables with Dan and Shoshana Jordan</a>, Heritage of Faith, licensed CC BY. Clipped by OpenShorts, scores as the AI gave them.
+          <p className="mt-6 text-xs text-text-secondary">
+            Source: <a href="https://www.youtube.com/watch?v=-KbQj_vboOU" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-text-primary">Turn the Tables with Dan and Shoshana Jordan</a>, Heritage of Faith, licensed CC BY. Clipped by OpenShorts, scores as the AI gave them.
           </p>
         </div>
       </section>
@@ -789,7 +789,7 @@ export default function Landing({ onLaunchApp }) {
                   role="tab"
                   aria-selected={cropDemo === i}
                   onClick={() => setCropDemo(i)}
-                  className={`px-4 py-1.5 rounded-full border text-sm lowercase transition-colors ${cropDemo === i ? 'bg-brass text-brassink border-brass' : 'border-rule text-muted hover:text-ink'}`}
+                  className={`px-4 py-1.5 rounded-full border text-sm lowercase transition-colors ${cropDemo === i ? 'bg-primary text-brassink border-primary' : 'border-border text-text-secondary hover:text-text-primary'}`}
                 >
                   {d.tab}
                 </button>
@@ -811,8 +811,8 @@ export default function Landing({ onLaunchApp }) {
               className="w-full h-auto block"
             />
           </figure>
-          <p className="mt-6 text-xs text-muted">
-            Source: <a href={DEMOS[cropDemo].creditUrl} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-ink">{DEMOS[cropDemo].credit}</a>, {DEMOS[cropDemo].creditBy}, licensed CC BY. Clipped by OpenShorts.
+          <p className="mt-6 text-xs text-text-secondary">
+            Source: <a href={DEMOS[cropDemo].creditUrl} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-text-primary">{DEMOS[cropDemo].credit}</a>, {DEMOS[cropDemo].creditBy}, licensed CC BY. Clipped by OpenShorts.
           </p>
           <div className="mt-10 flex flex-wrap items-center gap-4">
             <button
@@ -825,13 +825,13 @@ export default function Landing({ onLaunchApp }) {
             >
               try it on your own video <ArrowRight size={16} />
             </button>
-            <span className="text-sm text-muted">first video free up to 60 min, no credit card</span>
+            <span className="text-sm text-text-secondary">first video free up to 60 min, no credit card</span>
           </div>
         </div>
       </section>
 
       {/* How It Works Section */}
-      <section id="how-it-works" className="py-20 px-6 border-t border-rule">
+      <section id="how-it-works" className="py-20 px-6 border-t border-border">
         <div className="max-w-4xl mx-auto">
           <SectionHeader eyebrow="04 · Pipeline" title="How to turn a long video into Shorts with AI (5 steps)">
             From long-form video to viral-ready clips in 5 automated steps.
@@ -845,21 +845,21 @@ export default function Landing({ onLaunchApp }) {
       </section>
 
       {/* Two ways to use it: free self-host vs paid hosted */}
-      <section className="py-20 px-6 border-t border-rule">
+      <section className="py-20 px-6 border-t border-border">
         <div className="max-w-4xl mx-auto">
           <SectionHeader eyebrow="05 · Deploy" title="Two ways to use OpenShorts">
             The same open source software, running either on our GPU or on your machine.
           </SectionHeader>
           <div className="grid md:grid-cols-2 gap-6">
-            <div className="card p-8 flex flex-col border-brass">
+            <div className="card p-8 flex flex-col border-primary">
               <div className="flex flex-wrap items-center gap-3 mb-3">
-                <Sparkles size={18} className="text-brass" />
-                <h3 className="font-display text-2xl lowercase text-ink">cloud · openshorts.app</h3>
+                <Sparkles size={18} className="text-primary" />
+                <h3 className="font-display text-2xl lowercase text-text-primary">cloud · openshorts.app</h3>
                 <span className="badge-brass">Recommended · Free Plan</span>
               </div>
               <ul className="space-y-1.5 mb-6 flex-1">
                 {['Our NVIDIA GPU: an 8-min video in about 50s', 'Gemini key included, nothing to set up', 'Social publishing built in', 'Connect Claude or ChatGPT directly: paste one URL, no API key', 'First video free up to 60 min, then 20 min/month, no card'].map((f, i) => (
-                  <li key={i} className="flex items-center gap-2 text-sm text-muted"><Check size={14} className="text-ok shrink-0" />{f}</li>
+                  <li key={i} className="flex items-center gap-2 text-sm text-text-secondary"><Check size={14} className="text-ok shrink-0" />{f}</li>
                 ))}
               </ul>
               {billingEnabled ? (
@@ -874,13 +874,13 @@ export default function Landing({ onLaunchApp }) {
             </div>
             <div className="card p-8 flex flex-col">
               <div className="flex flex-wrap items-center gap-3 mb-3">
-                <Github size={18} className="text-muted" />
-                <h3 className="font-display text-2xl lowercase text-ink">self-hosted · for developers</h3>
-                <span className="readout border border-rule rounded-full px-2.5 py-1">Free · Docker</span>
+                <Github size={18} className="text-text-secondary" />
+                <h3 className="font-display text-2xl lowercase text-text-primary">self-hosted · for developers</h3>
+                <span className="readout border border-border rounded-full px-2.5 py-1">Free · Docker</span>
               </div>
               <ul className="space-y-1.5 mb-6 flex-1">
                 {['Your machine: 5 to 8 min on a typical CPU', 'Bring your own Gemini, ElevenLabs and fal.ai keys', 'You install it, you maintain it, you back it up', 'Free forever, and always will be'].map((f, i) => (
-                  <li key={i} className="flex items-center gap-2 text-sm text-muted"><Check size={14} className="text-ok shrink-0" />{f}</li>
+                  <li key={i} className="flex items-center gap-2 text-sm text-text-secondary"><Check size={14} className="text-ok shrink-0" />{f}</li>
                 ))}
               </ul>
               <a href="https://github.com/mutonby/openshorts" target="_blank" rel="noopener noreferrer"
@@ -894,7 +894,7 @@ export default function Landing({ onLaunchApp }) {
 
       {/* Pricing Section — hosted plans (self-host stays free) */}
       {billingEnabled && (
-        <section id="pricing" className="py-20 px-6 border-t border-rule">
+        <section id="pricing" className="py-20 px-6 border-t border-border">
           <div className="max-w-6xl mx-auto">
             <SectionHeader eyebrow="06 · Pricing" title="Free plan vs paid: what you actually get">
               Your first video is free, up to 60 minutes. Then 20 free minutes a month — no credit card. Cancel anytime.
@@ -905,7 +905,7 @@ export default function Landing({ onLaunchApp }) {
       )}
 
       {/* Comparison Table */}
-      <section id="comparison" className="py-20 px-6 border-t border-rule">
+      <section id="comparison" className="py-20 px-6 border-t border-border">
         <div className="max-w-4xl mx-auto">
           <SectionHeader eyebrow="07 · Comparison" title="OpenShorts vs Opus Clip, Klap and Vizard">
             Hosted OpenShorts starts at $12/mo billed monthly, or self-host it free. Opus Clip starts at $15/month, Klap at $14 and Vizard at $14.50 a month on yearly billing, Kapwing at $24/month.
@@ -914,13 +914,13 @@ export default function Landing({ onLaunchApp }) {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-rule2">
-                  <th className="py-3 px-4 text-left text-sm text-muted font-medium">Feature</th>
+                  <th className="py-3 px-4 text-left text-sm text-text-secondary font-medium">Feature</th>
                   <th className="py-3 px-4 text-center text-sm font-medium">
-                    <span className="text-brass">OpenShorts</span>
-                    <span className="block text-xs text-muted font-normal">self-hosted / Cloud</span>
+                    <span className="text-primary">OpenShorts</span>
+                    <span className="block text-xs text-text-secondary font-normal">self-hosted / Cloud</span>
                   </th>
-                  <th className="py-3 px-4 text-center text-sm text-muted font-medium">Opus Clip</th>
-                  <th className="py-3 px-4 text-center text-sm text-muted font-medium">Kapwing</th>
+                  <th className="py-3 px-4 text-center text-sm text-text-secondary font-medium">Opus Clip</th>
+                  <th className="py-3 px-4 text-center text-sm text-text-secondary font-medium">Kapwing</th>
                 </tr>
               </thead>
               <tbody>
@@ -928,25 +928,25 @@ export default function Landing({ onLaunchApp }) {
                 <ComparisonRow feature="AI Viral Moment Detection" openshorts={checkIcon} opusclip={checkMuted} kapwing={checkMuted} />
                 <ComparisonRow feature="Smart Vertical Cropping" openshorts={checkIcon} opusclip={checkMuted} kapwing={checkMuted} />
                 <ComparisonRow feature="Auto Subtitles" openshorts={checkIcon} opusclip={checkMuted} kapwing={checkMuted} />
-                <ComparisonRow feature="AI Voice Dubbing (30+ langs, your ElevenLabs key)" openshorts={checkIcon} opusclip={<span className="text-muted text-sm">Limited</span>} kapwing={<span className="text-muted text-sm">No</span>} />
-                <ComparisonRow feature="AI Video Effects" openshorts={checkIcon} opusclip={<span className="text-muted text-sm">No</span>} kapwing={checkMuted} />
+                <ComparisonRow feature="AI Voice Dubbing (30+ langs, your ElevenLabs key)" openshorts={checkIcon} opusclip={<span className="text-text-secondary text-sm">Limited</span>} kapwing={<span className="text-text-secondary text-sm">No</span>} />
+                <ComparisonRow feature="AI Video Effects" openshorts={checkIcon} opusclip={<span className="text-text-secondary text-sm">No</span>} kapwing={checkMuted} />
                 <ComparisonRow feature="Hook Text Overlays" openshorts={checkIcon} opusclip={checkMuted} kapwing={checkMuted} />
-                <ComparisonRow feature="Self-Hosted / Privacy" openshorts={checkIcon} opusclip={<span className="text-muted text-sm">Cloud only</span>} kapwing={<span className="text-muted text-sm">Cloud only</span>} />
-                <ComparisonRow feature="No Watermark" openshorts={<span className="text-ok text-sm">Self-hosted &amp; paid</span>} opusclip={<span className="text-muted text-sm">Free tier only</span>} kapwing={<span className="text-muted text-sm">Paid</span>} />
-                <ComparisonRow feature="Open Source" openshorts={checkIcon} opusclip={<span className="text-muted text-sm">No</span>} kapwing={<span className="text-muted text-sm">No</span>} />
-                <ComparisonRow feature="AI YouTube Thumbnail Generator" openshorts={checkIcon} opusclip={<span className="text-muted text-sm">No</span>} kapwing={<span className="text-muted text-sm">Paid</span>} />
-                <ComparisonRow feature="AI Title & Description Generator" openshorts={checkIcon} opusclip={<span className="text-muted text-sm">Limited</span>} kapwing={<span className="text-muted text-sm">Paid</span>} />
-                <ComparisonRow feature="AI UGC Video Generator" openshorts={checkIcon} opusclip={<span className="text-muted text-sm">No</span>} kapwing={<span className="text-muted text-sm">No</span>} />
-                <ComparisonRow feature="AI Actors with Lip-Sync" openshorts={checkIcon} opusclip={<span className="text-muted text-sm">No</span>} kapwing={<span className="text-muted text-sm">No</span>} />
-                <ComparisonRow feature="Usage Limits" openshorts={<span className="text-ok text-sm">Unlimited self-hosted</span>} opusclip={<span className="text-muted text-sm">Per plan</span>} kapwing={<span className="text-muted text-sm">Per plan</span>} />
+                <ComparisonRow feature="Self-Hosted / Privacy" openshorts={checkIcon} opusclip={<span className="text-text-secondary text-sm">Cloud only</span>} kapwing={<span className="text-text-secondary text-sm">Cloud only</span>} />
+                <ComparisonRow feature="No Watermark" openshorts={<span className="text-ok text-sm">Self-hosted &amp; paid</span>} opusclip={<span className="text-text-secondary text-sm">Free tier only</span>} kapwing={<span className="text-text-secondary text-sm">Paid</span>} />
+                <ComparisonRow feature="Open Source" openshorts={checkIcon} opusclip={<span className="text-text-secondary text-sm">No</span>} kapwing={<span className="text-text-secondary text-sm">No</span>} />
+                <ComparisonRow feature="AI YouTube Thumbnail Generator" openshorts={checkIcon} opusclip={<span className="text-text-secondary text-sm">No</span>} kapwing={<span className="text-text-secondary text-sm">Paid</span>} />
+                <ComparisonRow feature="AI Title & Description Generator" openshorts={checkIcon} opusclip={<span className="text-text-secondary text-sm">Limited</span>} kapwing={<span className="text-text-secondary text-sm">Paid</span>} />
+                <ComparisonRow feature="AI UGC Video Generator" openshorts={checkIcon} opusclip={<span className="text-text-secondary text-sm">No</span>} kapwing={<span className="text-text-secondary text-sm">No</span>} />
+                <ComparisonRow feature="AI Actors with Lip-Sync" openshorts={checkIcon} opusclip={<span className="text-text-secondary text-sm">No</span>} kapwing={<span className="text-text-secondary text-sm">No</span>} />
+                <ComparisonRow feature="Usage Limits" openshorts={<span className="text-ok text-sm">Unlimited self-hosted</span>} opusclip={<span className="text-text-secondary text-sm">Per plan</span>} kapwing={<span className="text-text-secondary text-sm">Per plan</span>} />
               </tbody>
             </table>
           </div>
           <div className="mt-10">
-            <h3 className="font-display text-xl lowercase text-ink mb-4">switching from another tool?</h3>
+            <h3 className="font-display text-xl lowercase text-text-primary mb-4">switching from another tool?</h3>
             <div className="flex flex-wrap gap-2">
               {SWITCHING.map(([href, label]) => (
-                <a key={href} href={href} className="px-4 py-1.5 rounded-full border border-rule text-sm lowercase text-muted hover:text-ink hover:border-brass transition-colors">
+                <a key={href} href={href} className="px-4 py-1.5 rounded-full border border-border text-sm lowercase text-text-secondary hover:text-text-primary hover:border-primary transition-colors">
                   {label}
                 </a>
               ))}
@@ -956,7 +956,7 @@ export default function Landing({ onLaunchApp }) {
       </section>
 
       {/* Use Cases */}
-      <section className="py-20 px-6 border-t border-rule">
+      <section className="py-20 px-6 border-t border-border">
         <div className="max-w-5xl mx-auto">
           <SectionHeader eyebrow="08 · Use Cases" title="Who Uses OpenShorts?">
             Creators, marketers, and agencies scaling short-form video production.
@@ -985,9 +985,9 @@ export default function Landing({ onLaunchApp }) {
               }
             ].map((useCase, i) => (
               <div key={i} className="card p-6">
-                <useCase.icon size={18} className="text-brass mb-4" />
-                <h3 className="font-display text-xl lowercase text-ink mb-2">{useCase.title}</h3>
-                <p className="text-muted text-sm leading-relaxed">{useCase.description}</p>
+                <useCase.icon size={18} className="text-primary mb-4" />
+                <h3 className="font-display text-xl lowercase text-text-primary mb-2">{useCase.title}</h3>
+                <p className="text-text-secondary text-sm leading-relaxed">{useCase.description}</p>
               </div>
             ))}
           </div>
@@ -995,7 +995,7 @@ export default function Landing({ onLaunchApp }) {
       </section>
 
       {/* Also included: the two tools that are not the clipper */}
-      <section className="py-20 px-6 border-t border-rule">
+      <section className="py-20 px-6 border-t border-border">
         <div className="max-w-6xl mx-auto">
           <SectionHeader eyebrow="09 · Also Included" title="two more tools, same account">
             In the same openshorts.app account, with no keys and no setup.
@@ -1003,23 +1003,23 @@ export default function Landing({ onLaunchApp }) {
           <div className="grid md:grid-cols-2 gap-5">
             <div className="card p-8">
               <p className="eyebrow mb-4">01 · AI Shorts</p>
-              <Sparkles size={20} className="text-brass mb-4" />
-              <h3 className="font-display text-2xl lowercase text-ink mb-2">AI Shorts</h3>
-              <p className="text-muted text-sm leading-relaxed mb-4">UGC marketing videos with AI actors for any business.</p>
+              <Sparkles size={20} className="text-primary mb-4" />
+              <h3 className="font-display text-2xl lowercase text-text-primary mb-2">AI Shorts</h3>
+              <p className="text-text-secondary text-sm leading-relaxed mb-4">UGC marketing videos with AI actors for any business.</p>
               <ul className="space-y-1.5">
                 {['AI actor generation + lip-sync', 'B-roll + TikTok-style subtitles', 'From $0.65 per video'].map((f, i) => (
-                  <li key={i} className="flex items-center gap-2 text-xs text-muted"><Check size={12} className="text-ok shrink-0" />{f}</li>
+                  <li key={i} className="flex items-center gap-2 text-xs text-text-secondary"><Check size={12} className="text-ok shrink-0" />{f}</li>
                 ))}
               </ul>
             </div>
             <div className="card p-8">
               <p className="eyebrow mb-4">02 · Studio</p>
-              <Monitor size={20} className="text-brass mb-4" />
-              <h3 className="font-display text-2xl lowercase text-ink mb-2">YouTube Studio</h3>
-              <p className="text-muted text-sm leading-relaxed mb-4">Free AI YouTube toolkit: thumbnails, titles, descriptions.</p>
+              <Monitor size={20} className="text-primary mb-4" />
+              <h3 className="font-display text-2xl lowercase text-text-primary mb-2">YouTube Studio</h3>
+              <p className="text-text-secondary text-sm leading-relaxed mb-4">Free AI YouTube toolkit: thumbnails, titles, descriptions.</p>
               <ul className="space-y-1.5">
                 {['AI thumbnail generator (with face upload)', '10 viral title suggestions + chat', 'Direct publish to YouTube'].map((f, i) => (
-                  <li key={i} className="flex items-center gap-2 text-xs text-muted"><Check size={12} className="text-ok shrink-0" />{f}</li>
+                  <li key={i} className="flex items-center gap-2 text-xs text-text-secondary"><Check size={12} className="text-ok shrink-0" />{f}</li>
                 ))}
               </ul>
             </div>
@@ -1028,12 +1028,12 @@ export default function Landing({ onLaunchApp }) {
       </section>
 
       {/* FAQ Section */}
-      <section id="faq" className="py-20 px-6 border-t border-rule">
+      <section id="faq" className="py-20 px-6 border-t border-border">
         <div className="max-w-3xl mx-auto">
           <SectionHeader eyebrow="10 · FAQ" title="FAQ: free AI clipping, watermarks and limits">
             Everything you need to know about OpenShorts, from setup to features.
           </SectionHeader>
-          <div className="divide-y divide-rule border-y border-rule">
+          <div className="divide-y divide-rule border-y border-border">
             {faqs.map((faq, i) => (
               <FAQItem
                 key={i}
@@ -1050,15 +1050,15 @@ export default function Landing({ onLaunchApp }) {
       {/* Self-hosting details, folded: they matter to people who run it
           themselves and are noise to someone deciding whether to try the cloud.
           The content stays in the DOM, so crawlers still read it. */}
-      <section className="py-16 px-6 border-t border-rule">
+      <section className="py-16 px-6 border-t border-border">
         <div className="max-w-5xl mx-auto">
           <details className="group">
             <summary className="list-none cursor-pointer flex items-center justify-between gap-6 [&::-webkit-details-marker]:hidden">
               <div>
                 <span className="eyebrow block mb-3">11 · Self-Hosting</span>
-                <h2 className="font-display text-2xl md:text-3xl lowercase text-ink">Open source: run the same pipeline on your own hardware</h2>
+                <h2 className="font-display text-2xl md:text-3xl lowercase text-text-primary">Open source: run the same pipeline on your own hardware</h2>
               </div>
-              <ChevronDown size={22} className="text-muted shrink-0 transition-transform group-open:rotate-180" />
+              <ChevronDown size={22} className="text-text-secondary shrink-0 transition-transform group-open:rotate-180" />
             </summary>
             {/* API Keys Section */}
             <section className="pt-12">
@@ -1070,49 +1070,49 @@ export default function Landing({ onLaunchApp }) {
                   <div className="card p-6 relative">
                     <span className="badge-brass absolute top-4 right-4">Required</span>
                     <div className="w-10 h-10 rounded-input bg-paper3 flex items-center justify-center mb-4">
-                      <Cpu size={18} className="text-brass" />
+                      <Cpu size={18} className="text-primary" />
                     </div>
-                    <h3 className="font-display text-xl lowercase text-ink mb-1">Google Gemini API</h3>
+                    <h3 className="font-display text-xl lowercase text-text-primary mb-1">Google Gemini API</h3>
                     <div className="mb-3"><span className="badge-ok">Free tier: 1,500 req/day</span></div>
-                    <p className="text-muted text-sm leading-relaxed">Powers all AI features: viral moment detection, title generation, video effects, YouTube thumbnail creation, and description writing. The core engine of OpenShorts.</p>
+                    <p className="text-text-secondary text-sm leading-relaxed">Powers all AI features: viral moment detection, title generation, video effects, YouTube thumbnail creation, and description writing. The core engine of OpenShorts.</p>
                   </div>
                   <div className="card p-6 relative">
-                    <span className="readout absolute top-4 right-4 border border-rule rounded-full px-2.5 py-1">Optional</span>
+                    <span className="readout absolute top-4 right-4 border border-border rounded-full px-2.5 py-1">Optional</span>
                     <div className="w-10 h-10 rounded-input bg-paper3 flex items-center justify-center mb-4">
-                      <Languages size={18} className="text-brass" />
+                      <Languages size={18} className="text-primary" />
                     </div>
-                    <h3 className="font-display text-xl lowercase text-ink mb-1">ElevenLabs API</h3>
+                    <h3 className="font-display text-xl lowercase text-text-primary mb-1">ElevenLabs API</h3>
                     <div className="mb-3"><span className="badge-ok">Free tier included</span></div>
-                    <p className="text-muted text-sm leading-relaxed">Enables AI voice dubbing and translation in 30+ languages. Preserves the original speaker's voice while translating audio. Dubbed clips are auto-subtitled.</p>
+                    <p className="text-text-secondary text-sm leading-relaxed">Enables AI voice dubbing and translation in 30+ languages. Preserves the original speaker's voice while translating audio. Dubbed clips are auto-subtitled.</p>
                   </div>
                   <div className="card p-6 relative">
-                    <span className="readout absolute top-4 right-4 border border-rule rounded-full px-2.5 py-1">Optional</span>
+                    <span className="readout absolute top-4 right-4 border border-border rounded-full px-2.5 py-1">Optional</span>
                     <div className="w-10 h-10 rounded-input bg-paper3 flex items-center justify-center mb-4">
-                      <Globe size={18} className="text-brass" />
+                      <Globe size={18} className="text-primary" />
                     </div>
-                    <h3 className="font-display text-xl lowercase text-ink mb-1">Upload-Post API</h3>
+                    <h3 className="font-display text-xl lowercase text-text-primary mb-1">Upload-Post API</h3>
                     <div className="mb-3"><span className="badge-ok">Free tier included</span></div>
-                    <p className="text-muted text-sm leading-relaxed">Enables direct publishing to YouTube, TikTok, and Instagram Reels from the dashboard. <a href="https://www.upload-post.com" target="_blank" rel="noopener noreferrer" className="text-brass underline hover:brightness-110">Social media API</a> that lets you post your clips and thumbnails without leaving OpenShorts.</p>
+                    <p className="text-text-secondary text-sm leading-relaxed">Enables direct publishing to YouTube, TikTok, and Instagram Reels from the dashboard. <a href="https://www.upload-post.com" target="_blank" rel="noopener noreferrer" className="text-primary underline hover:brightness-110">Social media API</a> that lets you post your clips and thumbnails without leaving OpenShorts.</p>
                   </div>
                 </div>
                 <div className="grid md:grid-cols-2 gap-5 mt-5">
                   <div className="card p-6 relative">
-                    <span className="readout absolute top-4 right-4 border border-rule rounded-full px-2.5 py-1">AI Shorts</span>
+                    <span className="readout absolute top-4 right-4 border border-border rounded-full px-2.5 py-1">AI Shorts</span>
                     <div className="w-10 h-10 rounded-input bg-paper3 flex items-center justify-center mb-4">
-                      <Zap size={18} className="text-brass" />
+                      <Zap size={18} className="text-primary" />
                     </div>
-                    <h3 className="font-display text-xl lowercase text-ink mb-1">fal.ai API</h3>
+                    <h3 className="font-display text-xl lowercase text-text-primary mb-1">fal.ai API</h3>
                     <div className="mb-3"><span className="badge-ok">Pay-per-use from $0.04</span></div>
-                    <p className="text-muted text-sm leading-relaxed">Powers AI Shorts: generates AI actor images (Flux), talking head videos (Hailuo/Kling), and lip-sync (VEED). Required only for the AI UGC video generator.</p>
+                    <p className="text-text-secondary text-sm leading-relaxed">Powers AI Shorts: generates AI actor images (Flux), talking head videos (Hailuo/Kling), and lip-sync (VEED). Required only for the AI UGC video generator.</p>
                   </div>
                   <div className="card p-6 relative">
-                    <span className="readout absolute top-4 right-4 border border-rule rounded-full px-2.5 py-1">AI Shorts</span>
+                    <span className="readout absolute top-4 right-4 border border-border rounded-full px-2.5 py-1">AI Shorts</span>
                     <div className="w-10 h-10 rounded-input bg-paper3 flex items-center justify-center mb-4">
-                      <Languages size={18} className="text-brass" />
+                      <Languages size={18} className="text-primary" />
                     </div>
-                    <h3 className="font-display text-xl lowercase text-ink mb-1">ElevenLabs TTS</h3>
+                    <h3 className="font-display text-xl lowercase text-text-primary mb-1">ElevenLabs TTS</h3>
                     <div className="mb-3"><span className="badge-ok">Free tier included</span></div>
-                    <p className="text-muted text-sm leading-relaxed">Generates natural voiceovers for AI Shorts from the script. Multiple voice options for male and female actors in English and Spanish.</p>
+                    <p className="text-text-secondary text-sm leading-relaxed">Generates natural voiceovers for AI Shorts from the script. Multiple voice options for male and female actors in English and Spanish.</p>
                   </div>
                 </div>
               </div>
@@ -1136,9 +1136,9 @@ export default function Landing({ onLaunchApp }) {
                     { name: "React + Vite", desc: "Dashboard" },
                     { name: "Docker", desc: "Deployment" }
                   ].map((tech, i) => (
-                    <div key={i} className="border border-rule rounded-input bg-paper2 px-4 py-3 text-center">
-                      <div className="readout text-ink2">{tech.name}</div>
-                      <div className="text-xs text-muted mt-1">{tech.desc}</div>
+                    <div key={i} className="border border-border rounded-input bg-paper2 px-4 py-3 text-center">
+                      <div className="readout text-text-secondary">{tech.name}</div>
+                      <div className="text-xs text-text-secondary mt-1">{tech.desc}</div>
                     </div>
                   ))}
                 </div>
@@ -1150,10 +1150,10 @@ export default function Landing({ onLaunchApp }) {
       </section>
 
       {/* CTA Section — final statement */}
-      <section className="py-24 px-6 border-t border-rule">
+      <section className="py-24 px-6 border-t border-border">
         <div className="max-w-3xl mx-auto text-center">
-          <h2 className="font-display text-4xl md:text-5xl lowercase text-ink tracking-tight mb-5">start creating viral videos today.</h2>
-          <p className="text-muted mb-10 max-w-xl mx-auto leading-relaxed lowercase">first video free (up to 60 min) · then 20 min/month · no credit card, or self-host it free with docker.</p>
+          <h2 className="font-display text-4xl md:text-5xl lowercase text-text-primary tracking-tight mb-5">start creating viral videos today.</h2>
+          <p className="text-text-secondary mb-10 max-w-xl mx-auto leading-relaxed lowercase">first video free (up to 60 min) · then 20 min/month · no credit card, or self-host it free with docker.</p>
           <div className="flex flex-wrap items-center justify-center gap-4">
             {billingEnabled ? (
               <a href="#pricing" className="btn-primary whitespace-nowrap">
@@ -1183,16 +1183,16 @@ export default function Landing({ onLaunchApp }) {
       <form
         onSubmit={handleHeroSubmit}
         aria-hidden={!stickyCta}
-        className={`fixed z-40 bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-xl flex items-center gap-2 p-2 rounded-full border border-rule bg-paper2/95 backdrop-blur shadow-2xl transition-all duration-300 ${stickyCta ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6 pointer-events-none'}`}
+        className={`fixed z-40 bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-xl flex items-center gap-2 p-2 rounded-full border border-border bg-paper2/95 backdrop-blur shadow-2xl transition-all duration-300 ${stickyCta ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6 pointer-events-none'}`}
       >
-        <Link2 size={16} className="ml-3 text-muted shrink-0 hidden sm:block" />
+        <Link2 size={16} className="ml-3 text-text-secondary shrink-0 hidden sm:block" />
         <input
           type="url"
           value={heroUrl}
           onChange={(e) => setHeroUrl(e.target.value)}
           placeholder="paste a video link"
           tabIndex={stickyCta ? 0 : -1}
-          className="flex-1 min-w-0 bg-transparent outline-none text-sm text-ink placeholder:text-muted px-2"
+          className="flex-1 min-w-0 bg-transparent outline-none text-sm text-text-primary placeholder:text-text-secondary px-2"
           aria-label="Video link"
         />
         <button type="submit" tabIndex={stickyCta ? 0 : -1} className="btn-primary whitespace-nowrap rounded-full text-sm">
@@ -1201,65 +1201,65 @@ export default function Landing({ onLaunchApp }) {
       </form>
 
       {/* Footer — Ft5 Statement */}
-      <footer className="border-t border-rule py-16 px-6">
+      <footer className="border-t border-border py-16 px-6">
         <div className="max-w-6xl mx-auto">
-          <p className="font-display text-3xl md:text-5xl lowercase text-ink tracking-tight mb-10">clip it before it scrolls past.</p>
-          <nav aria-label="Guides and comparisons" className="border-t border-rule pt-6 mb-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm lowercase text-muted">
-            <a href="/free-ai-clip-generator" className="hover:text-ink transition-colors">free ai clip generator</a>
-            <a href="/tools" className="hover:text-ink transition-colors">free tools</a>
-            <a href="/youtube-transcript-generator" className="hover:text-ink transition-colors">youtube transcript generator</a>
-            <a href="/youtube-tag-generator" className="hover:text-ink transition-colors">youtube tag generator</a>
-            <a href="/video-aspect-ratio-converter" className="hover:text-ink transition-colors">video to 9:16 converter</a>
-            <a href="/auto-clip" className="hover:text-ink transition-colors">auto clip</a>
-            <a href="/youtube-automation" className="hover:text-ink transition-colors">youtube automation</a>
-            <a href="/platforms" className="hover:text-ink transition-colors">all platforms</a>
-            <a href="/use-cases" className="hover:text-ink transition-colors">use cases</a>
-            <a href="/how-to" className="hover:text-ink transition-colors">guides</a>
-            <a href="/platforms/youtube"className="hover:text-ink transition-colors">youtube clip maker</a>
-            <a href="/platforms/youtube-shorts" className="hover:text-ink transition-colors">youtube shorts maker</a>
-            <a href="/platforms/tiktok" className="hover:text-ink transition-colors">tiktok clip maker</a>
-            <a href="/platforms/instagram-reels" className="hover:text-ink transition-colors">ai reel generator</a>
-            <a href="/platforms/twitch" className="hover:text-ink transition-colors">twitch clip maker</a>
-            <a href="/platforms/kick" className="hover:text-ink transition-colors">kick clip maker</a>
-            <a href="/auto-reframe" className="hover:text-ink transition-colors">auto reframe</a>
-            <a href="/use-cases/sermons" className="hover:text-ink transition-colors">sermon clip maker</a>
-            <a href="/how-to/clip-a-youtube-video" className="hover:text-ink transition-colors">how to clip a youtube video</a>
-            <a href="/#pricing" className="hover:text-ink transition-colors">pricing</a>
-            <a href="/open-source-video-clipper" className="hover:text-ink transition-colors">open source video clipper</a>
-            <a href="/self-hosted-ai-clip-maker" className="hover:text-ink transition-colors">self-hosted ai clip maker</a>
-            <a href="/podcast-to-shorts" className="hover:text-ink transition-colors">podcast clips</a>
-            <a href="/youtube-to-shorts-converter" className="hover:text-ink transition-colors">youtube to shorts</a>
-            <a href="/how-openshorts-works" className="hover:text-ink transition-colors">how it works</a>
-            <a href="/alternatives" className="hover:text-ink transition-colors">alternatives</a>
-            <a href="/free-ai-clipping-tools-compared" className="hover:text-ink transition-colors">free ai clipping tools compared</a>
-            <a href="/alternativas" className="hover:text-ink transition-colors">alternativas</a>
-            <a href="/alternatives/opus-clip" className="hover:text-ink transition-colors">vs opus clip</a>
-            <a href="/opus-clip-pricing" className="hover:text-ink transition-colors">opus clip pricing</a>
-            <a href="/opus-ai" className="hover:text-ink transition-colors">opus ai</a>
-            <a href="/vizard-ai" className="hover:text-ink transition-colors">vizard ai</a>
-            <a href="/vizard-ai-video-to-text" className="hover:text-ink transition-colors">vizard ai video to text</a>
-            <a href="/alternatives/vidyo-ai" className="hover:text-ink transition-colors">vidyo ai (quso)</a>
-            <a href="/alternatives/2short" className="hover:text-ink transition-colors">2short ai</a>
-            <a href="/alternatives/sendshort" className="hover:text-ink transition-colors">sendshort</a>
-            <a href="/submagic-reviews" className="hover:text-ink transition-colors">submagic review</a>
-            <a href="/mcp" className="hover:text-ink transition-colors">mcp server & api</a>
-            <a href="/automate-shorts-api" className="hover:text-ink transition-colors">automate shorts</a>
-            <a href="/n8n-youtube-shorts-automation" className="hover:text-ink transition-colors">n8n workflow</a>
+          <p className="font-display text-3xl md:text-5xl lowercase text-text-primary tracking-tight mb-10">clip it before it scrolls past.</p>
+          <nav aria-label="Guides and comparisons" className="border-t border-border pt-6 mb-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm lowercase text-text-secondary">
+            <a href="/free-ai-clip-generator" className="hover:text-text-primary transition-colors">free ai clip generator</a>
+            <a href="/tools" className="hover:text-text-primary transition-colors">free tools</a>
+            <a href="/youtube-transcript-generator" className="hover:text-text-primary transition-colors">youtube transcript generator</a>
+            <a href="/youtube-tag-generator" className="hover:text-text-primary transition-colors">youtube tag generator</a>
+            <a href="/video-aspect-ratio-converter" className="hover:text-text-primary transition-colors">video to 9:16 converter</a>
+            <a href="/auto-clip" className="hover:text-text-primary transition-colors">auto clip</a>
+            <a href="/youtube-automation" className="hover:text-text-primary transition-colors">youtube automation</a>
+            <a href="/platforms" className="hover:text-text-primary transition-colors">all platforms</a>
+            <a href="/use-cases" className="hover:text-text-primary transition-colors">use cases</a>
+            <a href="/how-to" className="hover:text-text-primary transition-colors">guides</a>
+            <a href="/platforms/youtube"className="hover:text-text-primary transition-colors">youtube clip maker</a>
+            <a href="/platforms/youtube-shorts" className="hover:text-text-primary transition-colors">youtube shorts maker</a>
+            <a href="/platforms/tiktok" className="hover:text-text-primary transition-colors">tiktok clip maker</a>
+            <a href="/platforms/instagram-reels" className="hover:text-text-primary transition-colors">ai reel generator</a>
+            <a href="/platforms/twitch" className="hover:text-text-primary transition-colors">twitch clip maker</a>
+            <a href="/platforms/kick" className="hover:text-text-primary transition-colors">kick clip maker</a>
+            <a href="/auto-reframe" className="hover:text-text-primary transition-colors">auto reframe</a>
+            <a href="/use-cases/sermons" className="hover:text-text-primary transition-colors">sermon clip maker</a>
+            <a href="/how-to/clip-a-youtube-video" className="hover:text-text-primary transition-colors">how to clip a youtube video</a>
+            <a href="/#pricing" className="hover:text-text-primary transition-colors">pricing</a>
+            <a href="/open-source-video-clipper" className="hover:text-text-primary transition-colors">open source video clipper</a>
+            <a href="/self-hosted-ai-clip-maker" className="hover:text-text-primary transition-colors">self-hosted ai clip maker</a>
+            <a href="/podcast-to-shorts" className="hover:text-text-primary transition-colors">podcast clips</a>
+            <a href="/youtube-to-shorts-converter" className="hover:text-text-primary transition-colors">youtube to shorts</a>
+            <a href="/how-openshorts-works" className="hover:text-text-primary transition-colors">how it works</a>
+            <a href="/alternatives" className="hover:text-text-primary transition-colors">alternatives</a>
+            <a href="/free-ai-clipping-tools-compared" className="hover:text-text-primary transition-colors">free ai clipping tools compared</a>
+            <a href="/alternativas" className="hover:text-text-primary transition-colors">alternativas</a>
+            <a href="/alternatives/opus-clip" className="hover:text-text-primary transition-colors">vs opus clip</a>
+            <a href="/opus-clip-pricing" className="hover:text-text-primary transition-colors">opus clip pricing</a>
+            <a href="/opus-ai" className="hover:text-text-primary transition-colors">opus ai</a>
+            <a href="/vizard-ai" className="hover:text-text-primary transition-colors">vizard ai</a>
+            <a href="/vizard-ai-video-to-text" className="hover:text-text-primary transition-colors">vizard ai video to text</a>
+            <a href="/alternatives/vidyo-ai" className="hover:text-text-primary transition-colors">vidyo ai (quso)</a>
+            <a href="/alternatives/2short" className="hover:text-text-primary transition-colors">2short ai</a>
+            <a href="/alternatives/sendshort" className="hover:text-text-primary transition-colors">sendshort</a>
+            <a href="/submagic-reviews" className="hover:text-text-primary transition-colors">submagic review</a>
+            <a href="/mcp" className="hover:text-text-primary transition-colors">mcp server & api</a>
+            <a href="/automate-shorts-api" className="hover:text-text-primary transition-colors">automate shorts</a>
+            <a href="/n8n-youtube-shorts-automation" className="hover:text-text-primary transition-colors">n8n workflow</a>
           </nav>
-          <div className="border-t border-rule pt-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="border-t border-border pt-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <img src="/logo-openshorts.png" alt="OpenShorts" className="w-6 h-6" />
-              <span className="text-sm text-muted">OpenShorts — Free Open Source Clip Generator & AI UGC Video Creator</span>
+              <span className="text-sm text-text-secondary">OpenShorts — Free Open Source Clip Generator & AI UGC Video Creator</span>
             </div>
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm lowercase text-muted">
-              <a href="https://github.com/mutonby/openshorts" target="_blank" rel="noopener noreferrer" className="hover:text-ink transition-colors">GitHub</a>
-              <a href="#features" className="hover:text-ink transition-colors">Features</a>
-              <a href="#faq" className="hover:text-ink transition-colors">FAQ</a>
-              <a href="/terms" className="hover:text-ink transition-colors whitespace-nowrap">Terms</a>
-              <a href="/privacy" className="hover:text-ink transition-colors whitespace-nowrap">Privacy</a>
-              <a href="/legal-notice" className="hover:text-ink transition-colors whitespace-nowrap">Legal Notice</a>
-              <a href="/refunds" className="hover:text-ink transition-colors whitespace-nowrap">Refunds</a>
-              <a href="/report-content" className="hover:text-ink transition-colors whitespace-nowrap">Report Content</a>
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm lowercase text-text-secondary">
+              <a href="https://github.com/mutonby/openshorts" target="_blank" rel="noopener noreferrer" className="hover:text-text-primary transition-colors">GitHub</a>
+              <a href="#features" className="hover:text-text-primary transition-colors">Features</a>
+              <a href="#faq" className="hover:text-text-primary transition-colors">FAQ</a>
+              <a href="/terms" className="hover:text-text-primary transition-colors whitespace-nowrap">Terms</a>
+              <a href="/privacy" className="hover:text-text-primary transition-colors whitespace-nowrap">Privacy</a>
+              <a href="/legal-notice" className="hover:text-text-primary transition-colors whitespace-nowrap">Legal Notice</a>
+              <a href="/refunds" className="hover:text-text-primary transition-colors whitespace-nowrap">Refunds</a>
+              <a href="/report-content" className="hover:text-text-primary transition-colors whitespace-nowrap">Report Content</a>
             </div>
           </div>
         </div>

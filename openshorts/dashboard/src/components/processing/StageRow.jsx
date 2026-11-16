@@ -1,9 +1,9 @@
 import React from 'react';
 import {
   CheckCircle2,
+  XCircle,
   Loader2,
-  AlertTriangle,
-  Clock,
+  Circle,
   FastForward,
   RotateCcw,
 } from 'lucide-react';
@@ -40,72 +40,77 @@ export default function StageRow({
 
   const unitsText = formatUnits(stageData.units, stageData.bytes, stageData.speed);
 
-  // Colores y bordes según estado
-  let containerBg = 'bg-black/10 border-rule/50';
-  let badgeIcon = <Clock size={14} className="text-muted/60" />;
+  // Container style per status
+  let containerClass = 'py-3';
+  let icon;
 
   if (isCompleted) {
-    containerBg = 'bg-emerald-500/5 border-emerald-500/20';
-    badgeIcon = <CheckCircle2 size={15} className="text-emerald-400 shrink-0" />;
+    containerClass += ' bg-primary-soft/50';
+    icon = <CheckCircle2 size={15} className="text-success shrink-0" aria-hidden="true" />;
   } else if (isRunning) {
-    containerBg = 'bg-brass/5 border-brass/40 shadow-sm shadow-brass/5';
-    badgeIcon = <Loader2 size={15} className="animate-spin text-brass shrink-0" />;
+    containerClass += '';
+    icon = <Loader2 size={15} className="animate-spin text-primary shrink-0" aria-hidden="true" />;
   } else if (isFailed) {
-    containerBg = 'bg-rose-500/10 border-rose-500/30';
-    badgeIcon = <AlertTriangle size={15} className="text-rose-400 shrink-0" />;
+    containerClass += '';
+    icon = <XCircle size={15} className="text-error shrink-0" aria-hidden="true" />;
   } else if (isSkipped) {
-    containerBg = 'bg-transparent border-rule/30 opacity-60';
-    badgeIcon = <FastForward size={14} className="text-muted/50 shrink-0" />;
+    containerClass += ' opacity-50';
+    icon = <FastForward size={14} className="text-text-secondary shrink-0" aria-hidden="true" />;
+  } else {
+    // pending
+    icon = <Circle size={14} className="text-text-secondary shrink-0" aria-hidden="true" />;
   }
 
   return (
     <div
-      className={`p-3 rounded-card border transition-all duration-300 ${containerBg}`}
+      className={containerClass}
+      role="listitem"
       data-stage={stageKey}
       data-status={status}
+      aria-label={`Etapa: ${label}, estado: ${status}`}
     >
-      <div className="flex items-center justify-between gap-2">
-        {/* Lado izquierdo: icono y título con tachado en completado */}
+      <div className="flex items-center justify-between gap-2 px-1">
+        {/* Left: icon + label */}
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="shrink-0">{badgeIcon}</div>
+          <div className="shrink-0">{icon}</div>
           <span
-            className={`text-xs font-medium font-sans truncate transition-colors ${
+            className={`text-sm font-ui transition-colors truncate ${
               isCompleted
-                ? 'line-through text-muted/70'
+                ? 'line-through text-text-secondary'
                 : isRunning
-                ? 'text-ink font-semibold'
+                ? 'text-text-primary font-semibold'
                 : isFailed
-                ? 'text-rose-300 font-semibold'
-                : 'text-ink2'
+                ? 'text-error font-semibold'
+                : 'text-text-secondary'
             }`}
           >
             {label}
           </span>
           {isSkipped && (
-            <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-white/5 text-muted border border-rule/40">
+            <span className="text-[10px] font-ui uppercase px-1.5 py-0.5 rounded bg-surface-elevated text-text-secondary border border-border">
               Omitida
             </span>
           )}
         </div>
 
-        {/* Lado derecho: métricas y duración */}
-        <div className="flex items-center gap-2 font-mono text-micro text-muted shrink-0">
+        {/* Right: metrics / duration */}
+        <div className="flex items-center gap-2 font-ui text-[11px] text-text-secondary shrink-0">
           {unitsText && isRunning && (
-            <span className="text-brass hidden sm:inline">{unitsText}</span>
+            <span className="text-primary hidden sm:inline">{unitsText}</span>
           )}
           {percent != null && isRunning && (
-            <span className="text-brass font-bold">{Math.round(percent)}%</span>
+            <span className="text-primary font-bold font-brand">{Math.round(percent)}%</span>
           )}
           {stageData.duration_seconds != null && (
-            <span className="opacity-75">{Math.round(stageData.duration_seconds)}s</span>
+            <span className="opacity-70">{Math.round(stageData.duration_seconds)}s</span>
           )}
         </div>
       </div>
 
-      {/* Barra de progreso de la etapa */}
+      {/* Stage progress bar */}
       {!isSkipped && !isPending && (
         <div
-          className="mt-2.5 w-full h-1.5 rounded-full bg-black/20 border border-rule/40 overflow-hidden"
+          className="mt-2.5 mx-1 w-auto h-1.5 rounded-full bg-surface-elevated overflow-hidden"
           role="progressbar"
           aria-valuenow={isCompleted ? 100 : percent != null ? Math.round(percent) : 0}
           aria-valuemin={0}
@@ -113,31 +118,31 @@ export default function StageRow({
           aria-label={`Progreso de ${label}`}
         >
           {isCompleted ? (
-            <div className="h-full bg-emerald-500 rounded-full w-full transition-all duration-300" />
+            <div className="h-full bg-success rounded-full w-full transition-all duration-300" />
           ) : isFailed ? (
-            <div className="h-full bg-rose-500 rounded-full w-full" />
+            <div className="h-full bg-error rounded-full w-full" />
           ) : percent != null && percent > 0 ? (
             <div
-              className="h-full bg-brass rounded-full transition-all duration-300"
+              className="h-full bg-primary rounded-full transition-all duration-300"
               style={{ width: `${Math.min(100, Math.max(0, percent))}%` }}
             />
           ) : (
-            <div className="h-full w-1/3 bg-brass/50 rounded-full animate-indeterminate" />
+            <div className="h-full w-1/3 bg-primary/50 rounded-full animate-indeterminate" />
           )}
         </div>
       )}
 
-      {/* Razón de omisión si aplica */}
+      {/* Skipped reason */}
       {isSkipped && stageData.skipped_reason && (
-        <p className="text-[11px] text-muted italic mt-1.5">
+        <p className="text-[11px] text-text-secondary italic mt-1.5 px-1">
           {stageData.skipped_reason}
         </p>
       )}
 
-      {/* Mensaje de error y botón de reintento si la etapa falló */}
+      {/* Failed: error message + retry button */}
       {isFailed && (
-        <div className="mt-2.5 pt-2 border-t border-rose-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <p className="text-xs text-rose-400 font-mono break-words leading-relaxed">
+        <div className="mt-2.5 pt-2 border-t border-error/20 mx-1 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <p className="text-xs text-error font-ui break-words leading-relaxed">
             {stageData.error || 'La etapa falló durante su ejecución.'}
           </p>
           {onRetryStage && (
@@ -145,12 +150,17 @@ export default function StageRow({
               type="button"
               onClick={() => onRetryStage(stageKey)}
               disabled={isRetrying}
-              className="btn-primary text-xs py-1.5 px-3 shrink-0 flex items-center justify-center gap-1.5 bg-rose-500/20 text-rose-200 border-rose-500/40 hover:bg-rose-500/30 focus:ring-2 focus:ring-rose-400 focus:outline-none"
+              className="inline-flex items-center justify-center gap-1.5 text-xs font-ui py-1.5 px-3 shrink-0
+                bg-error/10 text-error border border-error rounded-btn
+                hover:bg-error/20 transition-colors
+                focus:outline-none focus:ring-2 focus:ring-error/50
+                disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label={`Reintentar desde la etapa ${label}`}
             >
               {isRetrying ? (
-                <Loader2 size={12} className="animate-spin" />
+                <Loader2 size={12} className="animate-spin" aria-hidden="true" />
               ) : (
-                <RotateCcw size={12} />
+                <RotateCcw size={12} aria-hidden="true" />
               )}
               <span>Reintentar desde esta etapa</span>
             </button>

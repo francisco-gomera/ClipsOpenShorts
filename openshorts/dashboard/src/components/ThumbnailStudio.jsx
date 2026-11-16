@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+﻿import { useState, useRef, useCallback, useEffect } from 'react';
 import { Upload, Image, Loader2, Send, Check, Download, ArrowRight, ArrowLeft, Sparkles, Video, Type, X, Plus, MessageSquare, FileText, Youtube, AlertCircle, Settings } from 'lucide-react';
 import { getApiUrl } from '../config';
 import { apiFetch, QuotaError, openQuotaWall } from '../lib/api';
@@ -40,15 +40,15 @@ function DragDropZone({ label, accept, onFile, file, onClear, icon }) {
           {file.type?.startsWith('image/') ? (
             <img src={URL.createObjectURL(file)} className="w-12 h-12 rounded-input object-cover" alt="" />
           ) : (
-            <div className="w-12 h-12 rounded-input bg-paper2 border border-rule flex items-center justify-center">
-              <Icon size={18} className="text-muted" />
+            <div className="w-12 h-12 rounded-input bg-paper2 border border-border flex items-center justify-center">
+              <Icon size={18} className="text-text-secondary" />
             </div>
           )}
           <div className="flex-1 min-w-0">
-            <p className="text-sm text-ink truncate">{file.name}</p>
+            <p className="text-sm text-text-primary truncate">{file.name}</p>
             <p className="readout mt-0.5">{(file.size / 1024 / 1024).toFixed(1)} MB</p>
           </div>
-          <button onClick={onClear} className="text-muted hover:text-ink transition-colors">
+          <button onClick={onClear} className="text-text-secondary hover:text-text-primary transition-colors">
             <X size={16} />
           </button>
         </div>
@@ -62,12 +62,12 @@ function DragDropZone({ label, accept, onFile, file, onClear, icon }) {
       onDrop={handleDrop}
       onDragOver={handleDragOver}
       onDragLeave={() => setIsDragging(false)}
-      className={`border-2 border-dashed rounded-card p-6 text-center cursor-pointer transition-colors duration-200 ${isDragging ? 'border-brass bg-paper3' : 'border-rule2 hover:border-brass'
+      className={`border-2 border-dashed rounded-card p-6 text-center cursor-pointer transition-colors duration-200 ${isDragging ? 'border-primary bg-paper3' : 'border-rule2 hover:border-primary'
         }`}
     >
-      <Icon size={18} className="mx-auto text-muted mb-2" />
-      <p className="text-sm text-ink2 lowercase">{label}</p>
-      <p className="text-xs text-muted mt-1 lowercase">Drop or click to upload</p>
+      <Icon size={18} className="mx-auto text-text-secondary mb-2" />
+      <p className="text-sm text-text-secondary lowercase">{label}</p>
+      <p className="text-xs text-text-secondary mt-1 lowercase">Drop or click to upload</p>
       <input
         ref={inputRef}
         type="file"
@@ -481,20 +481,20 @@ export default function ThumbnailStudio({ geminiApiKey, uploadPostKey, uploadUse
         <div className="flex items-end justify-between mb-2">
           <div>
             <p className="eyebrow mb-2">06 · YOUTUBE STUDIO</p>
-            <h1 className="font-display lowercase text-2xl text-ink flex items-center gap-3">
+            <h1 className="font-display lowercase text-2xl text-text-primary flex items-center gap-3">
               <span className="w-10 h-10 rounded-card bg-paper3 flex items-center justify-center">
-                <Image size={18} className="text-brass" />
+                <Image size={18} className="text-primary" />
               </span>
               YouTube Studio
             </h1>
           </div>
           {step > 0 && (
-            <button onClick={handleReset} className="text-xs lowercase text-muted hover:text-ink transition-colors flex items-center gap-1">
+            <button onClick={handleReset} className="text-xs lowercase text-text-secondary hover:text-text-primary transition-colors flex items-center gap-1">
               <Plus size={12} /> New Project
             </button>
           )}
         </div>
-        <p className="text-sm lowercase text-muted mb-6">Generate viral titles, AI thumbnails, descriptions and publish directly to YouTube</p>
+        <p className="text-sm lowercase text-text-secondary mb-6">Generate viral titles, AI thumbnails, descriptions and publish directly to YouTube</p>
 
         <div className="mb-8">
           <StepIndicator steps={STEPS} current={step} />
@@ -506,7 +506,7 @@ export default function ThumbnailStudio({ geminiApiKey, uploadPostKey, uploadUse
             <AlertCircle size={18} className="text-warn shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-medium text-warn lowercase">Gemini API Key Required</p>
-              <p className="text-xs text-muted mt-1">YouTube Studio requires a Google Gemini API key to function. Please configure it in the <strong>Settings</strong> tab before using this feature. Gemini's free tier includes 1,500 requests per day.</p>
+              <p className="text-xs text-text-secondary mt-1">YouTube Studio requires a Google Gemini API key to function. Please configure it in the <strong>Settings</strong> tab before using this feature. Gemini's free tier includes 1,500 requests per day.</p>
             </div>
           </div>
         )}
@@ -518,11 +518,11 @@ export default function ThumbnailStudio({ geminiApiKey, uploadPostKey, uploadUse
             <div className="card card-hover p-6 space-y-4">
               <div className="flex items-center gap-3 mb-2">
                 <div className="w-8 h-8 rounded-input bg-paper3 flex items-center justify-center">
-                  <Video size={16} className="text-brass" />
+                  <Video size={16} className="text-primary" />
                 </div>
                 <div>
                   <p className="eyebrow">A · ANALYZE VIDEO</p>
-                  <p className="text-xs text-muted mt-0.5">AI suggests viral titles from your content</p>
+                  <p className="text-xs text-text-secondary mt-0.5">AI suggests viral titles from your content</p>
                 </div>
               </div>
 
@@ -536,8 +536,8 @@ export default function ThumbnailStudio({ geminiApiKey, uploadPostKey, uploadUse
               />
 
               {isPreprocessing && (
-                <div className="flex items-center gap-2 text-xs lowercase text-muted bg-paper3 rounded-input px-3 py-2">
-                  <Loader2 size={12} className="animate-spin text-brass" />
+                <div className="flex items-center gap-2 text-xs lowercase text-text-secondary bg-paper3 rounded-input px-3 py-2">
+                  <Loader2 size={12} className="animate-spin text-primary" />
                   Pre-processing video (Whisper transcription starting)...
                 </div>
               )}
@@ -571,11 +571,11 @@ export default function ThumbnailStudio({ geminiApiKey, uploadPostKey, uploadUse
             <div className="card card-hover p-6 space-y-4 flex flex-col">
               <div className="flex items-center gap-3 mb-2">
                 <div className="w-8 h-8 rounded-input bg-paper3 flex items-center justify-center">
-                  <Type size={16} className="text-brass" />
+                  <Type size={16} className="text-primary" />
                 </div>
                 <div>
                   <p className="eyebrow">B · WRITE YOUR OWN</p>
-                  <p className="text-xs text-muted mt-0.5">Skip analysis, enter your title directly</p>
+                  <p className="text-xs text-text-secondary mt-0.5">Skip analysis, enter your title directly</p>
                 </div>
               </div>
 
@@ -630,8 +630,8 @@ export default function ThumbnailStudio({ geminiApiKey, uploadPostKey, uploadUse
                 </div>
               ) : (
                 <div className="card p-4 flex flex-col h-[500px]">
-                  <div className="flex items-center gap-2 mb-3 pb-3 border-b border-rule">
-                    <MessageSquare size={14} className="text-brass" />
+                  <div className="flex items-center gap-2 mb-3 pb-3 border-b border-border">
+                    <MessageSquare size={14} className="text-primary" />
                     <span className="eyebrow">TITLE REFINEMENT CHAT</span>
                   </div>
 
@@ -640,8 +640,8 @@ export default function ThumbnailStudio({ geminiApiKey, uploadPostKey, uploadUse
                     {chatHistory.map((msg, i) => (
                       <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                         <div className={`max-w-[90%] px-3 py-2 rounded-card text-xs ${msg.role === 'user'
-                          ? 'bg-paper3 text-ink2'
-                          : 'border border-rule text-ink2'
+                          ? 'bg-paper3 text-text-secondary'
+                          : 'border border-border text-text-secondary'
                           }`}>
                           {msg.content}
                         </div>
@@ -666,7 +666,7 @@ export default function ThumbnailStudio({ geminiApiKey, uploadPostKey, uploadUse
                       disabled={isRefining || !chatInput.trim()}
                       className="btn-quiet px-3 disabled:opacity-45 disabled:cursor-not-allowed"
                     >
-                      {isRefining ? <Loader2 size={14} className="animate-spin text-brass" /> : <Send size={14} />}
+                      {isRefining ? <Loader2 size={14} className="animate-spin text-primary" /> : <Send size={14} />}
                     </button>
                   </div>
                 </div>
@@ -702,14 +702,14 @@ export default function ThumbnailStudio({ geminiApiKey, uploadPostKey, uploadUse
                         key={i}
                         onClick={() => handleSelectTitle(title)}
                         className={`w-full text-left p-4 rounded-card border transition-colors duration-200 text-sm ${selectedTitle === title
-                          ? 'bg-paper3 border-brass text-ink'
-                          : 'border-rule text-ink2 hover:bg-paper3 hover:border-rule2'
+                          ? 'bg-paper3 border-primary text-text-primary'
+                          : 'border-border text-text-secondary hover:bg-paper3 hover:border-rule2'
                           }`}
                       >
                         <div className="flex items-start gap-3">
-                          <span className={`w-6 h-6 rounded-full border flex items-center justify-center font-mono text-micro shrink-0 mt-0.5 ${selectedTitle === title ? 'bg-brass border-brass text-brassink' :
-                            rec ? 'border-rule2 text-brass' :
-                              'border-rule text-muted'
+                          <span className={`w-6 h-6 rounded-full border flex items-center justify-center font-mono text-micro shrink-0 mt-0.5 ${selectedTitle === title ? 'bg-primary border-primary text-brassink' :
+                            rec ? 'border-rule2 text-primary' :
+                              'border-border text-text-secondary'
                             }`}>
                             {selectedTitle === title ? <Check size={10} /> : rec ? '★' : i + 1}
                           </span>
@@ -723,7 +723,7 @@ export default function ThumbnailStudio({ geminiApiKey, uploadPostKey, uploadUse
                               )}
                             </div>
                             {rec && (
-                              <p className="text-xs text-muted mt-1.5 leading-relaxed">{rec.reason}</p>
+                              <p className="text-xs text-text-secondary mt-1.5 leading-relaxed">{rec.reason}</p>
                             )}
                             {thumbnailTexts[i] && (
                               <p className="readout mt-1.5">thumbnail: {thumbnailTexts[i]}</p>
@@ -737,8 +737,8 @@ export default function ThumbnailStudio({ geminiApiKey, uploadPostKey, uploadUse
               )}
 
               {isRefining && (
-                <div className="flex items-center justify-center py-8 text-muted">
-                  <Loader2 size={18} className="animate-spin mr-2 text-brass" />
+                <div className="flex items-center justify-center py-8 text-text-secondary">
+                  <Loader2 size={18} className="animate-spin mr-2 text-primary" />
                   <span className="text-sm lowercase">Refining titles...</span>
                 </div>
               )}
@@ -753,13 +753,13 @@ export default function ThumbnailStudio({ geminiApiKey, uploadPostKey, uploadUse
             <div className="md:col-span-2 space-y-4">
               <div className="card p-6 space-y-4">
                 <p className="eyebrow mb-1">TITLE</p>
-                <div className="p-3 bg-paper3 border border-rule rounded-input text-sm text-ink">
+                <div className="p-3 bg-paper3 border border-border rounded-input text-sm text-text-primary">
                   {selectedTitle || manualTitle}
                 </div>
 
                 <button
                   onClick={() => setStep(1)}
-                  className="text-xs lowercase text-muted hover:text-ink transition-colors flex items-center gap-1"
+                  className="text-xs lowercase text-text-secondary hover:text-text-primary transition-colors flex items-center gap-1"
                 >
                   <ArrowLeft size={12} /> Change title
                 </button>
@@ -769,7 +769,7 @@ export default function ThumbnailStudio({ geminiApiKey, uploadPostKey, uploadUse
                 <div className="card p-6 space-y-3">
                   <p className="eyebrow">YOUR FACE FROM THE VIDEO</p>
                   {frames.length === 0 ? (
-                    <p className="text-xs text-muted lowercase">{framesLoading ? 'Looking for sharp frames with a face...' : 'No usable face found in the video.'}</p>
+                    <p className="text-xs text-text-secondary lowercase">{framesLoading ? 'Looking for sharp frames with a face...' : 'No usable face found in the video.'}</p>
                   ) : (
                     <>
                       <div className="grid grid-cols-3 gap-2">
@@ -778,7 +778,7 @@ export default function ThumbnailStudio({ geminiApiKey, uploadPostKey, uploadUse
                             key={f.url}
                             type="button"
                             onClick={() => setSelectedFrame(selectedFrame === f.url ? null : f.url)}
-                            className={`relative rounded-input overflow-hidden border-2 transition-colors ${selectedFrame === f.url ? 'border-brass' : 'border-transparent hover:border-rule2'}`}
+                            className={`relative rounded-input overflow-hidden border-2 transition-colors ${selectedFrame === f.url ? 'border-primary' : 'border-transparent hover:border-rule2'}`}
                           >
                             <img src={getApiUrl(f.url)} alt="" className="w-full aspect-video object-cover" />
                             <span className="absolute bottom-1 right-1 readout bg-black/60 text-white px-1 rounded">
@@ -787,7 +787,7 @@ export default function ThumbnailStudio({ geminiApiKey, uploadPostKey, uploadUse
                           </button>
                         ))}
                       </div>
-                      <p className="text-xs text-muted lowercase">
+                      <p className="text-xs text-text-secondary lowercase">
                         {selectedFrame ? 'This frame is the person reference (a photo upload below overrides it).' : 'Pick a frame so the thumbnail shows you, not a stranger.'}
                       </p>
                     </>
@@ -837,7 +837,7 @@ export default function ThumbnailStudio({ geminiApiKey, uploadPostKey, uploadUse
                   onChange={setBurnText}
                   size="sm"
                 />
-                <p className="text-xs text-muted lowercase">
+                <p className="text-xs text-text-secondary lowercase">
                   {burnText ? 'Text is set in a bold font after the image is painted: always spelled right.' : 'The image model paints the text itself: more integrated, sometimes misspelled.'}
                 </p>
               </div>
@@ -876,7 +876,7 @@ export default function ThumbnailStudio({ geminiApiKey, uploadPostKey, uploadUse
             <div className="md:col-span-3">
               {generatedThumbnails.length > 0 ? (
                 <div className="space-y-4">
-                  <p className="text-sm lowercase text-muted">Generated Thumbnails — click to select for publishing</p>
+                  <p className="text-sm lowercase text-text-secondary">Generated Thumbnails — click to select for publishing</p>
                   <div className="grid gap-4">
                     {generatedThumbnails.map((thumb, i) => {
                       const url = thumb.url;
@@ -884,7 +884,7 @@ export default function ThumbnailStudio({ geminiApiKey, uploadPostKey, uploadUse
                       <div
                         key={url}
                         onClick={() => setSelectedThumbnail(url)}
-                        className={`glass-panel overflow-hidden group relative cursor-pointer transition-colors duration-200 ${selectedThumbnail === url ? 'border-2 border-brass' : ''
+                        className={`glass-panel overflow-hidden group relative cursor-pointer transition-colors duration-200 ${selectedThumbnail === url ? 'border-2 border-primary' : ''
                           }`}
                       >
                         <img
@@ -903,18 +903,18 @@ export default function ThumbnailStudio({ geminiApiKey, uploadPostKey, uploadUse
                         </div>
                         <div className="p-3 flex items-center justify-between gap-3">
                           <div className="min-w-0">
-                            <span className="text-xs lowercase text-muted flex items-center gap-2">
+                            <span className="text-xs lowercase text-text-secondary flex items-center gap-2">
                               Thumbnail {i + 1}{thumb.text ? ` · "${thumb.text}"` : ''}
                               {selectedThumbnail === url && (
-                                <span className="text-brass flex items-center gap-1"><Check size={10} /> Selected</span>
+                                <span className="text-primary flex items-center gap-1"><Check size={10} /> Selected</span>
                               )}
                             </span>
-                            {thumb.why && <p className="text-xs text-muted mt-1 truncate">{thumb.why}</p>}
+                            {thumb.why && <p className="text-xs text-text-secondary mt-1 truncate">{thumb.why}</p>}
                             {thumb.fallback && <p className="text-xs text-warn mt-1">Gemini refused to draw this person (public figures are blocked), so it was rendered without them.</p>}
                           </div>
                           <button
                             onClick={(e) => { e.stopPropagation(); handleDownload(url); }}
-                            className="text-xs lowercase text-muted hover:text-ink transition-colors flex items-center gap-1 shrink-0"
+                            className="text-xs lowercase text-text-secondary hover:text-text-primary transition-colors flex items-center gap-1 shrink-0"
                           >
                             <Download size={12} /> Save
                           </button>
@@ -932,8 +932,8 @@ export default function ThumbnailStudio({ geminiApiKey, uploadPostKey, uploadUse
                         <div key={thumb.url} className="flex gap-3 items-start">
                           <img src={getApiUrl(thumb.url)} alt="" className="w-[168px] h-[94px] object-cover rounded-input shrink-0" />
                           <div className="min-w-0">
-                            <p className="text-sm text-ink leading-snug line-clamp-2">{selectedTitle || manualTitle}</p>
-                            <p className="text-xs text-muted mt-1">Your channel · 1.2K views · 2 hours ago</p>
+                            <p className="text-sm text-text-primary leading-snug line-clamp-2">{selectedTitle || manualTitle}</p>
+                            <p className="text-xs text-text-secondary mt-1">Your channel · 1.2K views · 2 hours ago</p>
                           </div>
                         </div>
                       ))}
@@ -948,7 +948,7 @@ export default function ThumbnailStudio({ geminiApiKey, uploadPostKey, uploadUse
                   >
                     {isGenerating ? (
                       <>
-                        <Loader2 size={14} className="animate-spin text-brass" />
+                        <Loader2 size={14} className="animate-spin text-primary" />
                         Regenerating...
                       </>
                     ) : (
@@ -971,21 +971,21 @@ export default function ThumbnailStudio({ geminiApiKey, uploadPostKey, uploadUse
                   )}
                 </div>
               ) : isGenerating ? (
-                <div className="h-full flex flex-col items-center justify-center text-muted space-y-4 min-h-[400px]">
+                <div className="h-full flex flex-col items-center justify-center text-text-secondary space-y-4 min-h-[400px]">
                   <div className="w-16 h-16 rounded-full border-2 border-rule2 border-t-brass animate-spin" />
                   <div className="text-center">
-                    <p className="text-sm lowercase font-medium text-ink2">Generating thumbnails...</p>
-                    <p className="text-xs lowercase text-muted mt-1">This may take a minute per thumbnail</p>
+                    <p className="text-sm lowercase font-medium text-text-secondary">Generating thumbnails...</p>
+                    <p className="text-xs lowercase text-text-secondary mt-1">This may take a minute per thumbnail</p>
                   </div>
                 </div>
               ) : (
-                <div className="h-full flex flex-col items-center justify-center text-muted space-y-4 min-h-[400px]">
-                  <div className="w-20 h-20 rounded-card bg-paper3 border border-rule flex items-center justify-center">
-                    <Image size={28} className="text-muted" />
+                <div className="h-full flex flex-col items-center justify-center text-text-secondary space-y-4 min-h-[400px]">
+                  <div className="w-20 h-20 rounded-card bg-paper3 border border-border flex items-center justify-center">
+                    <Image size={28} className="text-text-secondary" />
                   </div>
                   <div className="text-center">
-                    <p className="text-sm lowercase text-ink2">Your thumbnails will appear here</p>
-                    <p className="text-xs lowercase text-muted mt-1">Configure options and click Generate</p>
+                    <p className="text-sm lowercase text-text-secondary">Your thumbnails will appear here</p>
+                    <p className="text-xs lowercase text-text-secondary mt-1">Configure options and click Generate</p>
                   </div>
                 </div>
               )}
@@ -1000,7 +1000,7 @@ export default function ThumbnailStudio({ geminiApiKey, uploadPostKey, uploadUse
             <div className="md:col-span-2 space-y-4">
               <button
                 onClick={() => setStep(2)}
-                className="text-xs lowercase text-muted hover:text-ink transition-colors flex items-center gap-1 mb-2"
+                className="text-xs lowercase text-text-secondary hover:text-text-primary transition-colors flex items-center gap-1 mb-2"
               >
                 <ArrowLeft size={12} /> Back to Generate
               </button>
@@ -1014,7 +1014,7 @@ export default function ThumbnailStudio({ geminiApiKey, uploadPostKey, uploadUse
                     className="w-full aspect-video object-cover"
                   />
                   <div className="p-3">
-                    <span className="text-xs lowercase text-brass flex items-center gap-1"><Check size={10} /> Selected Thumbnail</span>
+                    <span className="text-xs lowercase text-primary flex items-center gap-1"><Check size={10} /> Selected Thumbnail</span>
                   </div>
                 </div>
               )}
@@ -1022,7 +1022,7 @@ export default function ThumbnailStudio({ geminiApiKey, uploadPostKey, uploadUse
               {/* Title */}
               <div className="glass-panel p-6 space-y-3">
                 <p className="eyebrow">TITLE</p>
-                <div className="p-3 bg-paper3 border border-rule rounded-input text-sm text-ink">
+                <div className="p-3 bg-paper3 border border-border rounded-input text-sm text-text-primary">
                   {selectedTitle || manualTitle}
                 </div>
               </div>
@@ -1032,12 +1032,12 @@ export default function ThumbnailStudio({ geminiApiKey, uploadPostKey, uploadUse
                 <div className="glass-panel p-6 space-y-4">
                   <div className="flex items-center justify-between">
                     <p className="eyebrow flex items-center gap-2">
-                      <Sparkles size={14} className="text-brass" />
+                      <Sparkles size={14} className="text-primary" />
                       AI DESCRIPTION
                     </p>
                     <span className="readout">WITH CHAPTERS</span>
                   </div>
-                  <p className="text-xs text-muted">
+                  <p className="text-xs text-text-secondary">
                     Generate a YouTube description with chapter timestamps from your video transcript.
                   </p>
                   <button
@@ -1047,7 +1047,7 @@ export default function ThumbnailStudio({ geminiApiKey, uploadPostKey, uploadUse
                   >
                     {isDescribing ? (
                       <>
-                        <Loader2 size={14} className="animate-spin text-brass" />
+                        <Loader2 size={14} className="animate-spin text-primary" />
                         Generating description...
                       </>
                     ) : (
@@ -1077,7 +1077,7 @@ export default function ThumbnailStudio({ geminiApiKey, uploadPostKey, uploadUse
               <div className="glass-panel p-6 space-y-4 h-full flex flex-col">
                 <div className="flex items-center justify-between">
                   <p className="eyebrow flex items-center gap-2">
-                    <FileText size={14} className="text-muted" />
+                    <FileText size={14} className="text-text-secondary" />
                     YOUTUBE DESCRIPTION
                   </p>
                   <span className="readout">{description.length} / 5000</span>
@@ -1095,7 +1095,7 @@ export default function ThumbnailStudio({ geminiApiKey, uploadPostKey, uploadUse
                 />
 
                 {!description && (
-                  <p className="text-xs text-muted">
+                  <p className="text-xs text-text-secondary">
                     {mode === 'video'
                       ? "AI will generate a compelling description with chapter timestamps from your video's Whisper transcript."
                       : "Write a description for your YouTube video. You can proceed to publish once you have a description."}
@@ -1113,7 +1113,7 @@ export default function ThumbnailStudio({ geminiApiKey, uploadPostKey, uploadUse
             <div className="md:col-span-2 space-y-4">
               <button
                 onClick={() => setStep(3)}
-                className="text-xs lowercase text-muted hover:text-ink transition-colors flex items-center gap-1 mb-2"
+                className="text-xs lowercase text-text-secondary hover:text-text-primary transition-colors flex items-center gap-1 mb-2"
               >
                 <ArrowLeft size={12} /> Back to Description
               </button>
@@ -1127,7 +1127,7 @@ export default function ThumbnailStudio({ geminiApiKey, uploadPostKey, uploadUse
                     className="w-full aspect-video object-cover"
                   />
                   <div className="p-3">
-                    <span className="text-xs lowercase text-brass flex items-center gap-1"><Check size={10} /> Selected Thumbnail</span>
+                    <span className="text-xs lowercase text-primary flex items-center gap-1"><Check size={10} /> Selected Thumbnail</span>
                   </div>
                 </div>
               )}
@@ -1151,12 +1151,12 @@ export default function ThumbnailStudio({ geminiApiKey, uploadPostKey, uploadUse
                     <AlertCircle size={16} />
                     <span className="text-sm font-medium lowercase">Upload-Post Not Configured</span>
                   </div>
-                  <p className="text-xs text-muted">
+                  <p className="text-xs text-text-secondary">
                     To publish directly to YouTube, configure your Upload-Post API key and connect a profile in Settings.
                   </p>
                   <button
                     onClick={() => { }}
-                    className="text-xs lowercase text-brass hover:underline flex items-center gap-1"
+                    className="text-xs lowercase text-primary hover:underline flex items-center gap-1"
                   >
                     <Settings size={12} /> Go to Settings
                   </button>
@@ -1184,7 +1184,7 @@ export default function ThumbnailStudio({ geminiApiKey, uploadPostKey, uploadUse
               {/* Polling status */}
               {isPublishing && (
                 <div className="readout flex items-center gap-2">
-                  <Loader2 size={12} className="animate-spin text-brass" />
+                  <Loader2 size={12} className="animate-spin text-primary" />
                   UPLOADING — POLLING STATUS EVERY 2S
                 </div>
               )}
@@ -1195,8 +1195,8 @@ export default function ThumbnailStudio({ geminiApiKey, uploadPostKey, uploadUse
                   {publishResult.success ? (
                     <div className="space-y-2">
                       <span className="badge-ok">PUBLISHED</span>
-                      <p className="text-sm lowercase font-medium text-ink">Published successfully!</p>
-                      <p className="text-xs text-muted">Your video is being uploaded to YouTube asynchronously.</p>
+                      <p className="text-sm lowercase font-medium text-text-primary">Published successfully!</p>
+                      <p className="text-xs text-text-secondary">Your video is being uploaded to YouTube asynchronously.</p>
                       {onCreateClips && sessionId && (
                         <button
                           onClick={() => onCreateClips(sessionId)}
@@ -1212,7 +1212,7 @@ export default function ThumbnailStudio({ geminiApiKey, uploadPostKey, uploadUse
                     <div className="space-y-2">
                       <span className="badge-danger">FAILED</span>
                       <p className="text-sm lowercase font-medium text-danger">Publish failed</p>
-                      <p className="text-xs text-muted">{publishResult.error}</p>
+                      <p className="text-xs text-text-secondary">{publishResult.error}</p>
                     </div>
                   )}
                 </div>
@@ -1224,12 +1224,12 @@ export default function ThumbnailStudio({ geminiApiKey, uploadPostKey, uploadUse
               <div className="glass-panel p-6 space-y-4 h-full flex flex-col">
                 <div className="flex items-center justify-between">
                   <p className="eyebrow flex items-center gap-2">
-                    <FileText size={14} className="text-muted" />
+                    <FileText size={14} className="text-text-secondary" />
                     YOUTUBE DESCRIPTION
                   </p>
                   <button
                     onClick={() => setStep(3)}
-                    className="text-xs lowercase text-muted hover:text-ink flex items-center gap-1 transition-colors"
+                    className="text-xs lowercase text-text-secondary hover:text-text-primary flex items-center gap-1 transition-colors"
                   >
                     <ArrowLeft size={10} /> Edit
                   </button>

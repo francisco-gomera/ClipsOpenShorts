@@ -19,13 +19,13 @@ const OAuthConsent = lazy(() => import('./components/OAuthConsent'))
 
 function PageShell({ title, children }) {
   return (
-    <div className="min-h-screen bg-paper text-ink2">
-      <header className="h-14 sm:h-16 border-b border-rule bg-paper flex items-center justify-between gap-3 px-4 sm:px-6 sticky top-0 z-20">
-        <a href="#app" className="font-display lowercase text-lg text-ink truncate">{brandConfig.name}</a>
-        <a href="#app" className="text-sm lowercase text-muted hover:text-ink transition-colors shrink-0">← <span className="hidden sm:inline">Back to app</span><span className="sm:hidden">back</span></a>
+    <div className="min-h-screen bg-background text-text-secondary">
+      <header className="h-14 sm:h-16 border-b border-border bg-surface flex items-center justify-between gap-3 px-4 sm:px-6 sticky top-0 z-20">
+        <a href="#app" className="font-brand text-lg text-text-primary truncate" style={{ fontFamily: 'var(--font-brand)' }}>{brandConfig.name}</a>
+        <a href="#app" className="text-sm text-text-secondary hover:text-text-primary transition-colors shrink-0">← <span className="hidden sm:inline">Back to app</span><span className="sm:hidden">back</span></a>
       </header>
       <main className="p-4 sm:p-6 md:p-8 pb-[max(2rem,env(safe-area-inset-bottom))]">
-        {title && <h1 className="font-display lowercase text-2xl sm:text-3xl text-ink text-center mb-6 sm:mb-10">{title}</h1>}
+        {title && <h1 className="text-2xl sm:text-3xl text-text-primary text-center mb-6 sm:mb-10" style={{ fontFamily: 'var(--font-brand)' }}>{title}</h1>}
         {children}
       </main>
     </div>
@@ -70,15 +70,15 @@ function AccountView() {
 // explanation.
 function DeletedView() {
   return (
-    <div className="min-h-screen bg-paper text-ink2 flex items-center justify-center p-6">
+    <div className="min-h-screen bg-background text-text-secondary flex items-center justify-center p-6">
       <div className="max-w-md text-center space-y-4">
-        <h1 className="font-display lowercase text-2xl sm:text-3xl text-ink">Your account is deleted</h1>
-        <p className="text-sm">
+        <h1 className="text-2xl sm:text-3xl text-text-primary" style={{ fontFamily: 'var(--font-brand)' }}>Your account is deleted</h1>
+        <p className="text-sm text-text-secondary">
           Your projects, clips and transcripts are gone, any subscription is
           cancelled, and your API keys no longer work. We've emailed you a
           confirmation with the details.
         </p>
-        <p className="text-sm text-muted">
+        <p className="text-sm text-text-secondary">
           You're welcome back any time — signing up again with the same address
           starts a brand-new, empty account.
         </p>
@@ -126,7 +126,7 @@ function Root() {
   if (view === 'oauth') return <OAuthConsent />;
   if (view === 'deleted') return <DeletedView />;
   if (view === 'auth') {
-    return <div className="min-h-screen flex items-center justify-center bg-paper text-muted text-sm lowercase">signing you in…</div>;
+    return <div className="min-h-screen flex items-center justify-center bg-background text-text-secondary text-sm">signing you in…</div>;
   }
   if (view === 'app') return <App />;
   return <Landing onLaunchApp={handleLaunchApp} />;
@@ -143,7 +143,14 @@ applyConsent();
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <AuthProvider>
-      <Suspense fallback={<div className="min-h-screen bg-paper flex items-center justify-center text-muted text-sm lowercase">loading…</div>}>
+      <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center text-text-secondary text-sm">
+          <div className="flex flex-col items-center gap-4">
+            <span className="text-2xl font-brand text-primary" style={{ fontFamily: 'var(--font-brand)' }}>MyClipper</span>
+            <svg className="animate-spin text-primary" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+            </svg>
+          </div>
+        </div>}>
         <Root />
       </Suspense>
       <CookieBanner />

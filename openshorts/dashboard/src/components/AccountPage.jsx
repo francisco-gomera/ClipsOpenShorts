@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import { Loader2, CreditCard, LogOut, Plus } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { apiJson } from '../lib/api';
@@ -134,7 +134,7 @@ export default function AccountPage() {
   }, []);
   useBackFromStripe(() => setBusy(false));
 
-  if (!me) return <div className="flex justify-center py-16"><Loader2 className="animate-spin text-brass" /></div>;
+  if (!me) return <div className="flex justify-center py-16"><Loader2 className="animate-spin text-primary" /></div>;
 
   const m = minutes || {};
   const total = (m.plan_allowance || 0) + (m.topup_remaining || 0) + (m.plan_used || 0);
@@ -146,8 +146,8 @@ export default function AccountPage() {
       <div className="flex items-end justify-between gap-4">
         <div>
           <p className="eyebrow mb-1.5">ACCOUNT</p>
-          <h2 className="font-display lowercase text-2xl text-ink leading-tight">Your account</h2>
-          <p className="text-muted text-sm mt-1">{me.user?.email}</p>
+          <h2 className="font-display lowercase text-2xl text-text-primary leading-tight">Your account</h2>
+          <p className="text-text-secondary text-sm mt-1">{me.user?.email}</p>
         </div>
         <button onClick={logout} className="btn-quiet shrink-0">
           <LogOut size={16} /> Sign out
@@ -155,15 +155,15 @@ export default function AccountPage() {
       </div>
 
       {activating && (
-        <div className="card px-4 py-3 text-sm text-ink2 flex items-center gap-2 lowercase">
-          <Loader2 size={16} className="animate-spin text-brass" /> Activating your plan…
+        <div className="card px-4 py-3 text-sm text-text-secondary flex items-center gap-2 lowercase">
+          <Loader2 size={16} className="animate-spin text-primary" /> Activating your plan…
         </div>
       )}
 
       <div className="card p-6">
         <div className="flex items-center justify-between gap-4 mb-4">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-ink font-medium capitalize">{plan ? `${plan} plan` : 'No active plan'}</span>
+            <span className="text-text-primary font-medium capitalize">{plan ? `${plan} plan` : 'No active plan'}</span>
             {/* Payment-issue states get the explanatory banner below instead —
                 showing raw Stripe jargon ("past_due") twice explains nothing. */}
             {me.status && me.status !== 'active' && me.status !== 'on_hold'
@@ -191,13 +191,13 @@ export default function AccountPage() {
         {/* A bare "past_due" chip explains nothing. Say what happened and what
             fixes it — this is the whole reason the account reads as free. */}
         {PAYMENT_ISSUE_STATES.includes(me.status) && (
-          <div className="mb-4 rounded-card border border-warn/40 bg-warn/5 p-3 text-sm text-ink2">
-            <b className="text-ink">We couldn't charge your card.</b>{' '}
+          <div className="mb-4 rounded-card border border-warn/40 bg-warn/5 p-3 text-sm text-text-secondary">
+            <b className="text-text-primary">We couldn't charge your card.</b>{' '}
             {me.status === 'incomplete'
               ? 'Your payment was never completed, so the plan never started.'
               : 'Your plan is paused and you\'re on free minutes until it goes through.'}{' '}
             <button onClick={openPortal} disabled={busy}
-                    className="underline underline-offset-2 hover:text-ink">
+                    className="underline underline-offset-2 hover:text-text-primary">
               Update your card
             </button>{' '}
             and it resumes right away.
@@ -206,11 +206,11 @@ export default function AccountPage() {
 
         {/* Month on hold from the cancel flow (cloud/cancellation). */}
         {(me.status === 'on_hold' || me.hold_scheduled) && (
-          <div className="mb-4 rounded-card border border-brass/40 bg-brass/5 p-3 text-sm text-ink2 flex items-center justify-between gap-3">
+          <div className="mb-4 rounded-card border border-primary/40 bg-primary/5 p-3 text-sm text-text-secondary flex items-center justify-between gap-3">
             <span>
               {me.status === 'on_hold'
-                ? <>Your plan is paused until <b className="text-ink">{fmtDay(me.hold_until)}</b>. You're on free minutes and your clips are kept.</>
-                : <>Your plan skips next month from <b className="text-ink">{fmtDay(me.period_end)}</b>, with no charge.</>}
+                ? <>Your plan is paused until <b className="text-text-primary">{fmtDay(me.hold_until)}</b>. You're on free minutes and your clips are kept.</>
+                : <>Your plan skips next month from <b className="text-text-primary">{fmtDay(me.period_end)}</b>, with no charge.</>}
             </span>
             <button onClick={unpause} disabled={busy} className="btn-ghost px-4 py-2 text-xs shrink-0">
               {me.status === 'on_hold' ? 'Restart now' : 'Undo pause'}
@@ -220,34 +220,34 @@ export default function AccountPage() {
 
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
-            <span className="text-muted lowercase">Plan minutes</span>
-            <span className="text-ink2">{fmt1(m.plan_used)} / {fmt1(m.plan_allowance)} used</span>
+            <span className="text-text-secondary lowercase">Plan minutes</span>
+            <span className="text-text-secondary">{fmt1(m.plan_used)} / {fmt1(m.plan_allowance)} used</span>
           </div>
           <div className="h-1.5 bg-paper3 rounded-full overflow-hidden">
-            <div className={`h-full transition-all ${low ? 'bg-warn' : 'bg-brass'}`} style={{ width: `${usedPct}%` }} />
+            <div className={`h-full transition-all ${low ? 'bg-warn' : 'bg-primary'}`} style={{ width: `${usedPct}%` }} />
           </div>
           <div className="flex justify-between text-sm pt-1">
-            <span className="text-muted lowercase">Top-up minutes</span>
-            <span className="text-ink2">{fmt1(m.topup_remaining)} remaining</span>
+            <span className="text-text-secondary lowercase">Top-up minutes</span>
+            <span className="text-text-secondary">{fmt1(m.topup_remaining)} remaining</span>
           </div>
-          <div className="flex justify-between text-sm pt-2 border-t border-rule">
-            <span className="text-ink font-medium lowercase">Total remaining</span>
-            <span className="text-brass font-medium">{fmt1(m.remaining)} min</span>
+          <div className="flex justify-between text-sm pt-2 border-t border-border">
+            <span className="text-text-primary font-medium lowercase">Total remaining</span>
+            <span className="text-primary font-medium">{fmt1(m.remaining)} min</span>
           </div>
         </div>
 
         {/* Our own cancel flow (reason + review + retention offer). The portal
             cannot cancel (turned off in Stripe), so this is the only way out. */}
         {me.has_billing_account && CANCELLABLE_STATES.includes(me.status) && !me.cancel_at_period_end && (
-          <div className="pt-4 mt-4 border-t border-rule text-right">
+          <div className="pt-4 mt-4 border-t border-border text-right">
             <button onClick={() => { track('CancelFlowOpened', { props: { plan } }); setCancelOpen(true); }}
-                    className="text-xs text-muted underline underline-offset-2 hover:text-ink">
+                    className="text-xs text-text-secondary underline underline-offset-2 hover:text-text-primary">
               Cancel subscription
             </button>
           </div>
         )}
         {me.has_billing_account && CANCELLABLE_STATES.includes(me.status) && me.cancel_at_period_end && (
-          <div className="pt-4 mt-4 border-t border-rule flex items-center justify-between gap-3 text-sm text-ink2">
+          <div className="pt-4 mt-4 border-t border-border flex items-center justify-between gap-3 text-sm text-text-secondary">
             <span>Your plan ends on {me.period_end ? new Date(me.period_end).toLocaleDateString('en-US', { month: 'long', day: 'numeric' }) : 'the end of the period'}.</span>
             <button onClick={resume} disabled={busy} className="btn-ghost px-4 py-2 text-xs shrink-0">
               Keep my subscription
@@ -272,13 +272,13 @@ export default function AccountPage() {
 
       {topups.length > 0 && (
         <div className="card p-6">
-          <h3 className="font-display lowercase text-lg text-ink mb-1 flex items-center gap-2"><Plus size={16} className="text-brass" /> Buy more minutes</h3>
-          <p className="text-muted text-sm mb-4 lowercase">Top-ups never expire while your plan is active.</p>
+          <h3 className="font-display lowercase text-lg text-text-primary mb-1 flex items-center gap-2"><Plus size={16} className="text-primary" /> Buy more minutes</h3>
+          <p className="text-text-secondary text-sm mb-4 lowercase">Top-ups never expire while your plan is active.</p>
           <div className="grid grid-cols-2 gap-3">
             {topups.map((t) => (
               <button key={t.price_id} onClick={() => buyTopup(t.price_id)} disabled={busy}
-                className="border border-rule hover:border-brass rounded-card p-4 text-left transition-colors disabled:opacity-50">
-                <div className="text-ink font-medium">+{t.minutes} min</div>
+                className="border border-border hover:border-primary rounded-card p-4 text-left transition-colors disabled:opacity-50">
+                <div className="text-text-primary font-medium">+{t.minutes} min</div>
                 <div className="readout mt-1">
                   {new Intl.NumberFormat('en-US', { style: 'currency', currency: (t.currency || 'usd').toUpperCase(), maximumFractionDigits: 0 }).format((t.amount || 0) / 100)}
                 </div>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import Modal from './ui/Modal';
 import { apiJson } from '../lib/api';
 import { track } from '../lib/analytics';
@@ -74,13 +74,13 @@ export default function WatermarkModal({ onClose, onContinue, onUpgrade, preview
 
   return (
     <Modal isOpen onClose={() => close(false)} eyebrow="FREE PLAN" title="Want the watermark off?" size="md">
-      <p className="text-muted text-sm mb-4">
+      <p className="text-text-secondary text-sm mb-4">
         Clips on the free plan carry the OpenShorts mark and are deleted after 7 days.
-        Upgrade and <b className="text-ink font-medium">these exact clips lose the mark on the spot</b>,
+        Upgrade and <b className="text-text-primary font-medium">these exact clips lose the mark on the spot</b>,
         no re-render, and stay in your library for good.
       </p>
 
-      <div className="rounded-card border border-rule overflow-hidden bg-paper mb-5">
+      <div className="rounded-card border border-border overflow-hidden bg-surface mb-5">
         <video
           key={src}
           src={src}
@@ -94,7 +94,7 @@ export default function WatermarkModal({ onClose, onContinue, onUpgrade, preview
       </div>
 
       <div className="flex items-center justify-between gap-4 flex-wrap">
-        <label className="flex items-center gap-2 text-sm text-muted cursor-pointer">
+        <label className="flex items-center gap-2 text-sm text-text-secondary cursor-pointer">
           <input
             type="checkbox"
             checked={dontShow}

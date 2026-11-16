@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import { KeyRound, Plus, Trash2, Copy, Check, Loader2 } from 'lucide-react';
 import { apiJson } from '../lib/api';
 
@@ -48,18 +48,18 @@ export default function ApiKeysCard() {
 
   return (
     <div className="card p-6">
-      <h3 className="font-display lowercase text-lg text-ink mb-1 flex items-center gap-2">
-        <KeyRound size={16} className="text-brass" /> API keys
+      <h3 className="font-display lowercase text-lg text-text-primary mb-1 flex items-center gap-2">
+        <KeyRound size={16} className="text-primary" /> API keys
       </h3>
-      <p className="text-muted text-sm mb-4">
+      <p className="text-text-secondary text-sm mb-4">
         Keys for CLI clients, scripts and the REST API (see &ldquo;Connect an agent&rdquo; above).
         Apps connected through claude.ai or ChatGPT show up here too: revoking a key disconnects
         that app. Keys use your plan&apos;s minutes.
       </p>
 
       {freshKey && (
-        <div className="mb-4 rounded-card border border-brass/40 bg-brass/5 p-3 text-sm">
-          <p className="text-ink mb-2">
+        <div className="mb-4 rounded-card border border-primary/40 bg-primary/5 p-3 text-sm">
+          <p className="text-text-primary mb-2">
             <b>Copy your new key now.</b> For security it will never be shown again.
           </p>
           <div className="flex items-center gap-2">
@@ -72,23 +72,23 @@ export default function ApiKeysCard() {
       )}
 
       {keys === null ? (
-        <div className="flex justify-center py-4"><Loader2 className="animate-spin text-brass" size={18} /></div>
+        <div className="flex justify-center py-4"><Loader2 className="animate-spin text-primary" size={18} /></div>
       ) : (
         <>
           {active.length > 0 && (
             <div className="space-y-2 mb-4">
               {active.map((k) => (
-                <div key={k.id} className="flex items-center justify-between gap-3 border border-rule rounded-card px-3 py-2 text-sm">
+                <div key={k.id} className="flex items-center justify-between gap-3 border border-border rounded-card px-3 py-2 text-sm">
                   <div className="min-w-0">
-                    <span className="text-ink">{k.name}</span>{' '}
+                    <span className="text-text-primary">{k.name}</span>{' '}
                     <code className="readout">{k.prefix}…</code>
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
-                    <span className="text-muted text-xs lowercase">
+                    <span className="text-text-secondary text-xs lowercase">
                       {k.last_used_at ? `used ${new Date(k.last_used_at).toLocaleDateString()}` : 'never used'}
                     </span>
                     <button onClick={() => revoke(k)} title="Revoke key"
-                            className="text-muted hover:text-warn transition-colors">
+                            className="text-text-secondary hover:text-warn transition-colors">
                       <Trash2 size={15} />
                     </button>
                   </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Loader2, Languages, AlertCircle } from 'lucide-react';
 import Modal from './ui/Modal';
 
@@ -84,15 +84,15 @@ export default function TranslateModal({ isOpen, onClose, onTranslate, isProcess
         >
             <div className="flex items-center gap-3 mb-5">
                 <div className="w-10 h-10 rounded-input bg-paper3 flex items-center justify-center shrink-0">
-                    <Languages size={18} className="text-brass" />
+                    <Languages size={18} className="text-primary" />
                 </div>
-                <p className="text-xs text-muted">AI voice translation by ElevenLabs</p>
+                <p className="text-xs text-text-secondary">AI voice translation by ElevenLabs</p>
             </div>
 
             {!hasApiKey && (
                 <div className="mb-4 flex items-start gap-2">
                     <span className="badge-warn shrink-0"><AlertCircle size={12} /> key missing</span>
-                    <p className="text-sm text-muted">Configure ElevenLabs API Key in Settings first.</p>
+                    <p className="text-sm text-text-secondary">Configure ElevenLabs API Key in Settings first.</p>
                 </div>
             )}
 
@@ -126,14 +126,14 @@ export default function TranslateModal({ isOpen, onClose, onTranslate, isProcess
             </div>
 
             {/* Info */}
-            <p className="text-xs text-muted leading-relaxed mb-2">
+            <p className="text-xs text-text-secondary leading-relaxed mb-2">
                 The audio will be dubbed with AI-generated voice in the selected language, matching the original speaker's characteristics.
             </p>
 
             {/* AI Act art. 50: we mark the file, the person publishing it is the
                 one who owes the audience the disclosure. Saying so here is the
                 only place they will read it. */}
-            <p className="text-xs text-muted leading-relaxed mb-2">
+            <p className="text-xs text-text-secondary leading-relaxed mb-2">
                 The dubbed file is tagged as AI-generated content. When you publish it, disclose that the voice is synthetic.
             </p>
 
@@ -141,10 +141,10 @@ export default function TranslateModal({ isOpen, onClose, onTranslate, isProcess
             {isProcessing && (
                 <div className="mt-4 p-3 bg-paper3 rounded-input">
                     <div className="flex items-center gap-3">
-                        <Loader2 size={18} className="text-brass animate-spin" />
+                        <Loader2 size={18} className="text-primary animate-spin" />
                         <div>
-                            <p className="text-sm text-ink font-medium lowercase">Dubbing audio...</p>
-                            <p className="text-xs text-muted lowercase">This may take a few minutes</p>
+                            <p className="text-sm text-text-primary font-medium lowercase">Dubbing audio...</p>
+                            <p className="text-xs text-text-secondary lowercase">This may take a few minutes</p>
                         </div>
                     </div>
                 </div>

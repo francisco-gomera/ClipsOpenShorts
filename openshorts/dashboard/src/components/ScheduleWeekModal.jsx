@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+﻿import React, { useState, useMemo } from 'react';
 import { Loader2, Calendar, CheckCircle, AlertCircle, Video, Instagram, Youtube, ChevronLeft, ChevronRight, Circle, ExternalLink } from 'lucide-react';
 import { apiFetch } from '../lib/api';
 import Modal from './ui/Modal';
@@ -271,7 +271,7 @@ export default function ScheduleWeekModal({ isOpen, onClose, clips, jobId, uploa
                     >
                         <ChevronLeft size={16} />
                     </button>
-                    <span className="readout text-ink2 min-w-[110px] text-center">
+                    <span className="readout text-text-secondary min-w-[110px] text-center">
                         {(() => {
                             const d = new Date();
                             d.setDate(d.getDate() + startOffset);
@@ -289,7 +289,7 @@ export default function ScheduleWeekModal({ isOpen, onClose, clips, jobId, uploa
             </div>
 
             {/* Calendar list */}
-            <div className="mb-5 border-y border-rule divide-y divide-rule">
+            <div className="mb-5 border-y border-border divide-y divide-rule">
                 {schedule.map(({ clip, index, date }) => (
                     <div key={index} className="flex items-center gap-3 py-2.5">
                         <div className="w-24 shrink-0">
@@ -297,7 +297,7 @@ export default function ScheduleWeekModal({ isOpen, onClose, clips, jobId, uploa
                         </div>
 
                         <div className="flex-1 min-w-0">
-                            <div className="text-xs text-ink truncate">
+                            <div className="text-xs text-text-primary truncate">
                                 {clip.video_title_for_youtube_short || 'Viral Short'}
                             </div>
                             <div className="readout mt-0.5 truncate">
@@ -313,10 +313,10 @@ export default function ScheduleWeekModal({ isOpen, onClose, clips, jobId, uploa
                                 <AlertCircle size={16} className="text-danger" />
                             )}
                             {scheduling && progress.current === index && (
-                                <Loader2 size={16} className="text-brass animate-spin" />
+                                <Loader2 size={16} className="text-primary animate-spin" />
                             )}
                             {!scheduling && progress.results[index] === undefined && (
-                                <Circle size={16} className="text-muted" />
+                                <Circle size={16} className="text-text-secondary" />
                             )}
                         </div>
                     </div>
@@ -348,12 +348,12 @@ export default function ScheduleWeekModal({ isOpen, onClose, clips, jobId, uploa
             {(scheduling || done) && (
                 <div className="mb-1">
                     <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs text-muted lowercase">{scheduling ? 'scheduling...' : 'complete'}</span>
+                        <span className="text-xs text-text-secondary lowercase">{scheduling ? 'scheduling...' : 'complete'}</span>
                         <span className="readout">{progress.current}/{progress.total}</span>
                     </div>
                     <div className="w-full h-1.5 bg-paper3 rounded-full overflow-hidden">
                         <div
-                            className={`h-full rounded-full transition-all duration-500 ${done && failCount === 0 ? 'bg-ok' : done && failCount > 0 ? 'bg-danger' : 'bg-brass'}`}
+                            className={`h-full rounded-full transition-all duration-500 ${done && failCount === 0 ? 'bg-ok' : done && failCount > 0 ? 'bg-danger' : 'bg-primary'}`}
                             style={{ width: `${(progress.current / progress.total) * 100}%` }}
                         />
                     </div>

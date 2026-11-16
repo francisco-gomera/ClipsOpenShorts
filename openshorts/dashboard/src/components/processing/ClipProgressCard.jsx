@@ -2,77 +2,91 @@ import React from 'react';
 import { Film, CheckCircle2, Loader2, Sparkles, Scissors, Type } from 'lucide-react';
 
 const SUBSTAGE_LABELS = {
-  cut: { label: 'Recortando fragmento', icon: Scissors },
-  reframe: { label: 'Reencuadrando 9:16', icon: Film },
-  hook: { label: 'Hook visual', icon: Sparkles },
-  subtitles: { label: 'Quemando subtítulos', icon: Type },
-  done: { label: 'Completado', icon: CheckCircle2 },
+  cut:       { label: 'Trimming',   icon: Scissors },
+  reframe:   { label: 'Reframing',  icon: Film },
+  hook:      { label: 'Hook visual', icon: Sparkles },
+  subtitles: { label: 'Subtitles',  icon: Type },
+  done:      { label: 'Completed',  icon: CheckCircle2 },
 };
 
 export default function ClipProgressCard({ clip, clipNumber, onPreviewClip = null }) {
   const isReady = clip.ready || clip.status === 'completed';
   const substageKey = clip.substage || (isReady ? 'done' : 'reframe');
-  const substageMeta = SUBSTAGE_LABELS[substageKey] || { label: 'Procesando', icon: Loader2 };
+  const substageMeta = SUBSTAGE_LABELS[substageKey] || { label: 'Processing', icon: Loader2 };
   const SubstageIcon = substageMeta.icon;
 
   return (
     <div
       className={`p-3 rounded-card border transition-all duration-300 ${
         isReady
-          ? 'bg-paper border-emerald-500/30 shadow-sm shadow-emerald-500/5'
-          : 'bg-paper/70 border-rule/60'
+          ? 'bg-primary-soft/40 border-success/30'
+          : 'bg-surface border-border'
       }`}
+      role="article"
+      aria-label={`Clip ${clipNumber || (clip.index ?? 0) + 1}: ${substageMeta.label}`}
     >
       <div className="flex items-center justify-between gap-2">
+        {/* Left: substage icon + label */}
         <div className="flex items-center gap-2 min-w-0">
           <div
             className={`p-1.5 rounded shrink-0 ${
-              isReady ? 'bg-emerald-500/10 text-emerald-400' : 'bg-brass/10 text-brass'
+              isReady
+                ? 'bg-success/10 text-success'
+                : 'bg-surface-elevated text-primary'
             }`}
+            aria-hidden="true"
           >
-            <SubstageIcon size={14} className={!isReady ? 'animate-pulse' : ''} />
+            {isReady ? (
+              <SubstageIcon size={14} />
+            ) : (
+              /* Skeleton pulse icon for in-progress */
+              <SubstageIcon size={14} className="animate-pulse" />
+            )}
           </div>
           <div className="min-w-0">
-            <h5 className="text-xs font-semibold text-ink truncate">
-              Clip {clipNumber || clip.index + 1}
+            <h5 className="text-xs font-brand font-semibold text-text-primary truncate">
+              Clip {clipNumber || (clip.index ?? 0) + 1}
             </h5>
-            <p className="text-[11px] text-muted truncate">
+            <p className="text-[11px] text-text-secondary truncate font-ui">
               {substageMeta.label}
             </p>
           </div>
         </div>
 
-        {/* Estado o Badge */}
+        {/* Right: ready badge or percentage */}
         <div className="shrink-0 text-right">
           {isReady ? (
             <button
               type="button"
               onClick={() => onPreviewClip && onPreviewClip(clip)}
-              className="inline-flex items-center gap-1 text-[11px] font-mono font-medium text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors"
+              className="inline-flex items-center gap-1 text-[11px] font-ui font-medium
+                text-success bg-success/10 px-2 py-0.5 rounded-full border border-success/20
+                hover:bg-success/20 transition-colors focus:outline-none focus:ring-2 focus:ring-success/40"
+              aria-label={`Preview clip ${clipNumber || (clip.index ?? 0) + 1}`}
             >
-              <CheckCircle2 size={11} />
+              <CheckCircle2 size={11} aria-hidden="true" />
               Listo
             </button>
           ) : (
-            <span className="text-xs font-mono text-brass font-bold">
-              {clip.percent ? `${Math.round(clip.percent)}%` : '0%'}
+            <span className="text-xs font-brand font-bold text-primary" aria-label="Progreso">
+              {clip.percent != null ? `${Math.round(clip.percent)}%` : '0%'}
             </span>
           )}
         </div>
       </div>
 
-      {/* Mini barra de progreso */}
+      {/* Mini progress bar */}
       <div
-        className="mt-2 w-full h-1 rounded-full bg-black/20 border border-rule/30 overflow-hidden"
+        className="mt-2 w-full h-1 rounded-full bg-surface-elevated overflow-hidden"
         role="progressbar"
         aria-valuenow={isReady ? 100 : Math.round(clip.percent || 0)}
         aria-valuemin={0}
         aria-valuemax={100}
-        aria-label={`Progreso de clip ${clipNumber || clip.index + 1}`}
+        aria-label={`Progreso de clip ${clipNumber || (clip.index ?? 0) + 1}`}
       >
         <div
           className={`h-full rounded-full transition-all duration-300 ${
-            isReady ? 'bg-emerald-500 w-full' : 'bg-brass'
+            isReady ? 'bg-success' : 'bg-primary'
           }`}
           style={{ width: isReady ? '100%' : `${Math.min(100, clip.percent || 0)}%` }}
         />

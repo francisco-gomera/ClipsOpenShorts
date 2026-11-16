@@ -20,13 +20,17 @@ export default function ProcessingPanel({
   const recovery = stagesData.recovery || { state: 'normal' };
 
   return (
-    <div className="w-full space-y-4 font-sans animate-fade-in" aria-live="polite">
-      {/* Banner de recuperación si hay rate limits u operaciones de retry */}
+    <div
+      className="w-full space-y-4 animate-fade font-ui"
+      aria-live="polite"
+      aria-label="Panel de procesamiento"
+    >
+      {/* Recovery banner — rate limit or Gemini wait */}
       {recovery && recovery.state !== 'normal' && (
         <RecoveryBanner recovery={recovery} />
       )}
 
-      {/* Progreso Global de la canalización */}
+      {/* Global progress */}
       <GlobalProgress
         percent={stagesData.percent}
         mode={stagesData.mode || 'indeterminate'}
@@ -38,9 +42,13 @@ export default function ProcessingPanel({
         status={stagesData.status || status}
       />
 
-      {/* Lista ordenada de las 6 etapas con barras individuales y check verde */}
-      <div className="p-4 rounded-card bg-paper border border-rule space-y-3">
-        <h4 className="text-xs font-mono uppercase tracking-wider text-muted">
+      {/* Stage list */}
+      <div
+        className="p-4 rounded-card bg-surface border border-border space-y-3"
+        role="region"
+        aria-label="Etapas del proceso"
+      >
+        <h4 className="text-xs font-brand font-semibold uppercase tracking-widest text-text-secondary">
           Etapas del Proceso
         </h4>
         <StageList
@@ -50,15 +58,20 @@ export default function ProcessingPanel({
         />
       </div>
 
-      {/* Progreso incremental de clips si están en curso */}
+      {/* Clip progress cards */}
       {clips.length > 0 && (
-        <div className="p-4 rounded-card bg-paper border border-rule space-y-3">
+        <div
+          className="p-4 rounded-card bg-surface border border-border space-y-3"
+          role="region"
+          aria-label="Generación de clips"
+        >
           <div className="flex items-center justify-between">
-            <h4 className="text-xs font-mono uppercase tracking-wider text-muted">
+            <h4 className="text-xs font-brand font-semibold uppercase tracking-widest text-text-secondary">
               Generación de Clips
             </h4>
-            <span className="text-xs font-mono text-ink2">
-              <strong className="text-emerald-400">{counters.ready || 0}</strong> de {counters.total || clips.length} listos
+            <span className="text-xs font-ui text-text-secondary">
+              <strong className="text-success">{counters.ready || 0}</strong>
+              {' '}de {counters.total || clips.length} listos
             </span>
           </div>
 
@@ -74,7 +87,7 @@ export default function ProcessingPanel({
         </div>
       )}
 
-      {/* Terminal secundario plegable de logs técnicos */}
+      {/* Collapsible technical logs */}
       <CollapsibleLogs logs={logs} defaultOpen={false} />
     </div>
   );

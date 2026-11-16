@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { X, Loader2, Crosshair, RotateCcw, AlertCircle, Play, Pause, Columns2 } from 'lucide-react';
 import { getApiUrl } from '../config';
 import { apiJson } from '../lib/api';
@@ -141,29 +141,29 @@ export default function ReframeEditor({ jobId, clipIndex, clipTitle, onClose, on
            shared Modal so the app has one overlay idiom, not two. */
         <div className="fixed inset-0 z-50 bg-black/80 flex items-end sm:items-center justify-center p-0 sm:p-4">
             <div className="card w-full max-w-3xl max-h-[92vh] sm:max-h-[90vh] flex flex-col rounded-b-none sm:rounded-card animate-sheet-up sm:animate-none">
-                <div className="flex items-center justify-between p-4 border-b border-rule">
+                <div className="flex items-center justify-between p-4 border-b border-border">
                     <div className="flex items-center gap-2.5 min-w-0">
-                        <Crosshair size={18} className="text-brass shrink-0" />
+                        <Crosshair size={18} className="text-primary shrink-0" />
                         <div className="min-w-0">
-                            <h2 className="text-base font-medium text-ink lowercase truncate">reframing</h2>
-                            {clipTitle && <p className="text-xs text-muted truncate">{clipTitle}</p>}
+                            <h2 className="text-base font-medium text-text-primary lowercase truncate">reframing</h2>
+                            {clipTitle && <p className="text-xs text-text-secondary truncate">{clipTitle}</p>}
                         </div>
                     </div>
                     <button onClick={onClose} className="p-1.5 hover:bg-paper3 rounded-input transition-colors">
-                        <X size={18} className="text-muted" />
+                        <X size={18} className="text-text-secondary" />
                     </button>
                 </div>
 
                 <div className="flex-1 overflow-y-auto overscroll-contain custom-scrollbar p-4 space-y-5">
-                    <p className="text-xs text-muted leading-relaxed">
+                    <p className="text-xs text-text-secondary leading-relaxed">
                         Play a scene to hear who is talking, then drag the rectangle over
                         the person you want. Each scene is one camera. Scenes you leave
                         alone keep the automatic camera.
                     </p>
 
                     {loading && (
-                        <div className="flex items-center gap-2 text-sm text-muted py-8 justify-center">
-                            <Loader2 size={18} className="animate-spin text-brass" />
+                        <div className="flex items-center gap-2 text-sm text-text-secondary py-8 justify-center">
+                            <Loader2 size={18} className="animate-spin text-primary" />
                             reading the scenes…
                         </div>
                     )}
@@ -193,8 +193,8 @@ export default function ReframeEditor({ jobId, clipIndex, clipTitle, onClose, on
                     ))}
                 </div>
 
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border-t border-rule">
-                    <span className="text-xs text-muted">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border-t border-border">
+                    <span className="text-xs text-text-secondary">
                         {adjusted === 0
                             ? 'nothing adjusted yet'
                             : `${adjusted} scene${adjusted > 1 ? 's' : ''} reframed by hand`}
@@ -284,11 +284,11 @@ function SceneRow({ scene, value, widthFraction, previewUrl, touched, playing,
                 key={which}
                 onMouseDown={startDrag(which)}
                 onTouchStart={startDrag(which)}
-                className="absolute inset-y-0 border-2 border-brass cursor-ew-resize"
+                className="absolute inset-y-0 border-2 border-primary cursor-ew-resize"
                 style={{ left: `${leftPct}%`, width: `${widthFraction * 100}%` }}
             >
                 {label && (
-                    <span className="absolute top-1 left-1 text-[10px] px-1 rounded bg-brass text-paper lowercase">
+                    <span className="absolute top-1 left-1 text-[10px] px-1 rounded bg-primary text-paper lowercase">
                         {label}
                     </span>
                 )}
@@ -302,12 +302,12 @@ function SceneRow({ scene, value, widthFraction, previewUrl, touched, playing,
                 <div className="flex items-center gap-2 min-w-0">
                     <button
                         onClick={onPlayToggle}
-                        className="flex items-center gap-1 text-ink2 hover:text-brass transition-colors"
+                        className="flex items-center gap-1 text-text-secondary hover:text-primary transition-colors"
                         title="play this scene with sound"
                     >
                         {playing ? <Pause size={13} /> : <Play size={13} />}
                     </button>
-                    <span className="readout text-muted truncate">
+                    <span className="readout text-text-secondary truncate">
                         scene {scene.index + 1} · {fmt(scene.start)}–{fmt(scene.end)}
                     </span>
                 </div>
@@ -315,17 +315,17 @@ function SceneRow({ scene, value, widthFraction, previewUrl, touched, playing,
                     <button
                         onClick={onToggleSplit}
                         className={`flex items-center gap-1 transition-colors ${
-                            isSplit ? 'text-brass' : 'text-muted hover:text-ink2'}`}
+                            isSplit ? 'text-primary' : 'text-text-secondary hover:text-text-secondary'}`}
                         title="stack two regions instead of one window"
                     >
                         <Columns2 size={12} /> split
                     </button>
                     {touched ? (
-                        <button onClick={onReset} className="flex items-center gap-1 text-brass hover:underline">
+                        <button onClick={onReset} className="flex items-center gap-1 text-primary hover:underline">
                             <RotateCcw size={12} /> automatic
                         </button>
                     ) : (
-                        <span className="text-muted">automatic</span>
+                        <span className="text-text-secondary">automatic</span>
                     )}
                 </div>
             </div>
@@ -333,7 +333,7 @@ function SceneRow({ scene, value, widthFraction, previewUrl, touched, playing,
             <div
                 ref={boxRef}
                 className={`relative overflow-hidden rounded-input select-none border ${
-                    touched ? 'border-brass' : 'border-rule'}`}
+                    touched ? 'border-primary' : 'border-border'}`}
             >
                 {playing && previewUrl ? (
                     <video
@@ -370,7 +370,7 @@ function SceneRow({ scene, value, widthFraction, previewUrl, touched, playing,
             </div>
 
             {isSplit && (
-                <p className="text-[11px] text-muted leading-snug">
+                <p className="text-[11px] text-text-secondary leading-snug">
                     Two regions stacked in the vertical frame: <strong>top</strong> above,
                     <strong> bottom</strong> below. Drag each one onto the person it should hold.
                 </p>

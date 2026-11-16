@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { getApiUrl } from '../config';
 import GalleryCard from './GalleryCard';
@@ -76,8 +76,8 @@ export default function Gallery() {
 
     if (loading) {
         return (
-            <div className="h-full flex flex-col items-center justify-center text-muted animate-fade">
-                <Loader2 size={32} className="animate-spin mb-4 text-brass" />
+            <div className="h-full flex flex-col items-center justify-center text-text-secondary animate-fade">
+                <Loader2 size={32} className="animate-spin mb-4 text-primary" />
                 <p className="lowercase">Loading your viral history...</p>
             </div>
         );
@@ -107,7 +107,7 @@ export default function Gallery() {
             <div className="flex items-end justify-between mb-8">
                 <div>
                     <p className="eyebrow mb-1.5">Library</p>
-                    <h1 className="font-display lowercase text-2xl text-ink">Clip Gallery</h1>
+                    <h1 className="font-display lowercase text-2xl text-text-primary">Clip Gallery</h1>
                 </div>
                 <span className="readout">
                     {clips.length} {clips.length === 1 ? 'Clip' : 'Clips'}{hasMore ? '+' : ''}
@@ -115,7 +115,7 @@ export default function Gallery() {
             </div>
 
             {clips.length === 0 ? (
-                <div className="text-center py-20 text-muted">
+                <div className="text-center py-20 text-text-secondary">
                     <p className="text-lg mb-2 lowercase">No clips found yet.</p>
                     <p className="text-sm lowercase">Process some videos to populate your gallery!</p>
                 </div>
@@ -134,7 +134,7 @@ export default function Gallery() {
                             className="flex justify-center py-8"
                         >
                             {loadingMore && (
-                                <div className="flex items-center gap-2 text-muted">
+                                <div className="flex items-center gap-2 text-text-secondary">
                                     <Loader2 size={20} className="animate-spin" />
                                     <span className="text-sm lowercase">Loading more clips...</span>
                                 </div>

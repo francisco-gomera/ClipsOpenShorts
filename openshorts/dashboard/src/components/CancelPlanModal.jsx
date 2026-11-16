@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+﻿import React, { useState, useRef, useEffect } from 'react';
 import { Loader2, Star } from 'lucide-react';
 import { apiJson } from '../lib/api';
 import { track } from '../lib/analytics';
@@ -151,10 +151,10 @@ export default function CancelPlanModal({ plan, periodEnd, onClose, onCanceled }
   if (paused) {
     return (
       <Modal isOpen onClose={onCanceled} eyebrow="PLAN PAUSED" title="Next month is on us">
-        <div className="space-y-4 text-sm text-ink2">
+        <div className="space-y-4 text-sm text-text-secondary">
           <p>
-            Your plan runs as usual until <b className="text-ink">{fmtDate(paused.pause_from)}</b>.
-            Then it skips one month: <b className="text-ink">no charge</b>, your clips stay
+            Your plan runs as usual until <b className="text-text-primary">{fmtDate(paused.pause_from)}</b>.
+            Then it skips one month: <b className="text-text-primary">no charge</b>, your clips stay
             where they are, and you still get the free minutes. After that it picks up again on its own.
           </p>
           <p>Need it sooner? Restart it from your account page any time.</p>
@@ -169,11 +169,11 @@ export default function CancelPlanModal({ plan, periodEnd, onClose, onCanceled }
   if (saved) {
     return (
       <Modal isOpen onClose={onCanceled} eyebrow="YOU'RE STAYING" title="Discount applied">
-        <div className="space-y-4 text-sm text-ink2">
+        <div className="space-y-4 text-sm text-text-secondary">
           <p>
             Thanks for giving us another go. Your plan stays as it is, and your next
             {saved.months ? ` ${saved.months}` : ''} invoice{saved.months > 1 ? 's are' : ' is'}{' '}
-            <b className="text-ink">{saved.percent_off}% off</b>.
+            <b className="text-text-primary">{saved.percent_off}% off</b>.
           </p>
           <p>We read every answer you gave us and will work on it.</p>
           <div className="flex justify-end pt-1">
@@ -190,12 +190,12 @@ export default function CancelPlanModal({ plan, periodEnd, onClose, onCanceled }
                    offer || pause ? 'Before you go' : 'Confirm cancellation'][step]}>
       {step === 0 && (
         <div className="space-y-4">
-          <p className="text-sm text-muted">Your answer goes straight to the people building OpenShorts.</p>
+          <p className="text-sm text-text-secondary">Your answer goes straight to the people building OpenShorts.</p>
           <div className="space-y-1.5">
             {REASONS.map(([value, label]) => (
               <label key={value}
                      className={`flex items-center gap-2.5 rounded-card border px-3 py-2 text-sm cursor-pointer transition-colors
-                       ${reason === value ? 'border-brass text-ink' : 'border-rule text-ink2 hover:border-brass/60'}`}>
+                       ${reason === value ? 'border-primary text-text-primary' : 'border-border text-text-secondary hover:border-primary/60'}`}>
                 <input type="radio" name="cancel-reason" value={value} checked={reason === value}
                        onChange={() => setReason(value)} />
                 {label}
@@ -204,7 +204,7 @@ export default function CancelPlanModal({ plan, periodEnd, onClose, onCanceled }
           </div>
           {reason && (
             <label className="block">
-              <span className="text-sm text-muted">{DETAIL_PROMPT[reason] || 'Anything else we should know?'} (optional)</span>
+              <span className="text-sm text-text-secondary">{DETAIL_PROMPT[reason] || 'Anything else we should know?'} (optional)</span>
               <textarea value={details} onChange={(e) => setDetails(e.target.value)} maxLength={2000} rows={3}
                         className="input-field w-full text-sm mt-1" />
             </label>
@@ -218,23 +218,23 @@ export default function CancelPlanModal({ plan, periodEnd, onClose, onCanceled }
 
       {step === 1 && (
         <div className="space-y-4">
-          <p className="text-sm text-muted">Rate your experience and leave a short review. It takes ten seconds and helps us more than anything else.</p>
+          <p className="text-sm text-text-secondary">Rate your experience and leave a short review. It takes ten seconds and helps us more than anything else.</p>
           <div className="flex items-center gap-1" onMouseLeave={() => setHover(0)}>
             {[1, 2, 3, 4, 5].map((n) => (
               <button key={n} type="button" aria-label={`${n} star${n > 1 ? 's' : ''}`}
                       onClick={() => setRating(n)} onMouseEnter={() => setHover(n)} className="p-1">
-                <Star size={26} className={n <= shown ? 'text-brass fill-current' : 'text-muted'} />
+                <Star size={26} className={n <= shown ? 'text-primary fill-current' : 'text-text-secondary'} />
               </button>
             ))}
           </div>
           <label className="block">
-            <span className="text-sm text-muted">Your review</span>
+            <span className="text-sm text-text-secondary">Your review</span>
             <textarea value={review} onChange={(e) => setReview(e.target.value)} maxLength={2000} rows={4}
                       placeholder="What worked, what didn't, who you'd recommend it to…"
                       className="input-field w-full text-sm mt-1" />
           </label>
           {review.trim() && (
-            <label className="flex items-start gap-2 text-sm text-ink2 cursor-pointer">
+            <label className="flex items-start gap-2 text-sm text-text-secondary cursor-pointer">
               <input type="checkbox" checked={publicOk} onChange={(e) => setPublicOk(e.target.checked)} className="mt-0.5" />
               OpenShorts may quote this review publicly (first name only).
             </label>
@@ -247,10 +247,10 @@ export default function CancelPlanModal({ plan, periodEnd, onClose, onCanceled }
       )}
 
       {step === 2 && (
-        <div className="space-y-4 text-sm text-ink2">
+        <div className="space-y-4 text-sm text-text-secondary">
           {pause && (
-            <div className="rounded-card border border-brass bg-brass/5 p-4 space-y-3">
-              <p className="text-ink">
+            <div className="rounded-card border border-primary bg-primary/5 p-4 space-y-3">
+              <p className="text-text-primary">
                 Not using it right now? <b>Skip a month instead.</b> No charge from{' '}
                 {fmtDate(pause.pause_from)} for one month, your clips stay, and the plan
                 comes back by itself.
@@ -262,8 +262,8 @@ export default function CancelPlanModal({ plan, periodEnd, onClose, onCanceled }
             </div>
           )}
           {offer && (
-            <div className="rounded-card border border-brass bg-brass/5 p-4 space-y-3">
-              <p className="text-ink">
+            <div className="rounded-card border border-primary bg-primary/5 p-4 space-y-3">
+              <p className="text-text-primary">
                 Stay and get <b>{offer.percent_off}% off{months}</b>. Same plan, same
                 minutes, half the price.
               </p>
@@ -275,8 +275,8 @@ export default function CancelPlanModal({ plan, periodEnd, onClose, onCanceled }
           )}
           <p>
             {offer || pause ? 'If you still want to leave, your' : 'Your'}
-            {' '}{plan ? <b className="text-ink capitalize">{plan}</b> : null} plan stays active until{' '}
-            <b className="text-ink">{fmtDate(periodEnd)}</b>, with every minute you have left.
+            {' '}{plan ? <b className="text-text-primary capitalize">{plan}</b> : null} plan stays active until{' '}
+            <b className="text-text-primary">{fmtDate(periodEnd)}</b>, with every minute you have left.
             You won't be charged again.
           </p>
           <p>You can undo this from your account page any time before then.</p>

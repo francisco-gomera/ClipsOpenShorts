@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+﻿import React, { useState, useRef } from 'react';
 import { Loader2 } from 'lucide-react';
 import { apiJson } from '../lib/api';
 import Modal from './ui/Modal';
@@ -41,7 +41,7 @@ const ROLES = [
 ];
 
 const chip = (on) => `rounded-full border px-3 py-1.5 text-xs transition-colors ${
-  on ? 'border-brass bg-brass/10 text-ink' : 'border-rule text-ink2 hover:border-brass/60'}`;
+  on ? 'border-primary bg-primary/10 text-text-primary' : 'border-border text-text-secondary hover:border-primary/60'}`;
 
 // Asked once, right after sign-up, before the clip tutorial (backend:
 // cloud/onboarding.py). One screen, every question optional, skippable: it
@@ -90,7 +90,7 @@ export default function OnboardingSurvey({ onDone }) {
            )}>
       <div className="space-y-6">
         <section>
-          <h3 className="text-sm text-ink mb-2">What do you want to make with OpenShorts? <span className="text-muted">(pick any)</span></h3>
+          <h3 className="text-sm text-text-primary mb-2">What do you want to make with OpenShorts? <span className="text-text-secondary">(pick any)</span></h3>
           <div className="flex flex-wrap gap-2">
             {GOALS.map(([value, label]) => (
               <button key={value} type="button" onClick={() => toggleGoal(value)} className={chip(goals.includes(value))}>
@@ -101,7 +101,7 @@ export default function OnboardingSurvey({ onDone }) {
         </section>
 
         <section>
-          <h3 className="text-sm text-ink mb-2">How did you hear about us?</h3>
+          <h3 className="text-sm text-text-primary mb-2">How did you hear about us?</h3>
           <div className="flex flex-wrap gap-2">
             {SOURCES.map(([value, label]) => (
               <button key={value} type="button" onClick={() => setSource(source === value ? '' : value)} className={chip(source === value)}>
@@ -116,7 +116,7 @@ export default function OnboardingSurvey({ onDone }) {
         </section>
 
         <section>
-          <h3 className="text-sm text-ink mb-2">What describes you best?</h3>
+          <h3 className="text-sm text-text-primary mb-2">What describes you best?</h3>
           <div className="flex flex-wrap gap-2">
             {ROLES.map(([value, label]) => (
               <button key={value} type="button" onClick={() => setRole(role === value ? '' : value)} className={chip(role === value)}>

@@ -1,4 +1,4 @@
-// The consent banner. Small on purpose — it is a legal control, not a feature.
+﻿// The consent banner. Small on purpose — it is a legal control, not a feature.
 //
 // Two rules it exists to satisfy, both of which the previous "no banner at all"
 // version failed once OpenPanel was identifying users by profile:
@@ -60,17 +60,17 @@ export default function CookieBanner() {
     >
       <div className="card mx-auto max-w-3xl p-4 sm:p-5 space-y-4 shadow-2xl">
         <div className="space-y-2">
-          <h2 className="font-display lowercase text-lg text-ink">Before we count anything</h2>
-          <p className="text-sm text-ink2">
+          <h2 className="font-display lowercase text-lg text-text-primary">Before we count anything</h2>
+          <p className="text-sm text-text-secondary">
             We only store what the app needs to work unless you tell us otherwise.
             Audience measurement stays off until you say yes, and you can change
             this at any time from the “cookies” link in the footer.{' '}
-            <a href="#legal" className="underline hover:text-ink">Privacy policy</a>.
+            <a href="#legal" className="underline hover:text-text-primary">Privacy policy</a>.
           </p>
         </div>
 
         {details && (
-          <ul className="space-y-3 border-t border-rule pt-3">
+          <ul className="space-y-3 border-t border-border pt-3">
             {CATEGORY_COPY.map((cat) => (
               <li key={cat.key} className="flex gap-3">
                 <input
@@ -82,9 +82,9 @@ export default function CookieBanner() {
                   onChange={(e) => setDraft({ ...draft, [cat.key]: e.target.checked })}
                 />
                 <label htmlFor={`consent-${cat.key}`} className="text-sm">
-                  <span className="text-ink">{cat.label}</span>
-                  {cat.locked && <span className="text-muted"> · always on</span>}
-                  <span className="block text-muted">{cat.body}</span>
+                  <span className="text-text-primary">{cat.label}</span>
+                  {cat.locked && <span className="text-text-secondary"> · always on</span>}
+                  <span className="block text-text-secondary">{cat.body}</span>
                 </label>
               </li>
             ))}

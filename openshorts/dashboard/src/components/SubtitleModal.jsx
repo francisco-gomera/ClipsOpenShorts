@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { apiFetch } from '../lib/api';
 import RemotionPreview from './RemotionPreview';
@@ -279,9 +279,9 @@ export default function SubtitleModal({ isOpen, onClose, onGenerate, onApplyAll,
         <Modal isOpen={isOpen} onClose={onClose} size="xl" eyebrow="EDITOR · SUBTITLES" title="subtitles">
             <div className="flex flex-col md:flex-row gap-6">
                 {/* Left: Preview */}
-                <div className="flex-1 flex flex-col items-center justify-center bg-black rounded-card border border-rule overflow-hidden relative aspect-[9/16] max-h-[600px]">
+                <div className="flex-1 flex flex-col items-center justify-center bg-black rounded-card border border-border overflow-hidden relative aspect-[9/16] max-h-[600px]">
                     {captionsLoading ? (
-                        <div className="flex items-center gap-2 text-muted">
+                        <div className="flex items-center gap-2 text-text-secondary">
                             <Loader2 size={16} className="animate-spin" />
                             <span className="text-sm lowercase">Loading preview...</span>
                         </div>
@@ -321,8 +321,8 @@ export default function SubtitleModal({ isOpen, onClose, onGenerate, onApplyAll,
                                         onClick={() => applyPreset(p)}
                                         className={`px-2 py-1.5 rounded-input border text-xs transition-colors flex items-center gap-1.5 justify-center
                                             ${activePreset === p.id
-                                                ? 'border-[color:var(--color-accent)] text-ink'
-                                                : 'border-rule2 text-muted hover:border-[color:var(--color-accent)]'}`}
+                                                ? 'border-[color:var(--color-accent)] text-text-primary'
+                                                : 'border-rule2 text-text-secondary hover:border-[color:var(--color-accent)]'}`}
                                         title={p.label}
                                     >
                                         <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: p.highlightColor }} />
@@ -336,7 +336,7 @@ export default function SubtitleModal({ isOpen, onClose, onGenerate, onApplyAll,
                                         <span className="readout">UPPERCASE</span>
                                         <label className="relative inline-flex items-center cursor-pointer">
                                             <input type="checkbox" checked={uppercase} onChange={(e) => setUppercase(e.target.checked)} className="sr-only peer" />
-                                            <div className="w-8 h-4 rounded-full bg-paper3 peer-checked:bg-brass transition-colors after:content-[''] after:absolute after:top-0 after:left-0 after:h-4 after:w-4 after:rounded-full after:bg-ink after:transition-all peer-checked:after:translate-x-full"></div>
+                                            <div className="w-8 h-4 rounded-full bg-paper3 peer-checked:bg-primary transition-colors after:content-[''] after:absolute after:top-0 after:left-0 after:h-4 after:w-4 after:rounded-full after:bg-ink after:transition-all peer-checked:after:translate-x-full"></div>
                                         </label>
                                     </div>
                                     <div>
@@ -385,7 +385,7 @@ export default function SubtitleModal({ isOpen, onClose, onGenerate, onApplyAll,
                                     <span className="readout">One word at a time</span>
                                     <label className="relative inline-flex items-center cursor-pointer">
                                         <input type="checkbox" checked={oneWord} onChange={(e) => setOneWord(e.target.checked)} className="sr-only peer" />
-                                        <div className="w-8 h-4 rounded-full bg-paper3 peer-checked:bg-brass transition-colors after:content-[''] after:absolute after:top-0 after:left-0 after:h-4 after:w-4 after:rounded-full after:bg-ink after:transition-all peer-checked:after:translate-x-full"></div>
+                                        <div className="w-8 h-4 rounded-full bg-paper3 peer-checked:bg-primary transition-colors after:content-[''] after:absolute after:top-0 after:left-0 after:h-4 after:w-4 after:rounded-full after:bg-ink after:transition-all peer-checked:after:translate-x-full"></div>
                                     </label>
                                 </div>
                                 {!oneWord && (
@@ -393,7 +393,7 @@ export default function SubtitleModal({ isOpen, onClose, onGenerate, onApplyAll,
                                         <span className="readout">Reveal word by word</span>
                                         <label className="relative inline-flex items-center cursor-pointer">
                                             <input type="checkbox" checked={reveal} onChange={(e) => setReveal(e.target.checked)} className="sr-only peer" />
-                                            <div className="w-8 h-4 rounded-full bg-paper3 peer-checked:bg-brass transition-colors after:content-[''] after:absolute after:top-0 after:left-0 after:h-4 after:w-4 after:rounded-full after:bg-ink after:transition-all peer-checked:after:translate-x-full"></div>
+                                            <div className="w-8 h-4 rounded-full bg-paper3 peer-checked:bg-primary transition-colors after:content-[''] after:absolute after:top-0 after:left-0 after:h-4 after:w-4 after:rounded-full after:bg-ink after:transition-all peer-checked:after:translate-x-full"></div>
                                         </label>
                                     </div>
                                 )}
@@ -421,7 +421,7 @@ export default function SubtitleModal({ isOpen, onClose, onGenerate, onApplyAll,
                                     className="w-full flex items-center justify-between mb-2"
                                 >
                                     <span className="eyebrow">Edit text ({captions.length} words)</span>
-                                    <span className={`text-muted transition-transform ${showTextEditor ? 'rotate-180' : ''}`}>▾</span>
+                                    <span className={`text-text-secondary transition-transform ${showTextEditor ? 'rotate-180' : ''}`}>▾</span>
                                 </button>
                                 {showTextEditor && (
                                     <textarea
@@ -463,8 +463,8 @@ export default function SubtitleModal({ isOpen, onClose, onGenerate, onApplyAll,
                                         title={c.label}
                                     />
                                 ))}
-                                <label className="w-6 h-6 rounded-full border border-dashed border-rule2 cursor-pointer flex items-center justify-center hover:border-brass transition-colors overflow-hidden relative" title="Custom color">
-                                    <span className="text-xs text-muted leading-none">+</span>
+                                <label className="w-6 h-6 rounded-full border border-dashed border-rule2 cursor-pointer flex items-center justify-center hover:border-primary transition-colors overflow-hidden relative" title="Custom color">
+                                    <span className="text-xs text-text-secondary leading-none">+</span>
                                     <input type="color" value={fontColor} onChange={(e) => setFontColor(e.target.value)} className="absolute inset-0 opacity-0 cursor-pointer" />
                                 </label>
                             </div>
@@ -517,7 +517,7 @@ export default function SubtitleModal({ isOpen, onClose, onGenerate, onApplyAll,
                                 <p className="eyebrow">Background</p>
                                 <label className="relative inline-flex items-center cursor-pointer">
                                     <input type="checkbox" checked={bgOpacity > 0} onChange={(e) => setBgOpacity(e.target.checked ? 0.5 : 0)} className="sr-only peer" />
-                                    <div className="w-8 h-4 rounded-full bg-paper3 peer-checked:bg-brass transition-colors after:content-[''] after:absolute after:top-0 after:left-0 after:h-4 after:w-4 after:rounded-full after:bg-ink after:transition-all peer-checked:after:translate-x-full"></div>
+                                    <div className="w-8 h-4 rounded-full bg-paper3 peer-checked:bg-primary transition-colors after:content-[''] after:absolute after:top-0 after:left-0 after:h-4 after:w-4 after:rounded-full after:bg-ink after:transition-all peer-checked:after:translate-x-full"></div>
                                 </label>
                             </div>
                             {bgOpacity > 0 && (
@@ -597,7 +597,7 @@ export default function SubtitleModal({ isOpen, onClose, onGenerate, onApplyAll,
                                         <button
                                             onClick={onRemove}
                                             disabled={isProcessing}
-                                            className="text-xs text-muted underline underline-offset-2 lowercase hover:text-ink2 disabled:opacity-50"
+                                            className="text-xs text-text-secondary underline underline-offset-2 lowercase hover:text-text-secondary disabled:opacity-50"
                                         >
                                             remove captions from this clip
                                         </button>

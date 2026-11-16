@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+﻿import React, { useState, useRef, useCallback } from 'react';
 import { Trash2, AlertTriangle, Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { apiJson } from '../lib/api';
@@ -70,10 +70,10 @@ export default function DeleteAccountCard() {
 
   return (
     <div className="card p-6">
-      <h3 className="font-display lowercase text-lg text-ink mb-1 flex items-center gap-2">
+      <h3 className="font-display lowercase text-lg text-text-primary mb-1 flex items-center gap-2">
         <Trash2 size={16} className="text-danger" /> Delete account
       </h3>
-      <p className="text-muted text-sm">
+      <p className="text-text-secondary text-sm">
         Close your OpenShorts account and erase everything we hold about you. This
         cannot be undone.
       </p>
@@ -84,8 +84,8 @@ export default function DeleteAccountCard() {
         </button>
       ) : (
         <div className="mt-4 space-y-4">
-          <div className="rounded-card border border-danger/40 bg-danger/5 p-3 text-sm text-ink2">
-            <p className="flex items-start gap-2 text-ink">
+          <div className="rounded-card border border-danger/40 bg-danger/5 p-3 text-sm text-text-secondary">
+            <p className="flex items-start gap-2 text-text-primary">
               <AlertTriangle size={16} className="text-danger shrink-0 mt-0.5" />
               <b>This is permanent. There is no recovery.</b>
             </p>
@@ -105,7 +105,7 @@ export default function DeleteAccountCard() {
           </div>
 
           <label className="block">
-            <span className="text-sm text-muted lowercase">Why are you leaving? (optional)</span>
+            <span className="text-sm text-text-secondary lowercase">Why are you leaving? (optional)</span>
             <select
               value={reason}
               onChange={(e) => setReason(e.target.value)}
@@ -119,8 +119,8 @@ export default function DeleteAccountCard() {
           </label>
 
           <label className="block">
-            <span className="text-sm text-muted">
-              Type <b className="text-ink">{email}</b> to confirm
+            <span className="text-sm text-text-secondary">
+              Type <b className="text-text-primary">{email}</b> to confirm
             </span>
             <input
               value={confirm}

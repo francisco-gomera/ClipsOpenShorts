@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, RefreshCw, AlertCircle } from 'lucide-react';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
 
 export default function RecoveryBanner({ recovery }) {
   const isRateLimit = recovery?.state === 'waiting_rate_limit';
@@ -26,38 +26,42 @@ export default function RecoveryBanner({ recovery }) {
 
   return (
     <div
-      className={`p-3.5 rounded-card border flex items-start gap-3 transition-colors ${
-        isRateLimit
-          ? 'bg-amber-500/10 border-amber-500/30 text-amber-200'
-          : 'bg-sky-500/10 border-sky-500/30 text-sky-200'
-      }`}
+      className="p-3.5 rounded-card border-l-[3px] border border-warning/30 border-l-warning
+        bg-warning/10 flex items-start gap-3 transition-colors"
       role="status"
       aria-live="polite"
+      aria-label={isRateLimit ? 'AI rate limit — esperando' : 'Reintentando procesamiento'}
     >
-      <div className="p-1 rounded bg-black/20 shrink-0 mt-0.5">
+      {/* Icon */}
+      <div className="shrink-0 mt-0.5" aria-hidden="true">
         {isRateLimit ? (
-          <Clock size={16} className="text-amber-400 animate-pulse" />
+          <AlertTriangle size={16} className="text-warning" />
         ) : (
-          <RefreshCw size={16} className="text-sky-400 animate-spin" />
+          <RefreshCw size={16} className="text-warning animate-spin" />
         )}
       </div>
 
+      {/* Content */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
-          <h4 className="text-xs font-semibold tracking-wide uppercase font-mono">
-            {isRateLimit ? 'Ventana de cuota de IA en curso' : 'Reintentando procesamiento'}
+          <h4 className="text-xs font-brand font-semibold uppercase tracking-wide text-warning">
+            {isRateLimit ? 'AI quota window in progress' : 'Retrying processing'}
           </h4>
           {secondsLeft > 0 && (
-            <span className="text-xs font-mono font-bold bg-amber-500/20 px-2 py-0.5 rounded border border-amber-500/30">
+            <span
+              className="text-xs font-brand font-bold text-warning bg-warning/10
+                px-2 py-0.5 rounded border border-warning/30"
+              aria-label={`${secondsLeft} segundos restantes`}
+            >
               {secondsLeft}s
             </span>
           )}
         </div>
-        <p className="text-xs opacity-90 mt-1">
+        <p className="text-xs text-warning/90 font-ui mt-1 leading-relaxed">
           {recovery.message ||
             (isRateLimit
-              ? `Ajustando ritmo con el servicio de IA para evitar saturación de solicitudes. El proceso se reanudará automáticamente en ${secondsLeft}s.`
-              : 'Recuperando estado de la canalización...')}
+              ? `Pacing with the AI service to avoid request saturation. Will resume automatically in ${secondsLeft}s.`
+              : 'Recovering pipeline state...')}
         </p>
       </div>
     </div>

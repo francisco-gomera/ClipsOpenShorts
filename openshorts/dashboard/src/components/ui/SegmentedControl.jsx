@@ -1,4 +1,4 @@
-/**
+﻿/**
  * The single option-toggle group (design.md). Replaces every ad-hoc
  * grid of toggle buttons (position/size/animation pickers, platform
  * selectors, mode switches).
@@ -42,11 +42,11 @@ export default function SegmentedControl({ options, value, onChange, multi = fal
             onClick={() => toggle(opt.value)}
             className={`${pad} rounded-input border text-xs lowercase flex flex-col items-center justify-center gap-1 transition-colors duration-200
               ${active
-                ? 'border-brass bg-paper3 text-ink'
-                : 'border-rule bg-paper text-muted hover:text-ink2 hover:border-rule2'}
+                ? 'border-primary bg-surface-elevated text-primary'
+                : 'border-border bg-surface text-text-secondary hover:text-text-secondary hover:border-rule2'}
               disabled:opacity-40 disabled:cursor-not-allowed`}
           >
-            {opt.icon && <span className={active ? 'text-brass' : 'text-muted'}>{opt.icon}</span>}
+            {opt.icon && <span className={active ? 'text-primary' : 'text-text-secondary'}>{opt.icon}</span>}
             <span className="font-medium">{opt.label}</span>
             {opt.hint && <span className="readout normal-case">{opt.hint}</span>}
           </button>

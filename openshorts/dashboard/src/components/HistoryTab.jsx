@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+﻿import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Loader2,
   Download,
@@ -167,7 +167,7 @@ export default function HistoryTab({ onReopenProject }) {
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1 text-micro font-mono uppercase px-2 py-0.5 rounded bg-white/5 text-muted border border-rule">
+          <span className="inline-flex items-center gap-1 text-micro font-mono uppercase px-2 py-0.5 rounded bg-white/5 text-text-secondary border border-border">
             {status || 'Unknown'}
           </span>
         );
@@ -229,8 +229,8 @@ export default function HistoryTab({ onReopenProject }) {
 
   if (loading && unifiedProjects.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-muted">
-        <Loader2 className="animate-spin text-brass mb-3" size={32} />
+      <div className="flex flex-col items-center justify-center py-20 text-text-secondary">
+        <Loader2 className="animate-spin text-primary mb-3" size={32} />
         <p className="text-sm">Loading projects…</p>
       </div>
     );
@@ -241,7 +241,7 @@ export default function HistoryTab({ onReopenProject }) {
       <div className="flex flex-wrap items-center justify-between gap-4 mb-2">
         <div>
           <p className="eyebrow mb-1">02 · PROJECTS</p>
-          <h1 className="font-display lowercase text-2xl sm:text-3xl text-ink">Project Gallery</h1>
+          <h1 className="font-display lowercase text-2xl sm:text-3xl text-text-primary">Project Gallery</h1>
         </div>
         <button
           onClick={loadData}
@@ -254,23 +254,23 @@ export default function HistoryTab({ onReopenProject }) {
         </button>
       </div>
 
-      <p className="text-muted text-sm mb-6 lowercase">
+      <p className="text-text-secondary text-sm mb-6 lowercase">
         Browse previously processed videos and generated shorts. Reopen any project to edit clips or continue where you left off.
       </p>
 
       {diskUsage && (
-        <div className="mb-8 p-4 rounded-card bg-paper border border-rule">
+        <div className="mb-8 p-4 rounded-card bg-surface border border-border">
           <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-            <span className="text-xs font-medium text-ink flex items-center gap-1.5">
-              <HardDrive size={14} className="text-muted" /> Almacenamiento de proyectos
+            <span className="text-xs font-medium text-text-primary flex items-center gap-1.5">
+              <HardDrive size={14} className="text-text-secondary" /> Almacenamiento de proyectos
             </span>
-            <span className="text-xs font-mono text-muted">
+            <span className="text-xs font-mono text-text-secondary">
               {(diskUsage.output_used_bytes / (1024 ** 3)).toFixed(1)} GB / {(diskUsage.output_cap_bytes / (1024 ** 3)).toFixed(0)} GB ({diskUsage.output_percent}%)
             </span>
           </div>
-          <div className="w-full bg-paper-deep rounded-full h-1.5 overflow-hidden">
+          <div className="w-full bg-surface-deep rounded-full h-1.5 overflow-hidden">
             <div
-              className={`h-full transition-all duration-300 ${diskUsage.output_percent >= 80 ? 'bg-amber-400' : 'bg-brass'}`}
+              className={`h-full transition-all duration-300 ${diskUsage.output_percent >= 80 ? 'bg-amber-400' : 'bg-primary'}`}
               style={{ width: `${Math.min(100, diskUsage.output_percent)}%` }}
             />
           </div>
@@ -296,9 +296,9 @@ export default function HistoryTab({ onReopenProject }) {
       )}
 
       {unifiedProjects.length === 0 ? (
-        <div className="text-center py-20 text-muted card p-10">
-          <Film size={44} className="mx-auto mb-4 text-muted/60" />
-          <h3 className="text-ink font-medium text-base mb-1">No projects found</h3>
+        <div className="text-center py-20 text-text-secondary card p-10">
+          <Film size={44} className="mx-auto mb-4 text-text-secondary/60" />
+          <h3 className="text-text-primary font-medium text-base mb-1">No projects found</h3>
           <p className="text-sm lowercase">
             Create your first short from the Clip Generator tab to see it here.
           </p>
@@ -312,21 +312,21 @@ export default function HistoryTab({ onReopenProject }) {
             return (
               <section
                 key={project.job_id}
-                className="card p-5 sm:p-6 transition-all hover:border-rule-strong"
+                className="card p-5 sm:p-6 transition-all hover:border-border-strong"
               >
                 {/* Project Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-rule">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border">
                   <div className="min-w-0 space-y-1">
                     <div className="flex flex-wrap items-center gap-2.5">
                       <h2
-                        className="text-base sm:text-lg text-ink font-medium truncate"
+                        className="text-base sm:text-lg text-text-primary font-medium truncate"
                         title={project.title}
                       >
                         {project.title}
                       </h2>
                       {renderStatusBadge(project.status)}
                       {project.has_source ? (
-                        <span className="inline-flex items-center gap-1 text-micro font-mono uppercase px-2 py-0.5 rounded bg-white/5 text-ink/70 border border-rule">
+                        <span className="inline-flex items-center gap-1 text-micro font-mono uppercase px-2 py-0.5 rounded bg-white/5 text-text-primary/70 border border-border">
                           <Video size={11} /> Source available
                         </span>
                       ) : (
@@ -338,7 +338,7 @@ export default function HistoryTab({ onReopenProject }) {
                     <p className="readout text-xs">
                       {fmtDate(project.created_at || project.updated_at)} · {availableClips.length} {availableClips.length === 1 ? 'clip' : 'clips'}
                       {project.source_duration ? ` · ${Math.round(project.source_duration)}s source` : ''}
-                      <span className="font-mono text-muted/70 ml-2">({project.job_id.slice(0, 8)})</span>
+                      <span className="font-mono text-text-secondary/70 ml-2">({project.job_id.slice(0, 8)})</span>
                     </p>
                   </div>
 
@@ -395,7 +395,7 @@ export default function HistoryTab({ onReopenProject }) {
                         </button>
                         <button
                           onClick={() => setConfirmDeleteId(null)}
-                          className="px-2 py-0.5 text-xs text-muted hover:text-ink transition-colors"
+                          className="px-2 py-0.5 text-xs text-text-secondary hover:text-text-primary transition-colors"
                         >
                           No
                         </button>
@@ -404,7 +404,7 @@ export default function HistoryTab({ onReopenProject }) {
                       <button
                         onClick={() => setConfirmDeleteId(project.job_id)}
                         disabled={Boolean(deleting)}
-                        className="btn-ghost px-2.5 py-1.5 text-xs text-muted hover:text-rose-400"
+                        className="btn-ghost px-2.5 py-1.5 text-xs text-text-secondary hover:text-rose-400"
                         title="Delete project and free disk space"
                       >
                         <Trash2 size={13} />
@@ -424,10 +424,10 @@ export default function HistoryTab({ onReopenProject }) {
                 {/* Clips Grid */}
                 <div className="mt-5">
                   {!hasClips || availableClips.length === 0 ? (
-                    <div className="py-6 text-center text-muted text-xs lowercase">
+                    <div className="py-6 text-center text-text-secondary text-xs lowercase">
                       No rendered clips available for this project yet.
                       {project.status === 'interrupted' || project.status === 'recoverable' ? (
-                        <span className="block mt-1 text-ink/70">
+                        <span className="block mt-1 text-text-primary/70">
                           Reopen the project to resume processing.
                         </span>
                       ) : null}
@@ -445,7 +445,7 @@ export default function HistoryTab({ onReopenProject }) {
                         return (
                           <div
                             key={clip.index ?? clip.id ?? clip.video_url}
-                            className="card card-hover overflow-hidden group flex flex-col justify-between bg-black/40 border-rule/60"
+                            className="card card-hover overflow-hidden group flex flex-col justify-between bg-black/40 border-border/60"
                           >
                             <div className="aspect-[9/16] bg-black relative flex items-center justify-center overflow-hidden">
                               {mediaUrl ? (
@@ -456,17 +456,17 @@ export default function HistoryTab({ onReopenProject }) {
                                   className="w-full h-full object-contain"
                                 />
                               ) : (
-                                <Film size={32} className="text-muted/40" />
+                                <Film size={32} className="text-text-secondary/40" />
                               )}
                             </div>
                             <div className="p-3">
                               <p
-                                className="text-xs text-ink font-medium line-clamp-2 mb-2"
+                                className="text-xs text-text-primary font-medium line-clamp-2 mb-2"
                                 title={clipTitle}
                               >
                                 {clipTitle}
                               </p>
-                              <div className="flex items-center justify-between pt-1 border-t border-rule/40">
+                              <div className="flex items-center justify-between pt-1 border-t border-border/40">
                                 <span className="readout text-micro">
                                   {clip.duration ? `${Math.round(clip.duration)}s` : `Clip #${clip.index + 1}`}
                                 </span>
@@ -474,7 +474,7 @@ export default function HistoryTab({ onReopenProject }) {
                                   <a
                                     href={dlUrl}
                                     download
-                                    className="text-micro font-mono uppercase text-brass hover:text-ink flex items-center gap-1 transition-colors"
+                                    className="text-micro font-mono uppercase text-primary hover:text-text-primary flex items-center gap-1 transition-colors"
                                     title="Download clip"
                                   >
                                     <Download size={12} /> Save

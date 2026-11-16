@@ -1,4 +1,4 @@
-/* Design system: MyClipper — Cyan Dark
+﻿/* Design system: MyClipper — Cyan Dark
  * Token layer: all design decisions live here.
  * Components consume these variables; nothing else should use raw hex values.
  */
@@ -32,6 +32,8 @@
   --font-brand: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
   --font-ui:    'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-mono:  ui-monospace, SFMono-Regular, 'Cascadia Code', monospace;
+  /* Legacy aliases for index.css component layer */
+  --font-body:  var(--font-ui);
 
   /* ── Spacing scale (4 / 8 px base) ──────────────────────────────────── */
   --space-1:  4px;
@@ -67,4 +69,32 @@
   --transition-slow:   350ms;
   --ease-out:          cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out:       cubic-bezier(0.4, 0, 0.2, 1);
+  /* Legacy alias */
+  --dur-short: var(--transition-fast);
+
+  /* ── Miscellaneous ───────────────────────────────────────────────────── */
+  --tracking-micro: 0.10em;
+
+  /* ── Legacy aliases (index.css + JSX component layer) ───────────────── *
+   * Maps old token names → Cyan Dark tokens so shared classes keep working
+   * without touching the component CSS. Remove once fully migrated.       */
+  --color-paper:        var(--color-surface);
+  --color-paper-2:      var(--color-surface);
+  --color-paper-3:      var(--color-surface-elevated);
+  --color-paper-emit:   rgba(53, 201, 208, 0.04);   /* subtle glow tint */
+  --color-rule:         var(--color-border);
+  --color-rule-2:       color-mix(in oklab, var(--color-border) 150%, transparent);
+  --color-accent:       var(--color-primary);
+  --color-accent-ink:   var(--color-background);
+  --color-ink:          var(--color-text-primary);
+  --color-ink2:         var(--color-text-secondary);
+  --color-muted:        var(--color-text-secondary);
+  --color-ok:           var(--color-success);
+  --color-warn:         var(--color-warning);
+  --color-danger:       var(--color-error);
+  --color-focus:        var(--color-primary);
+
+  /* Tailwind class aliases used in JSX (bg-primary, text-primary, etc.) */
+  --color-brass:        var(--color-primary);
+  --color-brassink:     var(--color-background);
 }

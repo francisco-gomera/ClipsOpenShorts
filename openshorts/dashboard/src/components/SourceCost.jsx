@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { Loader2, Scissors } from 'lucide-react';
 import { apiJson } from '../lib/api';
 import { track } from '../lib/analytics';
@@ -69,7 +69,7 @@ export default function SourceCost({ mode, url, fileSeconds, range, onRangeChang
     if (!isManaged) return null;
     if (loading && !estimate) {
         return (
-            <p className="mt-3 flex items-center gap-2 text-xs text-muted">
+            <p className="mt-3 flex items-center gap-2 text-xs text-text-secondary">
                 <Loader2 size={12} className="animate-spin" /> checking the video length…
             </p>
         );
@@ -89,18 +89,18 @@ export default function SourceCost({ mode, url, fileSeconds, range, onRangeChang
     let summary;
     if (range) {
         summary = (
-            <span className={short ? 'text-warn' : 'text-ink2'}>
+            <span className={short ? 'text-warn' : 'text-text-secondary'}>
                 {clock(start)}–{clock(end)} of {clock(total)} · uses {rangeCost} of your {remaining} min
                 {short && ' (not enough left)'}
             </span>
         );
     } else if (estimate.outcome === 'whole') {
-        summary = <span className="text-ink2">{clock(total)} video · uses {estimate.cost_minutes} of your {remaining} min</span>;
+        summary = <span className="text-text-secondary">{clock(total)} video · uses {estimate.cost_minutes} of your {remaining} min</span>;
     } else if (estimate.outcome === 'first_video_free') {
-        summary = <span className="text-ink2">{clock(total)} video · your first video is clipped whole, on us</span>;
+        summary = <span className="text-text-secondary">{clock(total)} video · your first video is clipped whole, on us</span>;
     } else if (estimate.outcome === 'first_part') {
         summary = (
-            <span className="text-ink2">
+            <span className="text-text-secondary">
                 {clock(total)} video · longer than your {remaining} min left, so we clip the first {estimate.processed_minutes} min
             </span>
         );
@@ -127,14 +127,14 @@ export default function SourceCost({ mode, url, fileSeconds, range, onRangeChang
                             setPicking(true);
                             onRangeChange({ start: 0, end: total });
                         }}
-                        className="flex items-center gap-1 text-brass hover:underline lowercase"
+                        className="flex items-center gap-1 text-primary hover:underline lowercase"
                     >
                         <Scissors size={12} />
                         {picking || range ? 'clip the whole video' : 'clip only part of it'}
                     </button>
                 )}
             </div>
-            <p className="text-muted mt-0.5">Billed per minute of video you import. Trims, reframes, hooks and captions on the clips are free.</p>
+            <p className="text-text-secondary mt-0.5">Billed per minute of video you import. Trims, reframes, hooks and captions on the clips are free.</p>
             {(picking || range) && range && (
                 <div className="mt-3 space-y-2 animate-fade">
                     <label className="block">

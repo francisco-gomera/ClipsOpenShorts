@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Loader2, Check, Zap, Clock } from 'lucide-react';
 import { apiJson } from '../lib/api';
 import { track } from '../lib/analytics';
@@ -134,28 +134,28 @@ export default function TopUpModal({ onClose, required, remaining, partialMinute
              : (blockedByLength ? 'Your video is ready to clip' : "You've used this month's minutes")}
            size="xl">
       {/* Goal-gradient framing: they're one step from the thing they came for. */}
-      <p className="text-muted text-sm mb-5">
+      <p className="text-text-secondary text-sm mb-5">
         {isUpsell
           ? (partialJob
-            ? <>These clips come from the first <b className="text-ink font-medium">{partialJob.processed_minutes} min</b>{' '}
+            ? <>These clips come from the first <b className="text-text-primary font-medium">{partialJob.processed_minutes} min</b>{' '}
                 of a {partialJob.total_minutes}-min video. A plan gives you the minutes to clip{' '}
-                <b className="text-ink font-medium">all of it</b>, with no watermark, and the clips you already
+                <b className="text-text-primary font-medium">all of it</b>, with no watermark, and the clips you already
                 made lose the mark on the spot.</>
-            : <>Every clip comes out <b className="text-ink font-medium">ready to post</b> and stays in your
+            : <>Every clip comes out <b className="text-text-primary font-medium">ready to post</b> and stays in your
                 library for good. On the free plan they carry a watermark and are deleted after 7 days;
-                upgrade now and the clips you already made <b className="text-ink font-medium">lose the mark on the spot</b>.</>)
+                upgrade now and the clips you already made <b className="text-text-primary font-medium">lose the mark on the spot</b>.</>)
           : blockedByLength
-            ? <>This video is <b className="text-ink font-medium">{required} min</b> long and you have{' '}
-                <b className="text-ink font-medium">{remainingShown} min</b> left this month. Pick a plan and
+            ? <>This video is <b className="text-text-primary font-medium">{required} min</b> long and you have{' '}
+                <b className="text-text-primary font-medium">{remainingShown} min</b> left this month. Pick a plan and
                 clip the whole video.</>
             : <>Your minutes renew next month. Pick a plan to keep clipping now.</>}
       </p>
 
       {partialOffer && (
         <div className="mb-5 card p-4 flex flex-col sm:flex-row sm:items-center gap-3">
-          <div className="flex-1 text-sm text-ink2">
-            <b className="text-ink font-medium">Or see it first:</b> clip the first{' '}
-            <b className="text-ink font-medium">{partialMinutes} min</b> now with the minutes you have,
+          <div className="flex-1 text-sm text-text-secondary">
+            <b className="text-text-primary font-medium">Or see it first:</b> clip the first{' '}
+            <b className="text-text-primary font-medium">{partialMinutes} min</b> now with the minutes you have,
             and decide with the clips in front of you.
           </div>
           <button onClick={onPartial} disabled={busyPrice !== null}
@@ -170,19 +170,19 @@ export default function TopUpModal({ onClose, required, remaining, partialMinute
           const highlight = entry.plan === highlightPlan;
           return (
             <div key={entry.price_id}
-                 className={`relative card p-5 flex flex-col ${highlight ? 'border-brass' : ''}`}>
+                 className={`relative card p-5 flex flex-col ${highlight ? 'border-primary' : ''}`}>
               {highlight && (
                 <span className="absolute -top-3 left-1/2 -translate-x-1/2 badge-float">
                   {entry.plan === 'creator' ? 'Most popular' : 'Removes the mark'}
                 </span>
               )}
-              <h3 className="font-display lowercase text-lg text-ink">{entry.plan}</h3>
-              <p className="text-muted text-xs mb-3 lowercase">{PLAN_BLURBS[entry.plan] || ''}</p>
+              <h3 className="font-display lowercase text-lg text-text-primary">{entry.plan}</h3>
+              <p className="text-text-secondary text-xs mb-3 lowercase">{PLAN_BLURBS[entry.plan] || ''}</p>
               <div className="mb-3 flex items-baseline gap-1.5">
-                <span className="font-display text-3xl text-ink tabular-nums">{fmt(entry.amount, entry.currency)}</span>
+                <span className="font-display text-3xl text-text-primary tabular-nums">{fmt(entry.amount, entry.currency)}</span>
                 <span className="readout">/mo</span>
               </div>
-              <ul className="space-y-1.5 text-sm text-ink2 mb-4 flex-1">
+              <ul className="space-y-1.5 text-sm text-text-secondary mb-4 flex-1">
                 <li className="flex items-start gap-2">
                   <Check size={15} className="text-ok shrink-0 mt-0.5" />
                   <span><b>{entry.minutes} min</b> every month ({Math.round(entry.minutes / 20)}× your free quota)</span>
@@ -196,7 +196,7 @@ export default function TopUpModal({ onClose, required, remaining, partialMinute
                   <span>Your library <b>stays</b> (free clips delete after 7 days)</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <Zap size={15} className="text-brass shrink-0 mt-0.5" />
+                  <Zap size={15} className="text-primary shrink-0 mt-0.5" />
                   <span>Skips the free queue</span>
                 </li>
               </ul>
@@ -206,13 +206,13 @@ export default function TopUpModal({ onClose, required, remaining, partialMinute
                   ? <Loader2 size={18} className="animate-spin" />
                   : `Get ${entry.plan}`}
               </button>
-              <p className="text-center text-xs text-muted mt-2 lowercase">cancel anytime.</p>
+              <p className="text-center text-xs text-text-secondary mt-2 lowercase">cancel anytime.</p>
             </div>
           );
         })}
         {plans.length === 0 && (
           <div className="sm:col-span-3 flex justify-center py-8">
-            <Loader2 className="animate-spin text-brass" />
+            <Loader2 className="animate-spin text-primary" />
           </div>
         )}
       </div>
@@ -221,23 +221,23 @@ export default function TopUpModal({ onClose, required, remaining, partialMinute
       <div className="mt-4 text-center">
         {!showTopups ? (
           <button onClick={() => setShowTopups(true)}
-                  className="text-xs text-muted underline underline-offset-2 lowercase hover:text-ink2">
+                  className="text-xs text-text-secondary underline underline-offset-2 lowercase hover:text-text-secondary">
             just need a few extra minutes? one-time packs
           </button>
         ) : (
           <div className="grid grid-cols-2 gap-3 mt-2">
             {topups.map((t) => (
               <button key={t.price_id} onClick={() => buy(t, 'topup')} disabled={busyPrice !== null}
-                      className="border border-rule hover:border-brass rounded-card p-3 text-left transition-colors disabled:opacity-50">
-                <div className="text-ink text-sm font-medium flex items-center gap-1.5">
-                  <Clock size={14} className="text-muted" />+{t.minutes} min
+                      className="border border-border hover:border-primary rounded-card p-3 text-left transition-colors disabled:opacity-50">
+                <div className="text-text-primary text-sm font-medium flex items-center gap-1.5">
+                  <Clock size={14} className="text-text-secondary" />+{t.minutes} min
                 </div>
                 <div className="readout mt-0.5">{fmt(t.amount, t.currency)} · one-time</div>
               </button>
             ))}
             {topups.length === 0 && (
               <div className="col-span-2 flex justify-center py-3">
-                <Loader2 className="animate-spin text-brass" size={18} />
+                <Loader2 className="animate-spin text-primary" size={18} />
               </div>
             )}
           </div>

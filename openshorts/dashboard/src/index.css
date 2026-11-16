@@ -1,4 +1,4 @@
-/* Hallmark · genre: atmospheric · theme: lumen (night foundry) · design-system: design.md · designed-as-app */
+/* MyClipper · design-system: Cyan Dark · designed-as-app */
 /* Noto Serif (hook-overlay font, burned into videos — not UI) is self-hosted
    with the rest of the faces in public/fonts.css: no request to Google. */
 @import './tokens.css';
@@ -13,8 +13,8 @@
   }
 
   body {
-    @apply bg-paper text-ink2 antialiased;
-    font-family: var(--font-body);
+    @apply bg-background text-text-secondary antialiased;
+    font-family: var(--font-ui);
     font-variant-numeric: tabular-nums;
     /* A single stray wide child (a log line, a long URL) used to make the whole
        app pan sideways on a phone. Panes that really are wide scroll on their own. */
@@ -91,7 +91,7 @@
   }
 
   .input-field {
-    @apply w-full text-sm text-ink2;
+    @apply w-full text-sm text-text-secondary;
     background: var(--color-paper);
     border: 1px solid var(--color-rule-2);
     border-radius: var(--radius-input);
@@ -114,7 +114,7 @@
   .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
 
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-medium lowercase text-ink;
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-medium lowercase text-text-primary;
     background: transparent;
     border: 1px solid var(--color-rule-2);
     border-radius: 999px;
@@ -125,7 +125,7 @@
   .btn-ghost:disabled { opacity: 0.45; cursor: not-allowed; }
 
   .btn-quiet {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2 text-sm lowercase text-ink2;
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 text-sm lowercase text-text-secondary;
     background: var(--color-paper-3);
     border-radius: 999px;
     transition: filter var(--dur-short) var(--ease-out);

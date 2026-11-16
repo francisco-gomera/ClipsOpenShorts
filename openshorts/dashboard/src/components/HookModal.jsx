@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import RemotionPreview from './RemotionPreview';
 import Modal from './ui/Modal';
@@ -109,7 +109,7 @@ export default function HookModal({ isOpen, onClose, onGenerate, onRemove, isPro
             <style>{pillFontFace}</style>
             <div className="flex flex-col md:flex-row gap-6">
                 {/* Left: Preview */}
-                <div className="w-full max-w-[300px] mx-auto md:mx-0 md:w-[300px] shrink-0 self-start flex flex-col items-center justify-center bg-black rounded-card border border-rule overflow-hidden relative aspect-[9/16]">
+                <div className="w-full max-w-[300px] mx-auto md:mx-0 md:w-[300px] shrink-0 self-start flex flex-col items-center justify-center bg-black rounded-card border border-border overflow-hidden relative aspect-[9/16]">
                     {useRemotionPreview ? (
                         <RemotionPreview
                             videoUrl={videoUrl}
@@ -184,7 +184,7 @@ export default function HookModal({ isOpen, onClose, onGenerate, onRemove, isPro
                                                 }}
                                             >Aa</span>
                                         )}
-                                        <span className="block mt-1 text-muted">{s.label}</span>
+                                        <span className="block mt-1 text-text-secondary">{s.label}</span>
                                     </button>
                                 ))}
                             </div>
@@ -198,7 +198,7 @@ export default function HookModal({ isOpen, onClose, onGenerate, onRemove, isPro
                                     <button
                                         key={f.value}
                                         onClick={() => setFont(f.value)}
-                                        className={`px-1 py-2 rounded-input border text-[15px] text-ink transition-colors
+                                        className={`px-1 py-2 rounded-input border text-[15px] text-text-primary transition-colors
                                             ${effectiveFont === f.value ? 'border-[color:var(--color-accent)]' : 'border-rule2 hover:border-[color:var(--color-accent)]'}`}
                                         style={FONT_CSS[f.value]}
                                     >
@@ -218,7 +218,7 @@ export default function HookModal({ isOpen, onClose, onGenerate, onRemove, isPro
                                 size="sm"
                             />
                             {position === 'auto' && (
-                                <p className="text-[11px] text-muted mt-1.5 leading-relaxed">
+                                <p className="text-[11px] text-text-secondary mt-1.5 leading-relaxed">
                                     Placed where it covers no face and no captions.
                                     The preview shows it at the top.
                                 </p>
@@ -277,7 +277,7 @@ export default function HookModal({ isOpen, onClose, onGenerate, onRemove, isPro
                         </div>
 
                         {burnedHook && (
-                            <div className="p-3 border border-rule rounded-input text-xs text-muted space-y-2">
+                            <div className="p-3 border border-border rounded-input text-xs text-text-secondary space-y-2">
                                 <p>
                                     This clip has a hook burned in ("{burnedHook}").
                                     Generating replaces it with the new one.
@@ -294,7 +294,7 @@ export default function HookModal({ isOpen, onClose, onGenerate, onRemove, isPro
                             </div>
                         )}
 
-                        <div className="p-3 border border-rule rounded-input text-xs text-muted">
+                        <div className="p-3 border border-border rounded-input text-xs text-text-secondary">
                             Tip: keep it short and punchy. Using "POV:" or specific questions works best for retention.
                         </div>
                     </div>

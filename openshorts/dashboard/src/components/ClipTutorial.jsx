@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState } from 'react';
+﻿import { useEffect, useLayoutEffect, useState } from 'react';
 import { ArrowLeft, ArrowRight, CheckCircle2, LayoutDashboard, Sparkles } from 'lucide-react';
 import Modal from './ui/Modal';
 
@@ -118,10 +118,10 @@ export default function ClipTutorial({ phase, jobStatus, errorText, onStart, onS
       <Modal isOpen hideClose eyebrow="FIRST CLIPS" title="Let's make your first shorts" size="md">
         <div className="flex items-start gap-3 mb-4">
           <div className="w-10 h-10 rounded-input bg-paper3 flex items-center justify-center shrink-0">
-            <LayoutDashboard size={18} className="text-brass" />
+            <LayoutDashboard size={18} className="text-primary" />
           </div>
-          <p className="text-sm text-ink2 leading-relaxed">
-            People come here for <b className="text-ink font-medium">Clip Generator</b>: a long video in,
+          <p className="text-sm text-text-secondary leading-relaxed">
+            People come here for <b className="text-text-primary font-medium">Clip Generator</b>: a long video in,
             vertical shorts out. We will walk the screen, then you run one video.
           </p>
         </div>
@@ -131,7 +131,7 @@ export default function ClipTutorial({ phase, jobStatus, errorText, onStart, onS
         <button
           type="button"
           onClick={onSkip}
-          className="w-full mt-2 text-muted hover:text-ink text-sm lowercase py-2 transition-colors"
+          className="w-full mt-2 text-text-secondary hover:text-text-primary text-sm lowercase py-2 transition-colors"
         >
           I'll explore later
         </button>
@@ -147,7 +147,7 @@ export default function ClipTutorial({ phase, jobStatus, errorText, onStart, onS
         role="status"
       >
         <p className="eyebrow mb-2">First clips</p>
-        <p className={`text-sm leading-relaxed ${jobStatus === 'error' ? 'text-danger' : 'text-muted'}`}>
+        <p className={`text-sm leading-relaxed ${jobStatus === 'error' ? 'text-danger' : 'text-text-secondary'}`}>
           {jobStatus === 'error'
             ? `${errorText ? `That video could not be clipped: ${errorText}` : 'That run failed.'} Try another video. Other tools unlock once one job finishes.`
             : 'Hang on — Clip Generator is finding the moments and cutting vertical shorts.'}
@@ -168,10 +168,10 @@ export default function ClipTutorial({ phase, jobStatus, errorText, onStart, onS
             card px-4 py-3 flex flex-wrap items-center gap-x-3 gap-y-1"
           role="status"
         >
-          <p className="text-sm text-muted leading-snug flex-1 min-w-0">
+          <p className="text-sm text-text-secondary leading-snug flex-1 min-w-0">
             Your turn — add a video and generate.
           </p>
-          <button type="button" onClick={onSkip} className="text-xs lowercase text-muted hover:text-ink shrink-0">
+          <button type="button" onClick={onSkip} className="text-xs lowercase text-text-secondary hover:text-text-primary shrink-0">
             skip
           </button>
         </div>
@@ -186,7 +186,7 @@ export default function ClipTutorial({ phase, jobStatus, errorText, onStart, onS
         {!hole && <div className="absolute inset-0 bg-black/55" />}
         {hole && (
           <div
-            className="absolute rounded-input pointer-events-none border border-brass/70"
+            className="absolute rounded-input pointer-events-none border border-primary/70"
             style={{
               top: hole.top,
               left: hole.left,
@@ -206,8 +206,8 @@ export default function ClipTutorial({ phase, jobStatus, errorText, onStart, onS
           }}
         >
           <p className="eyebrow mb-2">{String(step + 1).padStart(2, '0')} / {String(TOUR.length).padStart(2, '0')}</p>
-          <h3 className="font-display lowercase text-lg text-ink leading-tight mb-2">{spec.title}</h3>
-          <p className="text-sm text-muted leading-relaxed mb-4">{spec.body}</p>
+          <h3 className="font-display lowercase text-lg text-text-primary leading-tight mb-2">{spec.title}</h3>
+          <p className="text-sm text-text-secondary leading-relaxed mb-4">{spec.body}</p>
           <div className="flex flex-wrap items-center gap-2">
             {step > 0 && (
               <button type="button" onClick={() => setStep((s) => s - 1)} className="btn-ghost text-sm px-3">
@@ -222,7 +222,7 @@ export default function ClipTutorial({ phase, jobStatus, errorText, onStart, onS
               {last ? 'Got it' : 'Next'} <ArrowRight size={14} />
             </button>
           </div>
-          <button type="button" onClick={onSkip} className="mt-3 text-xs lowercase text-muted hover:text-ink transition-colors">
+          <button type="button" onClick={onSkip} className="mt-3 text-xs lowercase text-text-secondary hover:text-text-primary transition-colors">
             skip — unlock the rest
           </button>
         </div>
@@ -237,10 +237,10 @@ export default function ClipTutorial({ phase, jobStatus, errorText, onStart, onS
           <div className="inline-flex p-3 bg-paper3 rounded-full text-ok mb-4">
             <CheckCircle2 size={28} />
           </div>
-          <p className="text-sm text-ink2 leading-relaxed mb-1">
+          <p className="text-sm text-text-secondary leading-relaxed mb-1">
             That is the whole product, on one video.
           </p>
-          <p className="text-sm text-muted leading-relaxed mb-6">
+          <p className="text-sm text-text-secondary leading-relaxed mb-6">
             The other tools are unlocked. Come back to Clip Generator whenever you have another long video.
           </p>
           <button type="button" onClick={onDismissCelebrate} className="btn-primary w-full">

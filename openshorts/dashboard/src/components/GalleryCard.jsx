@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+﻿import React, { useRef, useState, useEffect } from 'react';
 import { Download, Copy, Check, Play } from 'lucide-react';
 
 export default function GalleryCard({ clip }) {
@@ -83,9 +83,9 @@ export default function GalleryCard({ clip }) {
                         onLoadedData={() => setHasLoaded(true)}
                     />
                 ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-paper">
+                    <div className="w-full h-full flex items-center justify-center bg-surface">
                         <div className="w-12 h-12 rounded-full bg-paper3 flex items-center justify-center">
-                            <Play size={24} className="text-muted ml-1" />
+                            <Play size={24} className="text-text-secondary ml-1" />
                         </div>
                     </div>
                 )}
@@ -99,7 +99,7 @@ export default function GalleryCard({ clip }) {
             {/* Content & Details */}
             <div className="flex-1 p-4 flex flex-col min-w-0">
                 <div className="mb-3">
-                    <h3 className="text-sm font-semibold text-ink leading-tight line-clamp-2 mb-2 break-words" title={clip.title}>
+                    <h3 className="text-sm font-semibold text-text-primary leading-tight line-clamp-2 mb-2 break-words" title={clip.title}>
                         {clip.title}
                     </h3>
                     <div className="flex flex-wrap gap-2">
@@ -110,12 +110,12 @@ export default function GalleryCard({ clip }) {
 
                 <div className="space-y-2 flex-1 overflow-y-auto custom-scrollbar max-h-[150px] pr-1 mb-3">
                     {/* YouTube Title */}
-                    <div className="bg-paper rounded-input p-2 relative group/item">
+                    <div className="bg-surface rounded-input p-2 relative group/item">
                         <p className="eyebrow mb-1">YouTube Title</p>
-                        <p className="text-xs text-ink2 select-all line-clamp-2 hover:line-clamp-none transition-all">{clip.title}</p>
+                        <p className="text-xs text-text-secondary select-all line-clamp-2 hover:line-clamp-none transition-all">{clip.title}</p>
                         <button
                             onClick={() => handleCopy(clip.title, 'yt')}
-                            className="absolute top-2 right-2 p-1 text-muted hover:text-brass transition-colors opacity-0 group-hover/item:opacity-100"
+                            className="absolute top-2 right-2 p-1 text-text-secondary hover:text-primary transition-colors opacity-0 group-hover/item:opacity-100"
                             title="Copy Title"
                         >
                             {copied === 'yt' ? <Check size={12} className="text-ok" /> : <Copy size={12} />}
@@ -123,14 +123,14 @@ export default function GalleryCard({ clip }) {
                     </div>
 
                     {/* TikTok / IG Caption */}
-                    <div className="bg-paper rounded-input p-2 relative group/item">
+                    <div className="bg-surface rounded-input p-2 relative group/item">
                         <p className="eyebrow mb-1">TikTok · IG Caption</p>
-                        <p className="text-xs text-ink2 select-all line-clamp-3 hover:line-clamp-none transition-all cursor-pointer">
+                        <p className="text-xs text-text-secondary select-all line-clamp-3 hover:line-clamp-none transition-all cursor-pointer">
                             {clip.tiktok_desc || clip.insta_desc}
                         </p>
                         <button
                             onClick={() => handleCopy(clip.tiktok_desc || clip.insta_desc, 'caption')}
-                            className="absolute top-2 right-2 p-1 text-muted hover:text-brass transition-colors opacity-0 group-hover/item:opacity-100"
+                            className="absolute top-2 right-2 p-1 text-text-secondary hover:text-primary transition-colors opacity-0 group-hover/item:opacity-100"
                             title="Copy Caption"
                         >
                             {copied === 'caption' ? <Check size={12} className="text-ok" /> : <Copy size={12} />}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { Check, Loader2, Zap, Cpu, KeyRound, Send, HardDrive, Bot } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { apiJson } from '../lib/api';
@@ -119,7 +119,7 @@ export default function PricingSection({ onRequireLogin }) {
   }, [loading, plans]);
 
   if (loading) {
-    return <div className="flex justify-center py-16"><Loader2 className="animate-spin text-brass" /></div>;
+    return <div className="flex justify-center py-16"><Loader2 className="animate-spin text-primary" /></div>;
   }
 
   const byPlan = (plan) => plans.find((p) => p.plan === plan && p.interval === interval);
@@ -141,19 +141,19 @@ export default function PricingSection({ onRequireLogin }) {
       <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Free tier — no card, Google sign-in only */}
         <div className="relative card p-6 flex flex-col">
-          <h3 className="font-display lowercase text-xl text-ink">free</h3>
-          <p className="text-muted text-sm mb-4 lowercase">Try it on your own videos</p>
+          <h3 className="font-display lowercase text-xl text-text-primary">free</h3>
+          <p className="text-text-secondary text-sm mb-4 lowercase">Try it on your own videos</p>
           <div className="mb-4 flex items-baseline gap-1.5">
-            <span className="font-display text-4xl text-ink tabular-nums">$0</span>
+            <span className="font-display text-4xl text-text-primary tabular-nums">$0</span>
             <span className="readout">/mo</span>
           </div>
-          <ul className="space-y-2 text-sm text-ink2 mb-6 flex-1">
+          <ul className="space-y-2 text-sm text-text-secondary mb-6 flex-1">
             <li className="flex items-start gap-2"><Check size={16} className="text-ok shrink-0 mt-0.5" /> <span><b>{FREE_MINUTES} min</b> of video / month</span></li>
             <li className="flex items-start gap-2"><Check size={16} className="text-ok shrink-0 mt-0.5" /> <span>YouTube URL or upload</span></li>
             <li className="flex items-start gap-2"><Cpu size={16} className="text-ok shrink-0 mt-0.5" /> <span>Same <b>GPU rendering</b>, about 50s per 8-min video</span></li>
             <li className="flex items-start gap-2"><KeyRound size={16} className="text-ok shrink-0 mt-0.5" /> <span>Gemini key included, no setup</span></li>
             <li className="flex items-start gap-2"><Check size={16} className="text-ok shrink-0 mt-0.5" /> <span>No credit card — Google sign-in</span></li>
-            <li className="flex items-start gap-2"><Check size={16} className="text-muted shrink-0 mt-0.5" /> <span className="text-muted">Watermark · clips kept 7 days</span></li>
+            <li className="flex items-start gap-2"><Check size={16} className="text-text-secondary shrink-0 mt-0.5" /> <span className="text-text-secondary">Watermark · clips kept 7 days</span></li>
           </ul>
           <button
             onClick={() => { window.location.hash = '#app'; }}
@@ -161,7 +161,7 @@ export default function PricingSection({ onRequireLogin }) {
           >
             Start free
           </button>
-          <p className="text-center text-xs text-muted mt-2 lowercase">free minutes reset monthly.</p>
+          <p className="text-center text-xs text-text-secondary mt-2 lowercase">free minutes reset monthly.</p>
         </div>
 
         {PLAN_ORDER.map((plan) => {
@@ -171,26 +171,26 @@ export default function PricingSection({ onRequireLogin }) {
           return (
             <div
               key={plan}
-              className={`relative card p-6 flex flex-col ${highlight ? 'border-brass' : ''}`}
+              className={`relative card p-6 flex flex-col ${highlight ? 'border-primary' : ''}`}
             >
               {highlight && (
                 <span className="absolute -top-3 left-1/2 -translate-x-1/2 badge-float">
                   Most popular
                 </span>
               )}
-              <h3 className="font-display lowercase text-xl text-ink">{plan}</h3>
-              <p className="text-muted text-sm mb-4 lowercase">{PLAN_BLURB[plan]}</p>
+              <h3 className="font-display lowercase text-xl text-text-primary">{plan}</h3>
+              <p className="text-text-secondary text-sm mb-4 lowercase">{PLAN_BLURB[plan]}</p>
               <div className="mb-4 flex items-baseline gap-1.5">
-                <span className="font-display text-4xl text-ink tabular-nums">{fmt(entry.amount, entry.currency)}</span>
+                <span className="font-display text-4xl text-text-primary tabular-nums">{fmt(entry.amount, entry.currency)}</span>
                 <span className="readout">/{interval === 'month' ? 'mo' : 'yr'}</span>
               </div>
-              <ul className="space-y-2 text-sm text-ink2 mb-6 flex-1">
+              <ul className="space-y-2 text-sm text-text-secondary mb-6 flex-1">
                 <li className="flex items-start gap-2"><Check size={16} className="text-ok shrink-0 mt-0.5" /> <span><b>{entry.minutes} min</b> of video / month</span></li>
                 <li className="flex items-start gap-2"><Check size={16} className="text-ok shrink-0 mt-0.5" /> <span><b>No watermark</b>, no 7-day clip expiry</span></li>
                 <li className="flex items-start gap-2"><Cpu size={16} className="text-ok shrink-0 mt-0.5" /> <span><b>GPU rendering</b>, about 50s per 8-min video</span></li>
                 <li className="flex items-start gap-2"><KeyRound size={16} className="text-ok shrink-0 mt-0.5" /> <span>Gemini key + auto-posting included</span></li>
                 <li className="flex items-start gap-2"><Bot size={16} className="text-ok shrink-0 mt-0.5" /> <span><b>MCP + API access</b> for AI agents &amp; automations</span></li>
-                {plan === 'pro' && <li className="flex items-start gap-2"><Zap size={16} className="text-brass shrink-0 mt-0.5" /> <span>Priority processing queue</span></li>}
+                {plan === 'pro' && <li className="flex items-start gap-2"><Zap size={16} className="text-primary shrink-0 mt-0.5" /> <span>Priority processing queue</span></li>}
               </ul>
               <button
                 onClick={() => checkout(entry)}
@@ -199,7 +199,7 @@ export default function PricingSection({ onRequireLogin }) {
               >
                 {busyPrice === entry.price_id ? <Loader2 size={18} className="animate-spin" /> : `Get ${plan}`}
               </button>
-              <p className="text-center text-xs text-muted mt-2 lowercase">billed {interval === 'month' ? 'monthly' : 'yearly'}. cancel anytime.</p>
+              <p className="text-center text-xs text-text-secondary mt-2 lowercase">billed {interval === 'month' ? 'monthly' : 'yearly'}. cancel anytime.</p>
             </div>
           );
         })}
@@ -211,15 +211,15 @@ export default function PricingSection({ onRequireLogin }) {
           <div className="mb-4">
             <span className="badge-ok"><Check size={12} /> Included in every plan</span>
           </div>
-          <ul className="space-y-2 text-sm text-ink2">
+          <ul className="space-y-2 text-sm text-text-secondary">
             <li className="flex items-start gap-2"><Cpu size={15} className="text-ok shrink-0 mt-0.5" /> <span><b>Our NVIDIA GPU does the rendering.</b> An 8-minute video is clipped in about 50 seconds, instead of the 5 to 8 minutes it takes on a typical CPU.</span></li>
             <li className="flex items-start gap-2"><KeyRound size={15} className="text-ok shrink-0 mt-0.5" /> <span><b>The Gemini API key is included.</b> Nothing to sign up for, nothing to paste, no per-request quota of your own to babysit.</span></li>
             <li className="flex items-start gap-2"><Send size={15} className="text-ok shrink-0 mt-0.5" /> <span><b>Auto-posting is already wired up</b> for TikTok, Instagram Reels and YouTube Shorts.</span></li>
             <li className="flex items-start gap-2"><HardDrive size={15} className="text-ok shrink-0 mt-0.5" /> <span><b>Clips are stored and served for you</b>, ready to re-open and re-edit from any browser.</span></li>
             <li className="flex items-start gap-2"><Check size={15} className="text-ok shrink-0 mt-0.5" /> <span>Full <b>YouTube Studio</b>: titles, thumbnails and descriptions.</span></li>
-            <li className="flex items-start gap-2"><Bot size={15} className="text-ok shrink-0 mt-0.5" /> <span><b>MCP server &amp; API for agents.</b> Connect Claude, ChatGPT or n8n to an always-on endpoint and automate clipping end to end. API calls use the same minutes, nothing extra to buy. <a href="/mcp" className="underline underline-offset-2 hover:text-ink" target="_blank" rel="noopener">Guide</a>.</span></li>
+            <li className="flex items-start gap-2"><Bot size={15} className="text-ok shrink-0 mt-0.5" /> <span><b>MCP server &amp; API for agents.</b> Connect Claude, ChatGPT or n8n to an always-on endpoint and automate clipping end to end. API calls use the same minutes, nothing extra to buy. <a href="/mcp" className="underline underline-offset-2 hover:text-text-primary" target="_blank" rel="noopener">Guide</a>.</span></li>
           </ul>
-          <p className="text-xs text-muted mt-3 pt-3 border-t border-rule">
+          <p className="text-xs text-text-secondary mt-3 pt-3 border-t border-border">
             Your monthly minutes cover video processing. Titles &amp; descriptions are free;
             AI <b>thumbnail image generation</b> uses ~3 min of your quota per batch.
           </p>
@@ -228,16 +228,16 @@ export default function PricingSection({ onRequireLogin }) {
           <div className="mb-4">
             <span className="badge-warn"><Zap size={12} /> Bring your own key</span>
           </div>
-          <p className="text-sm text-muted mb-3 leading-relaxed">
-            <b className="text-ink2">AI Shorts</b> (AI-actor UGC videos) and <b className="text-ink2">voice dubbing</b> use premium generation from
-            <b className="text-ink2"> fal.ai</b> and <b className="text-ink2">ElevenLabs</b>. Connect your own keys for those — you're billed by those
+          <p className="text-sm text-text-secondary mb-3 leading-relaxed">
+            <b className="text-text-secondary">AI Shorts</b> (AI-actor UGC videos) and <b className="text-text-secondary">voice dubbing</b> use premium generation from
+            <b className="text-text-secondary"> fal.ai</b> and <b className="text-text-secondary">ElevenLabs</b>. Connect your own keys for those — you're billed by those
             providers directly (typically ~$0.65-2 per video). Your plan still covers the script &amp; orchestration.
           </p>
-          <p className="text-xs text-muted">Managed credits for these are coming later — no keys needed.</p>
+          <p className="text-xs text-text-secondary">Managed credits for these are coming later — no keys needed.</p>
         </div>
       </div>
 
-      <p className="text-center text-muted text-xs mt-8 lowercase">
+      <p className="text-center text-text-secondary text-xs mt-8 lowercase">
         start free right here, upgrade for more minutes and no watermark, or run it yourself on your own hardware.
       </p>
     </div>
