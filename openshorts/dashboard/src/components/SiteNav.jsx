@@ -52,8 +52,8 @@ export default function SiteNav({ className = '' }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const NAV_LINKS = [
-    { href: '#landing', label: 'Home' },
-    { href: '#/pricing', label: 'Pricing', hidden: !billingEnabled },
+    { href: '#landing', label: 'Inicio' },
+    { href: '#/pricing', label: 'Precios', hidden: !billingEnabled },
     { href: brandConfig.githubUrl, label: 'GitHub', external: true },
   ].filter(l => !l.hidden);
 
@@ -145,7 +145,7 @@ export default function SiteNav({ className = '' }) {
             onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-primary-hover)'; }}
             onMouseLeave={e => { e.currentTarget.style.background = 'var(--color-primary)'; }}
           >
-            {signedIn ? 'Open app' : 'Get started'}
+            {signedIn ? 'Abrir app' : 'Comenzar'}
           </a>
         </div>
 
@@ -153,7 +153,7 @@ export default function SiteNav({ className = '' }) {
         <button
           className="sm:hidden p-2 rounded-btn transition-colors"
           style={{ color: 'var(--color-text-secondary)' }}
-          aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+          aria-label={mobileOpen ? 'Cerrar menú' : 'Abrir menú'}
           aria-expanded={mobileOpen}
           onClick={() => setMobileOpen(v => !v)}
           onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-primary-soft)'; }}
@@ -172,7 +172,7 @@ export default function SiteNav({ className = '' }) {
             borderColor: 'var(--color-border)',
           }}
         >
-          <nav className="px-4 py-3 flex flex-col gap-1" aria-label="Mobile navigation">
+          <nav className="px-4 py-3 flex flex-col gap-1" aria-label="Navegación móvil">
             {NAV_LINKS.map((link) => (
               <a
                 key={link.href}
@@ -209,7 +209,7 @@ export default function SiteNav({ className = '' }) {
                     border: '1px solid var(--color-border)',
                   }}
                 >
-                  Log in
+                  Iniciar sesión
                 </a>
               )}
               <a
@@ -222,7 +222,7 @@ export default function SiteNav({ className = '' }) {
                   color: 'var(--color-background)',
                 }}
               >
-                {signedIn ? 'Open app' : 'Get started'}
+                {signedIn ? 'Abrir app' : 'Comenzar'}
               </a>
             </div>
           </nav>

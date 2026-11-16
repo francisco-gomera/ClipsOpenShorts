@@ -2402,14 +2402,14 @@ function App() {
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-medium text-text-secondary uppercase tracking-wider flex items-center gap-1.5">
                         <FolderOpen size={14} className="text-text-primary" />
-                        Recent Projects
+                        Proyectos recientes
                       </span>
                       <button
                         type="button"
                         onClick={() => goToTab('history')}
                         className="text-xs text-text-primary hover:underline flex items-center gap-1"
                       >
-                        View all projects →
+                        Ver todos los proyectos →
                       </button>
                     </div>
                     <div className="space-y-2">
@@ -2421,7 +2421,7 @@ function App() {
                         >
                           <div className="min-w-0 flex-1 pr-3">
                             <p className="text-sm font-medium text-text-primary group-hover:text-text-primary truncate transition-colors">
-                              {p.title || p.id || 'Untitled Project'}
+                              {p.title || p.id || 'Proyecto sin título'}
                             </p>
                             <p className="text-xs text-text-secondary mt-0.5">
                               {p.clip_count ?? p.clips?.length ?? 0} clips · {new Date(p.created_at || p.updated_at || Date.now()).toLocaleDateString()}
@@ -2431,7 +2431,7 @@ function App() {
                             type="button"
                             className="btn-quiet py-1 px-2.5 text-xs shrink-0 group-hover:border-primary/50"
                           >
-                            Open →
+                            Abrir →
                           </button>
                         </div>
                       ))}
@@ -2452,7 +2452,7 @@ function App() {
                 <div className="mb-4 sm:mb-6 flex items-center justify-between gap-2">
                   <h2 className="text-sm font-medium text-text-primary lowercase flex items-center gap-2">
                     <Activity className={`text-text-primary ${status === 'processing' ? 'animate-pulse' : ''}`} size={18} />
-                    Live Analysis
+                    Análisis en directo
                   </h2>
                   <span className={status === 'processing' ? 'badge-brass' :
                     status === 'complete' ? 'badge-ok' :
@@ -2545,10 +2545,10 @@ function App() {
                     "schedule week" pill under the title on a phone. */}
                 <div className="mb-4 sm:mb-6 shrink-0 space-y-3">
                   <h2 className="font-display lowercase text-lg sm:text-xl text-text-primary flex flex-wrap items-center gap-2">
-                    <span className="mr-auto">Generated Shorts</span>
+                    <span className="mr-auto">Clips generados</span>
                     {results?.clips?.length > 0 && (
                       <span className="readout bg-primary-soft px-2.5 py-1 rounded-full">
-                        {results.clips.length} Clips
+                        {results.clips.length} clips
                       </span>
                     )}
                     {results?.cost_analysis && !isManaged && (
@@ -2563,11 +2563,11 @@ function App() {
                         onClick={handleDownloadAll}
                         disabled={downloadingAll}
                         className="btn-ghost px-3 py-2 text-xs"
-                        title="Download all clips as a ZIP"
+                        title="Descargar todos los clips como archivo ZIP"
                       >
                         {downloadingAll
-                          ? <><Loader2 size={14} className="animate-spin" />zipping…</>
-                          : <><Download size={14} />download all</>}
+                          ? <><Loader2 size={14} className="animate-spin" />empaquetando…</>
+                          : <><Download size={14} />descargar todos</>}
                       </button>
                       {results.clips.length > 1 && (
                         <button
@@ -2575,7 +2575,7 @@ function App() {
                           className="btn-primary px-4 py-2 text-xs"
                         >
                           <Calendar size={14} />
-                          schedule week
+                          programar semana
                         </button>
                       )}
                     </div>

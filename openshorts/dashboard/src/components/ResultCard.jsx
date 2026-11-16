@@ -965,7 +965,7 @@ export default function ResultCard({ clip, index, jobId, durable, uploadPostKey,
                             className={QUIET_BTN}
                         >
                             <Scissors size={16} className="text-text-secondary group-hover:text-primary transition-colors shrink-0" />
-                            edit clip
+                            editar clip
                         </button>
                     )}
 
@@ -975,7 +975,7 @@ export default function ResultCard({ clip, index, jobId, durable, uploadPostKey,
                             className={QUIET_BTN}
                         >
                             <Crosshair size={16} className="text-text-secondary group-hover:text-primary transition-colors shrink-0" />
-                            reframing
+                            reencuadre
                         </button>
                     )}
 
@@ -985,7 +985,7 @@ export default function ResultCard({ clip, index, jobId, durable, uploadPostKey,
                         className={QUIET_BTN}
                     >
                         {isEditing ? <Loader2 size={16} className="animate-spin text-primary shrink-0" /> : <Wand2 size={16} className="text-text-secondary group-hover:text-primary transition-colors shrink-0" />}
-                        {isEditing ? 'editing…' : 'auto edit'}
+                        {isEditing ? 'editando…' : 'auto editar'}
                     </button>
 
                     <button
@@ -994,7 +994,7 @@ export default function ResultCard({ clip, index, jobId, durable, uploadPostKey,
                         className={QUIET_BTN}
                     >
                         {isSubtitling ? <Loader2 size={16} className="animate-spin text-primary shrink-0" /> : <Type size={16} className="text-text-secondary group-hover:text-primary transition-colors shrink-0" />}
-                        {isSubtitling ? 'adding…' : 'subtitles'}
+                        {isSubtitling ? 'añadiendo…' : 'subtítulos'}
                     </button>
 
                     <button
@@ -1003,7 +1003,7 @@ export default function ResultCard({ clip, index, jobId, durable, uploadPostKey,
                         className={QUIET_BTN}
                     >
                         {isHooking ? <Loader2 size={16} className="animate-spin text-primary shrink-0" /> : <Wand2 size={16} className="text-text-secondary group-hover:text-primary transition-colors shrink-0" />}
-                        {isHooking ? 'saving…' : 'edit hook'}
+                        {isHooking ? 'guardando…' : 'editar gancho'}
                     </button>
 
                     <button
@@ -1012,14 +1012,14 @@ export default function ResultCard({ clip, index, jobId, durable, uploadPostKey,
                         className={QUIET_BTN}
                     >
                         {isTranslating ? <Loader2 size={16} className="animate-spin text-primary shrink-0" /> : <Languages size={16} className="text-text-secondary group-hover:text-primary transition-colors shrink-0" />}
-                        {isTranslating ? 'translating…' : 'dub voice'}
+                        {isTranslating ? 'traduciendo…' : 'doblar voz'}
                     </button>
 
                     <button
                         onClick={() => setShowModal(true)}
                         className="btn-primary flex-col gap-1 py-2.5 sm:py-2 px-1 text-[11px] leading-none rounded-input whitespace-nowrap"
                     >
-                        <Share2 size={16} className="shrink-0" /> post
+                        <Share2 size={16} className="shrink-0" /> publicar
                     </button>
                     <button
                         onClick={(e) => {
@@ -1035,7 +1035,7 @@ export default function ResultCard({ clip, index, jobId, durable, uploadPostKey,
                         className={`${QUIET_BTN}${onEditClip ? ' col-span-2' : ''}`}
                     >
                         <Download size={16} className="text-text-secondary group-hover:text-primary transition-colors shrink-0" />
-                        {downloadPct === null ? 'download' : `downloading ${downloadPct}%`}
+                        {downloadPct === null ? 'descargar' : `descargando ${downloadPct}%`}
                     </button>
                 </div>
             </div>
