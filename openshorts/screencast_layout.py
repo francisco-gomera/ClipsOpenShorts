@@ -390,6 +390,8 @@ def detect_content_ranges(video_path, scenes, fps):
             parts.append(f"Shot {n}:")
             parts.append(genai_types.Part.from_bytes(data=jpg, mime_type="image/jpeg"))
         client = genai.Client(api_key=api_key)
+        import gemini_ratelimit
+        gemini_ratelimit.acquire_gemini_slot(api_key, model_name)
         response = client.models.generate_content(
             model=model_name,
             contents=parts + [gemini_worker.SHOT_CONTENT_PROMPT],

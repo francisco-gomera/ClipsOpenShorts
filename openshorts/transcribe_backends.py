@@ -171,6 +171,22 @@ _whisper_lock = threading.Lock()
 _whisper_force_cpu = False
 
 
+def get_whisper_cpu_threads() -> int:
+    """Return the number of CPU threads for WhisperModel.
+
+    Defaults to half of logical CPU cores (bounded between 4 and 8)
+    unless overridden by the WHISPER_CPU_THREADS environment variable.
+    """
+    env_threads = os.environ.get("WHISPER_CPU_THREADS", "").strip()
+    if env_threads:
+        try:
+            return max(1, int(env_threads))
+        except ValueError:
+            pass
+    cores = os.cpu_count() or 4
+    return max(4, min(8, cores // 2))
+
+
 def _get_whisper_model():
     """Process-wide WhisperModel singleton, rebuilt if the env config changes.
 
@@ -182,11 +198,18 @@ def _get_whisper_model():
     if _whisper_force_cpu:
         cfg["device"] = "cpu"
         cfg["compute_type"] = "int8"
-    key = (cfg["model_size"], cfg["device"], cfg["compute_type"])
+    cpu_threads = get_whisper_cpu_threads()
+    key = (cfg["model_size"], cfg["device"], cfg["compute_type"], cpu_threads)
     with _whisper_lock:
         if _whisper_model is None or _whisper_key != key:
             from faster_whisper import WhisperModel
-            _whisper_model = WhisperModel(key[0], device=key[1], compute_type=key[2])
+            try:
+                if key[1] == "cpu":
+                    _whisper_model = WhisperModel(key[0], device=key[1], compute_type=key[2], cpu_threads=cpu_threads)
+                else:
+                    _whisper_model = WhisperModel(key[0], device=key[1], compute_type=key[2])
+            except TypeError:
+                _whisper_model = WhisperModel(key[0], device=key[1], compute_type=key[2])
             _whisper_key = key
     return _whisper_model, cfg["device"]
 

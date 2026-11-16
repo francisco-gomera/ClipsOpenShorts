@@ -38,10 +38,14 @@ from ffmpeg_utils import (video_encode_args, audio_encode_args, cut_clip, QUALIT
                           QUALITY_FAST, METADATA_SCRUB)
 from dotenv import load_dotenv
 import json
+import random
 
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning, module='google.protobuf')
 import stage_tracker
+import gemini_ratelimit
+
+_gemini_calls_count: int = 0
 
 global_reporter: Optional['ProgressReporter'] = None
 
@@ -2223,16 +2227,26 @@ def _run_gemini_stage(client, model_name, prompt, schema):
     retry policy is shared because a local server has the same failure
     shapes (connection refused while the model loads, a truncated body,
     a 5xx from a busy vLLM)."""
+    global _gemini_calls_count
     use_local = llm_backend.active()
     config = None if use_local else genai_types.GenerateContentConfig(
         response_mime_type="application/json",
         response_schema=schema,
     )
-    max_attempts = 3
-    for attempt in range(1, max_attempts + 1):
+    max_transient_attempts = 3
+    transient_attempts = 0
+    rate_limit_attempts = 0
+
+    rate_limit_max_retries = int(os.environ.get("GEMINI_RATE_LIMIT_RETRIES", "6"))
+    rate_limit_max_wait = float(os.environ.get("GEMINI_RATE_LIMIT_MAX_WAIT", "90.0"))
+
+    while True:
         try:
             if use_local:
                 return llm_backend.generate_json(prompt, schema, model=model_name)
+            
+            gemini_ratelimit.acquire_gemini_slot(os.getenv("GEMINI_API_KEY"), model_name)
+            _gemini_calls_count += 1
             response = client.models.generate_content(model=model_name, contents=prompt, config=config)
             # Policy blocks are deterministic — retrying only burns quota and
             # time, and the user deserves the real reason instead of a generic
@@ -2248,13 +2262,36 @@ def _run_gemini_stage(client, model_name, prompt, schema):
             else:
                 parsed = gemini_worker._parse_json_response_text(
                     gemini_worker._get_response_text(response))
+            if global_reporter:
+                global_reporter.set_recovery("normal", retry_at=None, message=None)
             return parsed, gemini_worker._calculate_cost_analysis(response, model_name)
         except gemini_worker.GeminiBlockedError:
             raise  # deterministic policy block — never retry
         except Exception as e:
             msg = str(e)
+            if gemini_worker.is_daily_quota(msg):
+                raise gemini_worker.GeminiDailyQuotaError(
+                    f"RESOURCE_EXHAUSTED: Gemini daily quota exceeded (PerDay). {msg}")
+            
+            is_rate_limit = any(tok in msg for tok in ('429', 'RESOURCE_EXHAUSTED')) or ('quota' in msg.lower() and 'exceeded' in msg.lower())
+            if is_rate_limit and not use_local:
+                rate_limit_attempts += 1
+                if rate_limit_attempts > rate_limit_max_retries:
+                    raise gemini_worker.GeminiRateLimitError(
+                        f"RESOURCE_EXHAUSTED: Gemini rate limit exceeded after {rate_limit_max_retries} retries. {msg}")
+                parsed_delay = gemini_worker.parse_retry_delay(msg)
+                backoff = 2.0 ** rate_limit_attempts
+                delay_base = max(parsed_delay or 0.0, backoff)
+                jitter = random.uniform(0.8, 1.2)
+                wait = min(rate_limit_max_wait, max(1.0, delay_base * jitter))
+                print(f"⚠️ Gemini rate limit (attempt {rate_limit_attempts}/{rate_limit_max_retries}), waiting {wait:.1f}s: {msg[:150]}")
+                if global_reporter:
+                    global_reporter.set_recovery("waiting_rate_limit", retry_at=time.time() + wait, message=f"Gemini rate limit: waiting {int(wait)}s")
+                time.sleep(wait)
+                continue
+
             transient = any(tok in msg for tok in (
-                '503', 'UNAVAILABLE', '429', 'RESOURCE_EXHAUSTED',
+                '503', 'UNAVAILABLE',
                 '500', 'INTERNAL', 'overloaded', 'Deadline',
                 'empty response body', 'did not contain a JSON object',
                 'Failed to parse Gemini JSON response',
@@ -2262,11 +2299,12 @@ def _run_gemini_stage(client, model_name, prompt, schema):
                 # small model that skipped a required field this time.
                 'ConnectError', 'ReadTimeout', 'RemoteProtocolError', '502', '504',
                 'validation error'))
-            if attempt == max_attempts or not transient:
+            transient_attempts += 1
+            if transient_attempts >= max_transient_attempts or not transient:
                 raise
-            wait = 5 * (2 ** (attempt - 1))
+            wait = 5 * (2 ** (transient_attempts - 1))
             who = "LLM server" if use_local else "Gemini"
-            print(f"⚠️ {who} transient error (attempt {attempt}/{max_attempts}), retrying in {wait}s: {msg[:150]}")
+            print(f"⚠️ {who} transient error (attempt {transient_attempts}/{max_transient_attempts}), retrying in {wait}s: {msg[:150]}")
             time.sleep(wait)
 
 
@@ -2310,7 +2348,7 @@ def score_batch_size():
     return 3 if llm_backend.active() else 8
 
 
-def get_viral_clips(transcript_result, video_duration):
+def get_viral_clips(transcript_result, video_duration, output_dir=None):
     """Two-pass clip selection: score transcript windows, then detail the best.
 
     Windowing gives even coverage on long videos (a single call over the whole
@@ -2323,9 +2361,9 @@ def get_viral_clips(transcript_result, video_duration):
         # Self-hosted text model: no Google key needed for this stage.
         client = None
         model_name = llm_backend.model_name()
-        print(f"\U0001f916  Analyzing with local LLM at {llm_backend.base_url()} (2-pass: score → detail)...")
+        print(f"🤖  Analyzing with local LLM at {llm_backend.base_url()} (2-pass: score → detail)...")
     else:
-        print("\U0001f916  Analyzing with Gemini (2-pass: score → detail)...")
+        print("🤖  Analyzing with Gemini (2-pass: score → detail)...")
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
             print("❌ Error: GEMINI_API_KEY not found in environment variables "
@@ -2333,7 +2371,7 @@ def get_viral_clips(transcript_result, video_duration):
             return None
         client = genai.Client(api_key=api_key)
         model_name = os.environ.get("GEMINI_MODEL") or 'gemini-3.1-flash-lite'
-    print(f"\U0001f916  Model: {model_name} | language: {language}")
+    print(f"🤖  Model: {model_name} | language: {language}")
 
     # Full word list — ground truth for snapping cut points.
     words = []
@@ -2355,6 +2393,21 @@ def get_viral_clips(transcript_result, video_duration):
 
         # --- Pass 1: score windows in batches, keep the highest-scoring ---
         scored = []
+        score_checkpoint_path = os.path.join(output_dir, ".score_checkpoint.json") if output_dir else None
+        cached_scores = {}
+        if score_checkpoint_path and os.path.exists(score_checkpoint_path):
+            try:
+                with open(score_checkpoint_path, "r", encoding="utf-8") as f:
+                    ckpt = json.load(f)
+                    for item in ckpt.get("scored", []):
+                        if isinstance(item, dict) and "id" in item:
+                            cached_scores[item["id"]] = item
+                    costs.extend(ckpt.get("costs", []))
+                if cached_scores:
+                    print(f"   ♻️ Loaded {len(cached_scores)} scored window(s) from .score_checkpoint.json")
+            except Exception as e:
+                print(f"   ⚠️ Could not load score checkpoint ({e})")
+
         # Local models usually run with a 4-8k context (Ollama defaults to
         # 4096 unless OLLAMA_CONTEXT_LENGTH says otherwise) and 8 windows of
         # transcript do not fit; a silently truncated prompt scores garbage.
@@ -2374,7 +2427,26 @@ def get_viral_clips(transcript_result, video_duration):
                 video_duration=video_duration, language=language,
                 windows_json=json.dumps(_payload(ws), ensure_ascii=False))
 
-        for batch in score_batches(windows, SCORE_BATCH):
+        batches = list(score_batches(windows, SCORE_BATCH))
+        for batch in batches:
+            # If all windows in this batch were already scored in checkpoint, reuse them
+            batch_cached = [cached_scores[w["id"]] for w in batch if w["id"] in cached_scores]
+            if len(batch_cached) == len(batch):
+                scored.extend(batch_cached)
+            else:
+                batch_res = _run_stage_split(
+                    client, model_name, batch, _score_prompt,
+                    gemini_worker.ScoreResponse, "windows", costs, "score")
+                scored.extend(batch_res)
+                for item in batch_res:
+                    if isinstance(item, dict) and "id" in item:
+                        cached_scores[item["id"]] = item
+                if score_checkpoint_path:
+                    try:
+                        with open(score_checkpoint_path, "w", encoding="utf-8") as f:
+                            json.dump({"scored": list(cached_scores.values()), "costs": costs}, f, indent=2)
+                    except Exception:
+                        pass
             scored.extend(_run_stage_split(
                 client, model_name, batch, _score_prompt,
                 gemini_worker.ScoreResponse, "windows", costs, "score"))
@@ -2470,9 +2542,11 @@ def get_viral_clips(transcript_result, video_duration):
         if cost_analysis:
             result["cost_analysis"] = cost_analysis
         return result
-    except gemini_worker.GeminiBlockedError as e:
-        # Content-policy rejection: propagate so the job fails with the real
-        # reason instead of a generic "no clips found".
+    except (gemini_worker.GeminiBlockedError,
+            gemini_worker.GeminiRateLimitError,
+            gemini_worker.GeminiDailyQuotaError) as e:
+        # Propagate content-policy rejections and rate-limit / daily-quota errors
+        # so the job fails with the real reason and auto-retry can recognize it.
         print(f"🚫 {e}")
         raise
     except Exception as e:
@@ -2551,6 +2625,9 @@ def get_visual_clips(video_path, video_duration, language="en"):
             response_mime_type="application/json",
             response_schema=gemini_worker.VisualResponse,
         )
+        global _gemini_calls_count
+        gemini_ratelimit.acquire_gemini_slot(api_key, model_name)
+        _gemini_calls_count += 1
         response = client.models.generate_content(
             model=model_name, contents=[file_upload, prompt], config=config)
         gemini_worker.raise_if_blocked(response)
@@ -2689,7 +2766,7 @@ if __name__ == '__main__':
                 t = transcribe_video(audio_path)
                 early["transcript"] = t
                 if audio_duration and not speech_is_sparse(t, audio_duration):
-                    early["clips"] = get_viral_clips(t, audio_duration)
+                    early["clips"] = get_viral_clips(t, audio_duration, output_dir=output_dir)
             except Exception as e:
                 print(f"   ℹ️ Early transcription skipped ({type(e).__name__}: {e}).")
                 early["transcript"] = early["clips"] = None
@@ -2891,14 +2968,21 @@ if __name__ == '__main__':
         else:
             stage_tracker.start_stage(output_dir, "clip_selection")
         early_clips = (early_state or {}).get("clips") if early_state else None
-        if (transcript is not None and early_clips
-                and transcript is early_state["transcript"]):
-            print("♻️ Using the clips Gemini picked while the video downloaded.")
-            clips_data = early_clips
-        elif transcript is not None:
-            clips_data = get_viral_clips(transcript, duration)
-        else:
-            clips_data = get_visual_clips(input_video, duration)
+        try:
+            if (transcript is not None and early_clips and early_clips.get("shorts")):
+                print("♻️ Using the clips Gemini picked while the video downloaded.")
+                clips_data = early_clips
+            elif transcript is not None:
+                clips_data = get_viral_clips(transcript, duration, output_dir=output_dir)
+            else:
+                clips_data = get_visual_clips(input_video, duration)
+        except (gemini_worker.GeminiRateLimitError, gemini_worker.GeminiDailyQuotaError) as e:
+            err_msg = str(e)
+            if global_reporter:
+                global_reporter.finish_stage("clip_selection", error=err_msg)
+            else:
+                stage_tracker.finish_stage(output_dir, "clip_selection", error=err_msg)
+            raise
 
         if not clips_data or 'shorts' not in clips_data:
             if global_reporter:
@@ -3092,3 +3176,4 @@ if __name__ == '__main__':
 
     total_time = time.time() - script_start_time
     print(f"\n⏱️  Total execution time: {total_time:.2f}s")
+    print(f"📊 Total Gemini calls made in this run: {_gemini_calls_count}")

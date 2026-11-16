@@ -262,8 +262,15 @@ const readableError = (raw) => {
 const SESSION_MAX_AGE = 86400000; // 24 hours
 
 // Mock polling function
-const pollJob = async (jobId) => {
-  const res = await apiFetch(`/api/status/${jobId}`);
+const pollJob = async (jobId, { sinceVersion, logOffset, signal } = {}) => {
+  const params = new URLSearchParams();
+  if (sinceVersion != null) params.set('since_version', sinceVersion);
+  if (logOffset != null) params.set('log_offset', logOffset);
+  const qs = params.toString() ? `?${params.toString()}` : '';
+  const res = await apiFetch(`/api/status/${jobId}${qs}`, { signal });
+  if (res.status === 304) {
+    return { unchanged: true };
+  }
   if (!res.ok) throw new Error('Status check failed');
   return res.json();
 };
@@ -851,49 +858,114 @@ function App() {
   }, [isManaged, jobId, status, results?.clips?.length]);
 
   useEffect(() => {
-    let interval;
-    if ((status === 'processing' || status === 'completed') && jobId) {
-      interval = setInterval(async () => {
-        try {
-          const data = await pollJob(jobId);
-          console.log("Job status:", data);
+    if ((status !== 'processing' && status !== 'completed') || !jobId) return;
 
-          // Update results if available (real-time)
+    let timer = null;
+    let cancelled = false;
+    let inFlight = false;
+    let abortController = null;
+    let backoffMs = 1000;
+    let lastVersion = null;
+    let logOffset = 0;
+
+    const getDelay = () => {
+      if (document.hidden) return 10000;
+      if (status === 'processing') return 1000;
+      return 3000;
+    };
+
+    const scheduleNext = (delay) => {
+      if (cancelled) return;
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(poll, delay ?? getDelay());
+    };
+
+    const poll = async () => {
+      if (cancelled || inFlight) return;
+      inFlight = true;
+      abortController = new AbortController();
+
+      try {
+        const data = await pollJob(jobId, {
+          sinceVersion: lastVersion,
+          logOffset: logOffset,
+          signal: abortController.signal
+        });
+
+        if (cancelled) return;
+        backoffMs = 1000; // Reset backoff on success
+
+        if (data && !data.unchanged) {
+          if (data.version != null) {
+            lastVersion = data.version;
+          } else if (data.stages?.version != null) {
+            lastVersion = data.stages.version;
+          }
+
           if (data.result) {
             setResults(data.result);
           }
           if (data.stages) {
             setStages(data.stages);
           }
-
           if (data.partial) setPartialJob(data.partial);
           setQueueInfo(data.status === 'queued' && data.queue ? data.queue : null);
 
           if (data.status === 'completed') {
             setQueueInfo(null);
             setStatus('complete');
-            clearInterval(interval);
             refreshMe();
+            return;
           } else if (data.status === 'failed') {
             setStatus('error');
             const errorMsg = data.error || (data.logs && data.logs.length > 0 ? data.logs[data.logs.length - 1] : "Process failed");
             setJobError(readableError(errorMsg));
             setLogs(prev => [...prev, "Error: " + errorMsg]);
-            clearInterval(interval);
             refreshMe();
-          } else {
-            // Update logs if available
-            if (data.logs) {
+            return;
+          } else if (data.logs && data.logs.length > 0) {
+            if (logOffset > 0 && data.log_offset != null) {
+              setLogs(prev => [...prev, ...data.logs]);
+              if (data.log_times) setLogTimes(prev => [...(prev || []), ...data.log_times]);
+            } else {
               setLogs(data.logs);
-              setLogTimes(data.log_times || []);
+              if (data.log_times) setLogTimes(data.log_times);
             }
           }
-        } catch (e) {
-          console.error("Polling error", e);
+
+          if (data.log_offset != null) {
+            logOffset = data.log_offset;
+          }
         }
-      }, 2000);
-    }
-    return () => clearInterval(interval);
+
+        scheduleNext();
+      } catch (e) {
+        if (cancelled || e.name === 'AbortError') return;
+        console.error("Polling error", e);
+        // Exponential backoff up to 16s on network failure
+        backoffMs = Math.min(16000, backoffMs * 2);
+        scheduleNext(backoffMs);
+      } finally {
+        inFlight = false;
+        abortController = null;
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden && !inFlight) {
+        scheduleNext(0); // Immediately poll when tab regains focus
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    scheduleNext(100); // Start initial poll quickly
+
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+      if (abortController) abortController.abort();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [status, jobId, refreshMe]);
 
 

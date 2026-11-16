@@ -9,7 +9,8 @@ import {
   AlertTriangle,
   Clock,
   Video,
-  RefreshCw
+  RefreshCw,
+  HardDrive
 } from 'lucide-react';
 import { apiJson } from '../lib/api';
 
@@ -28,6 +29,7 @@ export default function HistoryTab({ onReopenProject }) {
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [reopenError, setReopenError] = useState('');
   const [error, setError] = useState('');
+  const [diskUsage, setDiskUsage] = useState(null);
 
   const handleRetry = async (jobId) => {
     if (retrying) return;
@@ -57,6 +59,9 @@ export default function HistoryTab({ onReopenProject }) {
       const pData = await apiJson('/api/projects');
       if (pData && Array.isArray(pData.projects)) {
         setProjectsList(pData.projects);
+        if (pData.disk_usage) {
+          setDiskUsage(pData.disk_usage);
+        }
         loadedAny = true;
       }
     } catch {
@@ -249,9 +254,34 @@ export default function HistoryTab({ onReopenProject }) {
         </button>
       </div>
 
-      <p className="text-muted text-sm mb-8 lowercase">
+      <p className="text-muted text-sm mb-6 lowercase">
         Browse previously processed videos and generated shorts. Reopen any project to edit clips or continue where you left off.
       </p>
+
+      {diskUsage && (
+        <div className="mb-8 p-4 rounded-card bg-paper border border-rule">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+            <span className="text-xs font-medium text-ink flex items-center gap-1.5">
+              <HardDrive size={14} className="text-muted" /> Almacenamiento de proyectos
+            </span>
+            <span className="text-xs font-mono text-muted">
+              {(diskUsage.output_used_bytes / (1024 ** 3)).toFixed(1)} GB / {(diskUsage.output_cap_bytes / (1024 ** 3)).toFixed(0)} GB ({diskUsage.output_percent}%)
+            </span>
+          </div>
+          <div className="w-full bg-paper-deep rounded-full h-1.5 overflow-hidden">
+            <div
+              className={`h-full transition-all duration-300 ${diskUsage.output_percent >= 80 ? 'bg-amber-400' : 'bg-brass'}`}
+              style={{ width: `${Math.min(100, diskUsage.output_percent)}%` }}
+            />
+          </div>
+          {diskUsage.warning && (
+            <div className="mt-3 p-2.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs flex items-center gap-2">
+              <AlertTriangle size={14} className="shrink-0" />
+              <span>{diskUsage.warning_message || 'El almacenamiento está al 80% o más de su capacidad. Los proyectos solo se eliminan cuando tú lo decides.'}</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {error && (
         <div className="p-3 mb-6 rounded bg-rose-500/10 border border-rose-500/20 text-rose-400 text-sm">
@@ -295,9 +325,13 @@ export default function HistoryTab({ onReopenProject }) {
                         {project.title}
                       </h2>
                       {renderStatusBadge(project.status)}
-                      {project.has_source && (
+                      {project.has_source ? (
                         <span className="inline-flex items-center gap-1 text-micro font-mono uppercase px-2 py-0.5 rounded bg-white/5 text-ink/70 border border-rule">
                           <Video size={11} /> Source available
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-micro font-mono uppercase px-2 py-0.5 rounded bg-amber-500/10 text-amber-400/90 border border-amber-500/20" title="El vídeo original no está en disco; solo los clips generados están disponibles.">
+                          <AlertTriangle size={11} /> Original no disponible
                         </span>
                       )}
                     </div>
