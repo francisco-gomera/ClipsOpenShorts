@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Open-bracket corner marks (selection frame) -->
+  <!-- top-left -->
+  <path d="M6 20 L6 6 L20 6" stroke="#35C9D0" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- top-right -->
+  <path d="M44 6 L58 6 L58 20" stroke="#35C9D0" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- bottom-left -->
+  <path d="M6 44 L6 58 L20 58" stroke="#35C9D0" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- bottom-right -->
+  <path d="M44 58 L58 58 L58 44" stroke="#35C9D0" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Play triangle, centered -->
+  <path d="M26 22 L26 42 L44 32 Z" fill="#35C9D0"/>
+</svg>

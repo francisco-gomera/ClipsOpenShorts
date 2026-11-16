@@ -3,27 +3,26 @@
 
 <head>
   <meta charset="UTF-8" />
-  <link rel="icon" type="image/png" href="/logo-openshorts.png" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <!-- viewport-fit=cover so the bottom tab bar can pad itself past the iOS home
        indicator with env(safe-area-inset-bottom); without it that inset reads 0. -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="theme-color" content="#0d0e14" />
+  <meta name="theme-color" content="#101820" />
   <meta name="color-scheme" content="dark" />
 
-  <!-- Fonts: Open-source typography (Instrument Serif display · Geist body · JetBrains Mono labels).
-       Served from this origin, not fonts.googleapis.com: a Google-hosted
-       stylesheet sends every visitor's IP address to a US processor before the
-       page has rendered and before anyone consented to anything. See
-       public/fonts.css for how the subsets were generated. -->
+  <!-- Fonts: Space Grotesk (brand/titles) + Inter (UI), from Google Fonts. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" />
   <link rel="stylesheet" href="/fonts.css" />
 
   <!-- Primary SEO Meta Tags -->
   <!-- Title and description are kept under 60 and 160 characters (measured, not
        eyeballed): Google truncates past roughly that width, and a truncated
        description is a worse answer than a shorter deliberate one. -->
-  <title>%VITE_BRAND_NAME%: Free AI Clip Maker &amp; Clipping Tool, Open Source</title>
-  <meta name="description" content="Paste a YouTube link and get 9:16 clips with captions in minutes. Free plan, paid from $12/mo, or self-host free under MIT. Open source, no lock-in." />
-  <meta name="author" content="%VITE_BRAND_NAME%" />
+  <title>MyClipper</title>
+  <meta name="description" content="MyClipper — Generate AI-powered short clips from any video" />
+  <meta name="author" content="MyClipper" />
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
   <!-- Canonical must match the host actually served. The apex redirects to www,
        so pointing this at the apex named a URL that only ever redirects. -->
@@ -33,22 +32,22 @@
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://www.openshorts.app/" />
   <meta property="og:title"
-    content="%VITE_BRAND_NAME%: Free AI Clip Maker &amp; Clipping Tool, Open Source" />
+    content="MyClipper" />
   <meta property="og:description"
-    content="Turn long videos into viral 9:16 shorts, or generate UGC videos with AI actors. Self-host free under MIT, or use the cloud from $12/month with 20 free minutes." />
+    content="MyClipper — Generate AI-powered short clips from any video" />
   <meta property="og:image" content="https://www.openshorts.app/og-image.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
-  <meta property="og:site_name" content="%VITE_BRAND_NAME%" />
+  <meta property="og:site_name" content="MyClipper" />
   <meta property="og:locale" content="en_US" />
 
   <!-- Twitter Cards -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:url" content="https://www.openshorts.app/" />
   <meta name="twitter:title"
-    content="%VITE_BRAND_NAME%: Free AI Clip Maker &amp; Clipping Tool, Open Source" />
+    content="MyClipper" />
   <meta name="twitter:description"
-    content="Self-host free under MIT with no watermark and no cap, or use the cloud from $12/month." />
+    content="MyClipper — Generate AI-powered short clips from any video" />
   <meta name="twitter:image" content="https://www.openshorts.app/og-image.png" />
 
   <!-- JSON-LD Structured Data

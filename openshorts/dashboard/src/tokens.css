@@ -1,55 +1,70 @@
-/* Genre: atmospheric · theme: studio · design-system: design.md · designed-as-app
- * macrostructure: Marquee Hero (marketing) / Workbench (app) / Long Document (content)
- * nav: N9 edge-aligned · footer: Ft5 statement · enrichment: filament apparatus (landing only)
- * pre-emit critique: P5 H4 E4 S5 R5 V4
+/* Design system: MyClipper — Cyan Dark
+ * Token layer: all design decisions live here.
+ * Components consume these variables; nothing else should use raw hex values.
  */
 
 :root {
   color-scheme: dark;
 
-  /* paper */
-  --color-paper: oklch(13% 0.014 265);
-  --color-paper-2: oklch(16.5% 0.015 265);
-  --color-paper-3: oklch(20% 0.016 265);
+  /* ── Color: Backgrounds ───────────────────────────────────────────────── */
+  --color-background:       #101820;
+  --color-surface:          #19252D;
+  --color-surface-elevated: #22323B;
 
-  /* ink */
-  --color-ink: oklch(96% 0.006 262);
-  --color-ink-2: oklch(86% 0.01 262);
-  --color-muted: oklch(64% 0.012 262);
+  /* ── Color: Borders ──────────────────────────────────────────────────── */
+  --color-border:           #30434C;
 
-  /* rules */
-  --color-rule: oklch(96% 0.006 262 / 0.08);
-  --color-rule-2: oklch(96% 0.006 262 / 0.14);
-  --rule-blueprint: oklch(96% 0.006 262 / 0.04);
+  /* ── Color: Brand / Primary ──────────────────────────────────────────── */
+  --color-primary:          #35C9D0;
+  --color-primary-hover:    #53DDE1;
+  --color-primary-soft:     #173B40;
 
-  /* accents */
-  --color-accent: oklch(76% 0.17 50);
-  --color-accent-ink: oklch(17% 0.03 50);
-  --color-accent-2: oklch(68% 0.16 18);
-  --color-glow: oklch(80% 0.16 50 / 0.42);
-  --color-paper-emit: oklch(76% 0.17 50 / 0.04);
-  --color-focus: oklch(76% 0.17 50);
+  /* ── Color: Text ─────────────────────────────────────────────────────── */
+  --color-text-primary:     #F2F7F8;
+  --color-text-secondary:   #A5B6BC;
 
-  /* states */
-  --color-ok: oklch(75% 0.11 150);
-  --color-danger: oklch(66% 0.18 25);
-  --color-warn: oklch(78% 0.14 75);
+  /* ── Color: Semantic ─────────────────────────────────────────────────── */
+  --color-success:          #55D6A5;
+  --color-warning:          #F4BD68;
+  --color-error:            #FF777F;
 
-  /* type */
-  --font-display: "Instrument Serif", ui-serif, Georgia, serif;
-  --font-body: "Geist", ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
-  --text-display: clamp(3rem, 6vw + 1rem, 6rem);
-  --tracking-display: -0.032em;
-  --tracking-micro: 0.10em;
+  /* ── Typography ──────────────────────────────────────────────────────── */
+  --font-brand: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --font-ui:    'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono:  ui-monospace, SFMono-Regular, 'Cascadia Code', monospace;
 
-  /* geometry */
-  --radius-card: 10px;
-  --radius-input: 8px;
+  /* ── Spacing scale (4 / 8 px base) ──────────────────────────────────── */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
 
-  /* motion */
-  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --dur-short: 220ms;
-  --dur-reveal: 600ms;
-  --dur-pulse: 4s;
+  /* ── Border radius ───────────────────────────────────────────────────── */
+  --radius-card:  14px;
+  --radius-btn:   10px;
+  --radius-input: 10px;
+  --radius-pill:  9999px;
+  --radius-sm:    6px;
+
+  /* ── Shadows (subtle, dark-optimised) ───────────────────────────────── */
+  --shadow-sm:  0 1px 3px 0 rgba(0, 0, 0, 0.35), 0 1px 2px -1px rgba(0, 0, 0, 0.35);
+  --shadow-md:  0 4px 12px 0 rgba(0, 0, 0, 0.45), 0 2px 4px -2px rgba(0, 0, 0, 0.45);
+  --shadow-lg:  0 10px 28px -4px rgba(0, 0, 0, 0.55), 0 4px 10px -4px rgba(0, 0, 0, 0.5);
+  --shadow-xl:  0 20px 48px -8px rgba(0, 0, 0, 0.65), 0 8px 20px -8px rgba(0, 0, 0, 0.6);
+  --shadow-glow: 0 0 20px 0 rgba(53, 201, 208, 0.25);
+
+  /* ── Transitions ─────────────────────────────────────────────────────── */
+  --transition-fast:   150ms;
+  --transition-base:   220ms;
+  --transition-slow:   350ms;
+  --ease-out:          cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out:       cubic-bezier(0.4, 0, 0.2, 1);
 }
