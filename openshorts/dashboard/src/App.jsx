@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { Upload, Sparkles, Youtube, Instagram, Share2, ChevronDown, Check, Activity, LayoutDashboard, Settings, Plus, History, FolderOpen, X, Shield, LayoutGrid, Image, Globe, RotateCcw, Calendar, AlertTriangle, KeyRound, Bot, Users, Smartphone, ExternalLink, Copy, CheckCircle2, Mail, Loader2, Download, Menu, Lock, Rocket } from 'lucide-react';
+import { Upload, Sparkles, Youtube, Instagram, Share2, ChevronDown, Check, Activity, LayoutDashboard, Settings, Plus, History, FolderOpen, X, Shield, LayoutGrid, Image, Globe, RotateCcw, Calendar, AlertTriangle, KeyRound, Bot, Users, Smartphone, ExternalLink, Copy, CheckCircle2, Mail, Loader2, Download, Menu, Lock, Rocket, Film } from 'lucide-react';
 import KeyInput from './components/KeyInput';
 import MediaInput from './components/MediaInput';
 import McpConnectCard from './components/McpConnectCard';
@@ -382,6 +382,41 @@ function DiagnosticErrorCard({ error, logs, onRetry, onReset, isRetrying }) {
   );
 }
 
+function ClipSkeletonCard({ clipNumber, substage = 'rendering', percent = 0 }) {
+  const label =
+    substage === 'cut' ? 'Trimming fragment...'
+    : substage === 'reframe' ? 'Reframing 9:16...'
+    : substage === 'hook' ? 'Applying hook...'
+    : substage === 'subtitles' ? 'Burning captions...'
+    : 'Rendering...';
+
+  return (
+    <div className="card p-4 rounded-card border border-rule/70 bg-paper2/60 animate-pulse space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded bg-paper3/80 flex items-center justify-center text-brass">
+            <Film size={13} />
+          </div>
+          <span className="text-xs font-semibold text-ink">Clip {clipNumber}</span>
+        </div>
+        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-brass/10 text-brass border border-brass/20 flex items-center gap-1">
+          <Loader2 size={10} className="animate-spin" />
+          {label} {percent > 0 ? `${Math.round(percent)}%` : ''}
+        </span>
+      </div>
+      <div className="w-full h-32 rounded-input bg-paper3/30 border border-rule/30 flex flex-col items-center justify-center gap-1.5 text-center px-3">
+        <Loader2 size={20} className="animate-spin text-brass/70" />
+        <span className="text-[11px] text-muted font-medium">Processing vertical clip</span>
+        <span className="text-[10px] text-muted/70">Appears here as soon as rendering completes</span>
+      </div>
+      <div className="space-y-1.5 pt-1">
+        <div className="h-3 w-3/4 rounded bg-paper3/60" />
+        <div className="h-2.5 w-1/2 rounded bg-paper3/40" />
+      </div>
+    </div>
+  );
+}
+
 function App() {
   // Cloud auth/billing session (inert when billing is disabled).
   const { billingEnabled, isManaged, isSignedIn, me, plan, refreshMe, jobRetentionSeconds, localLlm, loading: authLoading } = useAuth();
@@ -474,6 +509,17 @@ function App() {
         return a.index - b.index;
       });
   }, [results]);
+
+  const pendingClips = useMemo(() => {
+    if (status !== 'processing' || !stages?.clips || !Array.isArray(stages.clips)) {
+      return [];
+    }
+    const readyIndices = new Set((results?.clips || []).map((_, i) => i));
+    return stages.clips.filter((c, idx) => {
+      const isReady = c.ready || c.status === 'completed' || readyIndices.has(c.index != null ? c.index : idx);
+      return !isReady;
+    });
+  }, [status, stages?.clips, results?.clips]);
   // Bulk subtitles: apply one style to every clip of the job (triggered from
   // within a clip's subtitle modal via "apply to all").
   const [bulkSub, setBulkSub] = useState({ running: false, current: 0, total: 0, errors: 0 });
@@ -2658,7 +2704,7 @@ function App() {
                 )}
 
                 <div className="flex-1 overflow-y-auto custom-scrollbar p-1">
-                  {results && results.clips && results.clips.length > 0 ? (
+                  {(results && results.clips && results.clips.length > 0) || (status === 'processing' && pendingClips.length > 0) ? (
                     <div className={`grid gap-4 pb-10 ${status === 'complete' ? 'grid-cols-[repeat(auto-fill,minmax(min(100%,600px),1fr))]' : 'grid-cols-1'}`}>
                       {rankedClips.map(({ clip, index: i }) => (
                         <ResultCard
@@ -2682,18 +2728,26 @@ function App() {
                           onPlay={(time) => handleClipPlay(time)}
                           onPause={handleClipPause}
                           onBulkSubtitle={handleBulkSubtitles}
-                          clipCount={results.clips.length}
+                          clipCount={results?.clips?.length || 0}
                           bulkProgress={bulkSub}
+                        />
+                      ))}
+                      {status === 'processing' && pendingClips.map((c, idx) => (
+                        <ClipSkeletonCard
+                          key={`pending-${c.index != null ? c.index : idx}`}
+                          clipNumber={(c.index != null ? c.index : (results?.clips?.length || 0) + idx) + 1}
+                          substage={c.substage || 'rendering'}
+                          percent={c.percent || 0}
                         />
                       ))}
                     </div>
                   ) : (
                     status === 'processing' ? (
-                      <div className="h-full min-h-[140px] flex flex-col items-center justify-center text-muted space-y-3 text-center px-4">
+                      <div className="h-full min-h-[160px] flex flex-col items-center justify-center text-muted space-y-3 text-center px-4">
                         <Loader2 size={28} className="animate-spin text-brass" />
-                        <p className="text-sm lowercase">Waiting for clips...</p>
-                        <p className="text-xs text-muted/80 max-w-[26ch] leading-snug">
-                          They appear here one by one as each finishes rendering.
+                        <p className="text-sm font-medium text-ink2 lowercase">Analyzing video moments...</p>
+                        <p className="text-xs text-muted/80 max-w-[28ch] leading-relaxed">
+                          Clips will appear here progressively as each finishes rendering.
                         </p>
                       </div>
                     ) : status === 'error' ? (
