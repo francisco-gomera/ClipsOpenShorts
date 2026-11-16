@@ -1017,18 +1017,18 @@ export default function ClipEditor({ jobId, clipIndex, clipTitle, onClose, onRer
                         }}
                     />
                 )}
-                {/* other clips' ranges on the same source video */}
+                {/* other clips' ranges on the same source video (read-only 35% opacity, distinct from orange accent) */}
                 {sourceDuration > 0 && edl.other_clips_ranges && edl.other_clips_ranges.map((other, idx) => (
                     <div
                         key={`other-${other.index ?? idx}`}
-                        className="absolute top-0 bottom-0 border-x border-ink/20 bg-ink/10 pointer-events-none z-0"
+                        className="absolute top-0 bottom-0 border-x border-sky-400/50 bg-sky-500/35 pointer-events-none z-0"
                         style={{
                             left: `${(other.start / sourceDuration) * 100}%`,
                             width: `${Math.max(((other.end - other.start) / sourceDuration) * 100, 0.4)}%`,
                         }}
                         title={`Clip #${other.index + 1} (${other.title}): ${fmt(other.start)} → ${fmt(other.end)}`}
                     >
-                        <span className="text-[9px] font-mono text-ink/40 px-0.5 truncate block select-none">
+                        <span className="text-[9px] font-mono font-medium text-sky-100/90 px-1 truncate block select-none">
                             #{other.index + 1}
                         </span>
                     </div>

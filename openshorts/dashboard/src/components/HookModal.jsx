@@ -60,16 +60,14 @@ function loadHookPrefs() {
 export default function HookModal({ isOpen, onClose, onGenerate, onRemove, isProcessing, videoUrl, initialText, durationInSeconds, existingSubtitles, hasCaptions, serverRender, burnedHook }) {
     const prefs = loadHookPrefs();
     const [text, setText] = useState(initialText || 'POV: You are using the viral hook feature');
-    // Stored as `pos`, not `position`: before 'auto' existed every save wrote
-    // 'top' whether or not the user ever touched the control.
-    const [position, setPosition] = useState(prefs.pos || 'auto');
+    // Stored as `pos`, not `position`: defaults to 'top' per owner spec (Classic, Anton, Top, M, 5s)
+    const [position, setPosition] = useState(prefs.pos || 'top');
     const [size, setSize] = useState(prefs.size || 'M');
-    const [style, setStyle] = useState(prefs.style || 'pill');
-    // null = follow the style's own typeface.
-    const [font, setFont] = useState(prefs.font || null);
-    const effectiveFont = font || styleFont(style);
+    const [style, setStyle] = useState(prefs.style || 'classic');
+    const [font, setFont] = useState(prefs.font || 'anton');
+    const effectiveFont = font || 'anton';
     const [entranceAnimation, setEntranceAnimation] = useState(prefs.entranceAnimation || 'spring');
-    const [displayDuration, setDisplayDuration] = useState(5);
+    const [displayDuration, setDisplayDuration] = useState(prefs.duration || 5);
 
     if (!isOpen) return null;
 
@@ -309,11 +307,11 @@ export default function HookModal({ isOpen, onClose, onGenerate, onRemove, isPro
                             onClick={() => {
                                 try {
                                     localStorage.setItem('os_hook_prefs', JSON.stringify({
-                                        style, font, pos: position, size, entranceAnimation,
+                                        style, font: effectiveFont, pos: position, size, duration: displayDuration, entranceAnimation,
                                     }));
                                 } catch { /* ignore */ }
                                 onGenerate({
-                                    text, position, size, style, font: effectiveFont,
+                                    text, position, size, style, font: effectiveFont, duration_seconds: displayDuration,
                                     // Remotion data
                                     remotion: hookConfig,
                                 });

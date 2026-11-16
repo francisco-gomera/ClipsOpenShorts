@@ -999,7 +999,7 @@ function App() {
   // A self-hosted server running the moment picker on a local LLM
   // (LLM_BASE_URL) does not need a Gemini key for the core pipeline.
   const geminiOk = !!apiKey || !!localLlm;
-  const keysMissing = !billingEnabled && (!geminiOk || !uploadPostKey);
+  const keysMissing = !billingEnabled && !geminiOk;
   const needsPlan = billingEnabled && !isManaged;   // hosted, signed-out or no active plan/trial
 
   // Fresh sign-up: Clip Generator tutorial (AuthContext set os_show_clip_tutorial
@@ -1407,10 +1407,17 @@ function App() {
   // One nav definition drives all three surfaces: the desktop rail, the mobile
   // drawer, and the bottom tab bar. `short` is the tab-bar label — the full one
   // wraps to two lines in a 5-up bar on a 360px phone.
+  const showExtraTools = import.meta.env.VITE_SHOW_EXTRA_TOOLS === '1';
   const navItems = [
     { id: 'dashboard', ord: '01', icon: LayoutDashboard, label: 'Clip Generator', short: 'clips', primary: true },
     { id: 'history', ord: '02', icon: FolderOpen, label: 'Projects', short: 'projects', primary: true },
     { id: 'settings', ord: '03', icon: Settings, label: 'Settings', short: 'settings' },
+    ...(showExtraTools ? [
+      { id: 'saasshorts', ord: '04', icon: Sparkles, label: 'AI Shorts', short: 'shorts' },
+      { id: 'ai-agent', ord: '05', icon: Bot, label: 'AI Agent', short: 'agent' },
+      { id: 'ugc-gallery', ord: '06', icon: Image, label: 'UGC Gallery', short: 'ugc' },
+      { id: 'thumbnails', ord: '07', icon: Youtube, label: 'YouTube Studio', short: 'studio' },
+    ] : [])
   ];
   const activeNav = navItems.find((n) => n.id === activeTab);
 
@@ -1698,13 +1705,9 @@ function App() {
               >
                 <AlertTriangle size={12} />
                 <span className="hidden md:inline">
-                  {!geminiOk && !uploadPostKey
-                    ? 'Gemini & Upload-Post keys missing'
-                    : !geminiOk
-                      ? 'Gemini API Key Missing'
-                      : 'Upload-Post API Key Missing'}
+                  Gemini API Key Missing
                 </span>
-                <span className="md:hidden">keys missing</span>
+                <span className="md:hidden">key missing</span>
               </button>
             )}
           </div>
@@ -1716,13 +1719,9 @@ function App() {
             <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 text-sm text-ink2 min-w-0 flex-1">
               <KeyRound size={16} className="shrink-0 text-warn mt-0.5 sm:mt-0" />
               <div className="min-w-0">
-                <span className="font-medium text-ink">Required API keys missing.</span>{' '}
+                <span className="font-medium text-ink">Required API key missing.</span>{' '}
                 <span className="text-muted">
-                  {!geminiOk && !uploadPostKey
-                    ? 'Set your Gemini and Upload-Post API keys to use OpenShorts.'
-                    : !geminiOk
-                      ? 'Set your Gemini API key to use OpenShorts.'
-                      : 'Set your Upload-Post API key to use OpenShorts.'}
+                  Set your Gemini API key to use OpenShorts.
                 </span>
               </div>
             </div>
@@ -1832,10 +1831,10 @@ function App() {
                     </div>
                     <h2 className="text-base font-medium text-ink lowercase">Social Integration</h2>
                   </div>
-                  <span className="badge-warn">Required</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full border border-rule text-muted">Optional</span>
                 </div>
                 <p className="text-xs text-muted mb-6 leading-relaxed">
-                  Required to publish your clips to TikTok, Instagram Reels, and YouTube Shorts via <strong>Upload-Post</strong>.
+                  Optional. Required to publish your clips to TikTok, Instagram Reels, and YouTube Shorts via <strong>Upload-Post</strong>.
                   Includes a <strong>free tier</strong> (no credit card required).
                 </p>
                 <div className="space-y-4">
@@ -2584,11 +2583,7 @@ function App() {
         isOpen={showKeyModal}
         onClose={() => setShowKeyModal(false)}
         eyebrow="SETUP"
-        title={!geminiOk && !uploadPostKey
-          ? 'Required API Keys Missing'
-          : !geminiOk
-            ? 'Gemini API Key Required'
-            : 'Upload-Post API Key Required'}
+        title="Gemini API Key Required"
         footer={
           <div className="flex gap-3">
             <button
@@ -2608,7 +2603,7 @@ function App() {
       >
         <div className="space-y-4">
           <p className="text-sm text-muted">
-            OpenShorts needs both a <strong className="text-ink2">Gemini</strong> API key and an <strong className="text-ink2">Upload-Post</strong> API key. Both have free tiers.
+            OpenShorts needs a <strong className="text-ink2">Gemini</strong> API key to identify and score viral clips.
           </p>
 
           {/* Gemini block */}
@@ -2642,13 +2637,13 @@ function App() {
           {/* Upload-Post block */}
           <div className={`rounded-input p-4 space-y-2 border ${!uploadPostKey ? 'border-rule2' : 'border-rule opacity-70'}`}>
             <p className="text-xs font-medium text-ink flex items-center gap-2">
-              {uploadPostKey ? <Check size={12} className="text-ok" /> : <AlertTriangle size={12} className="text-warn" />}
-              Upload-Post API Key {uploadPostKey && <span className="text-ok">— set</span>}
+              {uploadPostKey ? <Check size={12} className="text-ok" /> : <AlertTriangle size={12} className="text-muted" />}
+              Upload-Post API Key (Optional) {uploadPostKey && <span className="text-ok">— set</span>}
             </p>
             {!uploadPostKey && (
               <>
                 <p className="text-xs text-muted">
-                  Required to publish your clips to TikTok, Instagram Reels, and YouTube Shorts. Free tier available, no credit card needed.
+                  Optional. Required only to publish your clips directly to TikTok, Instagram Reels, and YouTube Shorts. Free tier available, no credit card needed.
                 </p>
                 <ol className="text-xs text-muted space-y-1 list-decimal list-inside">
                   <li>Register at <a href="https://app.upload-post.com/login" target="_blank" rel="noopener noreferrer" className="text-brass underline">app.upload-post.com</a></li>

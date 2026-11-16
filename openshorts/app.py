@@ -5328,15 +5328,19 @@ async def _rerender_locked(req: RerenderRequest, request: Request, job):
             size_map = {"S": 0.8, "M": 1.0, "L": 1.3}
             font_scale = size_map.get(hook_data.get('size'), 1.0)
             from hooks import add_hook_to_video
+            hook_pos = hook_data.get('position') or "top"
+            hook_dur = hook_data.get('duration_seconds') if hook_data.get('duration_seconds') is not None else 5.0
+            hook_st = hook_data.get('style') or 'classic'
+            hook_ft = hook_data.get('font') or 'anton'
             add_hook_to_video(
                 clean_recut_path,
                 hook_data.get('text'),
                 hook_out_path,
-                position=hook_data.get('position') or "auto",
+                position=hook_pos,
                 font_scale=font_scale,
-                duration=hook_data.get('duration_seconds'),
-                style=hook_data.get('style', 'pill'),
-                font=hook_data.get('font'),
+                duration=hook_dur,
+                style=hook_st,
+                font=hook_ft,
                 layout_ranges=layout_ranges.read(clean_recut_path),
                 has_captions=bool(v_transcript)
             )
@@ -6273,13 +6277,12 @@ class HookRequest(BaseModel):
     clip_index: int
     text: Optional[str] = ""
     input_filename: Optional[str] = None
-    # auto (off the faces and the captions, hooks/hook_placement), or an
-    # explicit top / center / bottom, which is drawn exactly there.
-    position: Optional[str] = "auto"
+    # Default to top, M, 5.0s, classic, anton (Fase 5 owner defaults)
+    position: Optional[str] = "top"
     size: Optional[str] = "M" # S, M, L
-    duration_seconds: Optional[float] = None  # None = hook visible for the whole clip
-    style: Optional[str] = "pill"  # pill/classic/dark/yellow/red/outline/outline_yellow
-    font: Optional[str] = None  # montserrat/anton/serif (hooks.HOOK_FONTS); None = the style's own
+    duration_seconds: Optional[float] = 5.0  # default 5.0s
+    style: Optional[str] = "classic"  # classic/pill/dark/yellow/red/outline/outline_yellow
+    font: Optional[str] = "anton"  # anton/montserrat/serif (hooks.HOOK_FONTS)
     remove: Optional[bool] = False  # strip the burned hook instead of adding one
 
 @app.post("/api/hook")
@@ -6354,11 +6357,15 @@ async def add_hook(req: HookRequest, request: Request):
 
         try:
             # Run in thread pool
+            hook_pos = req.position or "top"
+            hook_dur = req.duration_seconds if req.duration_seconds is not None else 5.0
+            hook_st = req.style or "classic"
+            hook_ft = req.font or "anton"
             def run_hook():
                 return add_hook_to_video(
-                    input_path, req.text, output_path, position=req.position or "auto",
-                    font_scale=font_scale, duration=req.duration_seconds, style=req.style,
-                    font=req.font, layout_ranges=clip_data.get('layout_ranges'),
+                    input_path, req.text, output_path, position=hook_pos,
+                    font_scale=font_scale, duration=hook_dur, style=hook_st,
+                    font=hook_ft, layout_ranges=clip_data.get('layout_ranges'),
                     has_captions=had_captions)
 
             loop = asyncio.get_event_loop()
@@ -6388,8 +6395,8 @@ async def add_hook(req: HookRequest, request: Request):
         clip_data.pop('auto_hook', None)
     else:
         clip_data['auto_hook'] = {
-            "text": req.text, "style": req.style, "font": req.font, "position": req.position,
-            "duration_seconds": req.duration_seconds, "size": req.size or "M",
+            "text": req.text, "style": req.style or "classic", "font": req.font or "anton", "position": req.position or "top",
+            "duration_seconds": req.duration_seconds if req.duration_seconds is not None else 5.0, "size": req.size or "M",
         }
 
     # Update Persistence (Same logic as subtitles)

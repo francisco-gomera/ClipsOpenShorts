@@ -38,6 +38,12 @@ HOOK_FONTS = {
     "serif": (FONT_PATH, 0.05),
 }
 
+DEFAULT_HOOK_STYLE = "classic"
+DEFAULT_HOOK_FONT = "anton"
+DEFAULT_HOOK_POSITION = "top"
+DEFAULT_HOOK_SIZE = "M"
+DEFAULT_HOOK_DURATION = 5.0
+
 # Codepoint ranges NotoSerif has no glyphs for (would render as tofu boxes).
 _EMOJI_RE = re.compile(
     "["
@@ -253,16 +259,16 @@ def _draw_pills(lines, font, emoji_font, font_size, box_fill, text_fill, output_
     return output_image_path, canvas_w, canvas_h
 
 
-def create_hook_image(text, target_width, output_image_path="hook_overlay.png", font_scale=1.0, style="pill",
-                      font=None):
+def create_hook_image(text, target_width, output_image_path="hook_overlay.png", font_scale=1.0, style=DEFAULT_HOOK_STYLE,
+                      font=DEFAULT_HOOK_FONT):
     """
     Generates a hook overlay image using pixel-based wrapping.
     target_width: The max width the box should occupy (e.g. 85% of video)
-    style: one of HOOK_STYLES (pill/classic/dark/yellow/red/outline/outline_yellow)
+    style: one of HOOK_STYLES (classic/pill/dark/yellow/red/outline/outline_yellow)
     """
     download_font_if_needed()
 
-    look = HOOK_STYLES.get(style, HOOK_STYLES["pill"])
+    look = HOOK_STYLES.get(style, HOOK_STYLES[DEFAULT_HOOK_STYLE])
     box_fill = look["box"]
     text_fill = look["text"]
     outline = look["outline"]
@@ -470,8 +476,8 @@ def _auto_place(video_path, text, target_box_width, hook_filename, font_scale, s
             "y": round(y, 3), "scale": rel}
 
 
-def add_hook_to_video(video_path, text, output_path, position="top", font_scale=1.0, duration=None, style="pill",
-                      also=None, font=None, layout_ranges=None, has_captions=True,
+def add_hook_to_video(video_path, text, output_path, position=DEFAULT_HOOK_POSITION, font_scale=1.0, duration=DEFAULT_HOOK_DURATION, style=DEFAULT_HOOK_STYLE,
+                      also=None, font=DEFAULT_HOOK_FONT, layout_ranges=None, has_captions=True,
                       mark=None):
     """
     Overlays text hook onto video.
