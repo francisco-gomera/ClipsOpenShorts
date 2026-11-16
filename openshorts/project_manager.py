@@ -23,7 +23,25 @@ _JOB_ID_RE = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a
 
 def is_valid_job_id(job_id: str) -> bool:
     """Verifica si la cadena tiene formato de identificador UUIDv4."""
+    if not isinstance(job_id, str):
+        return False
     return bool(_JOB_ID_RE.match(job_id))
+
+
+def validate_job_id(job_id: str, base_dir: Optional[str] = None) -> str:
+    """Valida estrictamente que job_id sea un UUIDv4 válido y que,
+    si se proporciona base_dir, la ruta resuelta con realpath resida estrictamente
+    dentro de base_dir, previniendo Directory Traversal.
+    Lanza ValueError si es inválido.
+    """
+    if not is_valid_job_id(job_id):
+        raise ValueError(f"Identificador de trabajo inválido (no es UUIDv4): {job_id}")
+    if base_dir:
+        real_base = os.path.realpath(base_dir)
+        target = os.path.realpath(os.path.join(base_dir, job_id))
+        if target != real_base and not target.startswith(real_base + os.sep):
+            raise ValueError(f"Intento de Directory Traversal detectado: {job_id}")
+    return job_id
 
 
 def canonical_clip_file(output_dir: str, base_name: str, index: int) -> str:
@@ -54,6 +72,8 @@ def locate_source_file(job_id: str, output_dir: str, upload_dir: str) -> Tuple[O
     Localiza el vídeo original del proyecto en disco.
     Retorna (ruta_al_archivo, tipo_origen: 'file' | 'url' | 'unknown').
     """
+    if not job_id or ".." in job_id.replace("\\", "/").split("/") or "/" in job_id or "\\" in job_id:
+        return None, "unknown"
     # 1. Buscar en UPLOAD_DIR (subidas directas del usuario)
     try:
         upload_matches = [
@@ -200,7 +220,12 @@ def get_project_record(
     Construye la representación completa del modelo de proyecto para un job_id.
     Retorna un diccionario conforme a los requisitos del Plan Maestro.
     """
-    job_path = os.path.join(output_dir, job_id)
+    if not job_id or ".." in job_id.replace("\\", "/").split("/") or "/" in job_id or "\\" in job_id:
+        return None
+    real_out = os.path.realpath(output_dir)
+    job_path = os.path.realpath(os.path.join(output_dir, job_id))
+    if not (job_path == real_out or job_path.startswith(real_out + os.sep)):
+        return None
     if not os.path.isdir(job_path) or job_id == "thumbnails":
         return None
 
@@ -391,6 +416,9 @@ def delete_project(job_id: str, jobs_dict: dict, output_dir: str, upload_dir: st
     Elimina output/{job_id}, los ficheros de origen asociados en uploads/
     y el registro en memoria.
     """
+    validate_job_id(job_id, output_dir)
+    validate_job_id(job_id, upload_dir)
+
     # Si el trabajo está en ejecución, no permitir borrado
     job = jobs_dict.get(job_id)
     if job and job.get("status") in ("queued", "processing"):
@@ -422,6 +450,7 @@ def clean_project_temp_files(job_id: str, output_dir: str, max_age_seconds: int 
     (temp_*.mp4, temp_*.jpg) que hayan superado max_age_seconds, conservando
     intactos los clips canónicos, metadatos, recetas y subtítulos.
     """
+    validate_job_id(job_id, output_dir)
     cleaned_count = 0
     job_path = os.path.join(output_dir, job_id)
     if not os.path.isdir(job_path):

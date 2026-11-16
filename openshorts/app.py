@@ -22,7 +22,7 @@ from datetime import datetime, timezone, timedelta
 from dotenv import load_dotenv
 from typing import Any, Dict, Optional, List
 from contextlib import asynccontextmanager, suppress
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Request, Header, BackgroundTasks
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Request, Header, BackgroundTasks, Depends, Path as FastAPIPath
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
@@ -43,6 +43,27 @@ UPLOAD_DIR = "uploads"
 OUTPUT_DIR = "output"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+_retry_locks: Dict[str, asyncio.Lock] = {}
+
+
+def valid_job_id(job_id: str = FastAPIPath(..., description="Job UUIDv4")) -> str:
+    """Valida estrictamente que job_id sea un UUIDv4 válido y que
+    la ruta resultante no escape de OUTPUT_DIR (prevención de Directory Traversal).
+    """
+    if not project_manager.is_valid_job_id(job_id):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Formato de job_id inválido: {job_id}. Debe ser un UUIDv4."
+        )
+    real_out = os.path.realpath(OUTPUT_DIR)
+    target = os.path.realpath(os.path.join(OUTPUT_DIR, job_id))
+    if not (target == real_out or target.startswith(real_out + os.sep)):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Directory traversal detectado para job_id: {job_id}"
+        )
+    return job_id
 
 # Configuration
 # Default to 1 if not set, but user can set higher for powerful servers
@@ -3251,13 +3272,26 @@ async def run_job(job_id, job_data):
                  jobs[job_id]['logs'].append("No metadata file generated.")
         else:
             jobs[job_id]['status'] = 'failed'
+            error_msg = f"Process failed with exit code {returncode}"
+            recent_errs = [l for l in (jobs[job_id].get('logs') or []) if "❌" in l or "Error" in l or "Exception" in l]
+            if recent_errs:
+                error_msg = recent_errs[-1]
             jobs[job_id]['logs'].append(_scrub_secrets(f"Process failed with exit code {returncode}"))
+            try:
+                stage_tracker.mark_stage_failed(output_dir, error=_scrub_secrets(error_msg))
+            except Exception:
+                pass
             
     except Exception as e:
         jobs[job_id]['status'] = 'failed'
         # Exception text can embed URLs with credentials (e.g. the proxy URL
         # inside a yt-dlp/httpx error) — scrub before it reaches client logs.
-        jobs[job_id]['logs'].append(_scrub_secrets(f"Execution error: {str(e)}"))
+        error_msg = f"Execution error: {str(e)}"
+        jobs[job_id]['logs'].append(_scrub_secrets(error_msg))
+        try:
+            stage_tracker.mark_stage_failed(output_dir, error=_scrub_secrets(error_msg))
+        except Exception:
+            pass
 
 @app.get("/health")
 async def health():
@@ -3997,6 +4031,21 @@ async def process_endpoint(
         except Exception as e:
             print(f"⚠️ Could not persist job owner for {job_id}: {e}")
 
+    # Persist non-secret job options for safe and accurate retries
+    try:
+        os.makedirs(job_output_dir, exist_ok=True)
+        job_opts = {
+            "format": output_format,
+            "keep_original": bool(url),
+            "skip_analysis": False,
+            "auto_hook": str(auto_hook).lower() in ("1", "true", "yes"),
+            "auto_hook_style": auto_hook_style,
+        }
+        with open(os.path.join(job_output_dir, "job_options.json"), "w", encoding="utf-8") as f:
+            json.dump(job_opts, f, indent=2)
+    except Exception as e:
+        print(f"⚠️ Could not write job_options.json for {job_id}: {e}")
+
     # Resume manifest: enough to re-run this job if the container dies mid-flight
     # (a redeploy). No secrets — the env is rebuilt from os.environ on resume.
     _write_resume_manifest(job_id, cmd, priority, user_id, reservation_id,
@@ -4068,7 +4117,9 @@ def _presented_status(job_id, job):
 
 
 @app.get("/api/status/{job_id}")
-async def get_status(job_id: str, request: Request):
+async def get_status(request: Request, job_id: str):
+    if not job_id or ".." in job_id.replace("\\", "/").split("/"):
+        raise HTTPException(status_code=400, detail="Invalid job ID")
     job = jobs.get(job_id)
     if job is None:
         job = _job_view_from_disk(job_id)
@@ -4153,7 +4204,7 @@ def _signed_source_url(job_id: str) -> str:
 
 
 @app.get("/api/source-url/{job_id}")
-async def get_source_url(job_id: str, request: Request):
+async def get_source_url(request: Request, job_id: str):
     """Mint a short-lived signed URL for this job's source video.
 
     A `<video src>` cannot carry an Authorization header, which is why
@@ -4177,7 +4228,7 @@ async def get_source_url(job_id: str, request: Request):
 
 
 @app.get("/api/source/{job_id}")
-async def get_source_video(job_id: str, request: Request,
+async def get_source_video(request: Request, job_id: str,
                            exp: int = 0, sig: str = ""):
     """Stream a job's original source video for the live-analysis preview and
     the clip editor's source monitor.
@@ -4211,7 +4262,7 @@ async def get_source_video(job_id: str, request: Request,
 
 
 @app.get("/api/jobs/{job_id}/download-all")
-async def download_all_clips(job_id: str, request: Request):
+async def download_all_clips(job_id: str = Depends(valid_job_id), request: Request = None):
     """Bundle the current version of every clip of a job into one ZIP."""
     await _ensure_job_files(job_id, request)
     if job_id in jobs:
@@ -4298,7 +4349,7 @@ async def list_projects_endpoint(request: Request):
 
 
 @app.get("/api/projects/{job_id}")
-async def get_project_details(job_id: str, request: Request):
+async def get_project_details(request: Request, job_id: str = Depends(valid_job_id)):
     """Get single project details."""
     record = project_manager.get_project_record(job_id, OUTPUT_DIR, UPLOAD_DIR, jobs.get(job_id))
     if not record:
@@ -4307,7 +4358,7 @@ async def get_project_details(job_id: str, request: Request):
 
 
 @app.post("/api/projects/{job_id}/restore")
-async def restore_project(job_id: str, request: Request):
+async def restore_project(request: Request, job_id: str = Depends(valid_job_id)):
     if not BILLING_ENABLED:
         record = project_manager.get_project_record(job_id, OUTPUT_DIR, UPLOAD_DIR, jobs.get(job_id))
         if not record:
@@ -4356,7 +4407,7 @@ async def restore_project(job_id: str, request: Request):
 
 
 @app.delete("/api/projects/{job_id}")
-async def delete_project_endpoint(job_id: str, request: Request):
+async def delete_project_endpoint(request: Request, job_id: str = Depends(valid_job_id)):
     """Explicitly delete a project and its associated source video."""
     if job_id in jobs and jobs[job_id].get("status") in ("queued", "processing"):
         raise HTTPException(status_code=409, detail="Cannot delete a project currently in progress")
@@ -4367,51 +4418,92 @@ async def delete_project_endpoint(job_id: str, request: Request):
 
 
 @app.post("/api/jobs/{job_id}/retry")
-async def retry_job_endpoint(job_id: str, request: Request):
+async def retry_job_endpoint(request: Request, job_id: str = Depends(valid_job_id)):
     """Retry an interrupted or failed job from its last valid stage (Fase 5)."""
-    await _ensure_job_files(job_id, request)
-    job_output_dir = os.path.join(OUTPUT_DIR, job_id)
-    if not os.path.isdir(job_output_dir):
-        raise HTTPException(status_code=404, detail="Project directory not found")
+    retry_lock = _retry_locks.setdefault(job_id, asyncio.Lock())
+    if retry_lock.locked():
+        raise HTTPException(status_code=409, detail="Reintento ya en curso para este trabajo")
 
-    job = jobs.get(job_id)
-    if job and job.get("status") in ("queued", "processing"):
-        raise HTTPException(status_code=409, detail="Job is currently running")
+    async with retry_lock:
+        await _ensure_job_files(job_id, request)
+        job_output_dir = os.path.join(OUTPUT_DIR, job_id)
+        if not os.path.isdir(job_output_dir):
+            raise HTTPException(status_code=404, detail="Project directory not found")
 
-    can_retry, reason, stages_data = stage_tracker.can_retry_job(job_id, OUTPUT_DIR, UPLOAD_DIR)
-    if not can_retry:
-        raise HTTPException(status_code=400, detail=reason)
+        job = jobs.get(job_id)
+        if job and job.get("status") in ("queued", "processing"):
+            raise HTTPException(status_code=409, detail="Job is currently running")
 
-    base_cmd = (job or {}).get("cmd") or []
-    if not base_cmd:
-        manifest = _read_manifest(job_id)
-        if manifest:
-            base_cmd = manifest.get("cmd") or []
+        can_retry, reason, stages_data = stage_tracker.can_retry_job(job_id, OUTPUT_DIR, UPLOAD_DIR)
+        if not can_retry:
+            raise HTTPException(status_code=400, detail=reason)
 
-    retry_cmd = stage_tracker.build_retry_command(job_id, OUTPUT_DIR, UPLOAD_DIR, base_cmd)
+        force = request.query_params.get("force", "").lower() in ("1", "true", "yes")
+        if ((job and job.get("status") == "completed") or stages_data.get("status") == "completed") and not force:
+            raise HTTPException(status_code=409, detail="Job has already completed. Pass ?force=true to retry.")
 
-    jobs[job_id] = {
-        "status": "queued",
-        "logs": _TimedLog([f"♻️ Job {job_id} queued for retry from last valid stage."]),
-        "output_dir": job_output_dir,
-        "user_id": (job or {}).get("user_id"),
-        "cmd": retry_cmd,
-        "via_api_key": False,
-        "watermark": (job or {}).get("watermark", False),
-    }
+        # Limpiar los restos del intento fallido antes de relanzar
+        _clean_for_retry(job_output_dir)
 
-    _write_resume_manifest(job_id, retry_cmd, priority=0, user_id=jobs[job_id]["user_id"],
-                           reservation_id=None, watermark=jobs[job_id]["watermark"],
-                           base_url=str(request.base_url).rstrip("/"))
-    _enqueue_job(job_id, priority=0)
+        base_cmd = (job or {}).get("cmd") or []
+        if not base_cmd:
+            manifest = _read_manifest(job_id)
+            if manifest:
+                base_cmd = manifest.get("cmd") or []
 
-    return {
-        "success": True,
-        "job_id": job_id,
-        "status": "queued",
-        "stages": stages_data,
-        "message": "Job re-enqueued from last valid stage."
-    }
+        retry_cmd = stage_tracker.build_retry_command(job_id, OUTPUT_DIR, UPLOAD_DIR, base_cmd)
+
+        # Reutilizar el env del trabajo anterior o reconstruirlo
+        if job and job.get("env"):
+            env = dict(job["env"])
+        else:
+            env = child_env()
+            if BILLING_ENABLED and (job or {}).get("user_id"):
+                try:
+                    env["GEMINI_API_KEY"] = managed_keys.gemini_key()
+                except Exception:
+                    pass
+            manifest = _read_manifest(job_id) or {}
+            if (job or {}).get("watermark") or manifest.get("watermark"):
+                env["WATERMARK"] = "1"
+            partial = manifest.get("partial")
+            if partial:
+                _apply_source_cut(env, partial)
+            if manifest.get("source_cap_minutes"):
+                env["SOURCE_CAP_MINUTES"] = str(manifest["source_cap_minutes"])
+            if manifest.get("skip_statics"):
+                env["DOWNLOAD_SKIP_STATICS"] = "1"
+
+        # Tomar la clave de Gemini de la cabecera X-Gemini-Key de la petición, nunca de disco
+        gemini_key_header = request.headers.get("X-Gemini-Key")
+        if gemini_key_header:
+            env["GEMINI_API_KEY"] = gemini_key_header
+        elif not BILLING_ENABLED and os.environ.get("GEMINI_API_KEY"):
+            env["GEMINI_API_KEY"] = os.environ.get("GEMINI_API_KEY")
+
+        jobs[job_id] = {
+            "status": "queued",
+            "logs": _TimedLog([f"♻️ Job {job_id} queued for retry from last valid stage."]),
+            "output_dir": job_output_dir,
+            "user_id": (job or {}).get("user_id"),
+            "cmd": retry_cmd,
+            "env": env,
+            "via_api_key": False,
+            "watermark": (job or {}).get("watermark", False),
+        }
+
+        _write_resume_manifest(job_id, retry_cmd, priority=0, user_id=jobs[job_id]["user_id"],
+                               reservation_id=None, watermark=jobs[job_id]["watermark"],
+                               base_url=str(request.base_url).rstrip("/"))
+        _enqueue_job(job_id, priority=0)
+
+        return {
+            "success": True,
+            "job_id": job_id,
+            "status": "queued",
+            "stages": stages_data,
+            "message": "Job re-enqueued from last valid stage."
+        }
 
 
 async def _restore_job_files(job_id: str, proj, user_id: str) -> bool:
@@ -5131,7 +5223,7 @@ async def _rerender_locked(req: RerenderRequest, request: Request, job):
                 captioner=_recut_captioner(clip),
                 # Trim the source's own subtitles only when ours go back on.
                 subtitle_band=(data.get('source_subtitle_band')
-                               if caps_trans else None))
+                               if v_transcript else None))
 
         if has_hook:
             clean_recut_path = os.path.join(output_dir, clean)
@@ -5262,7 +5354,7 @@ def _clip_scene_workfile(source_path, segments, output_dir, token):
 
 
 @app.get("/api/clip/{job_id}/{clip_index}/scenes")
-async def get_clip_scenes(job_id: str, clip_index: int, request: Request):
+async def get_clip_scenes(clip_index: int, request: Request, job_id: str):
     """Scenes of a clip, each with a SOURCE frame to frame it against.
 
     The frames come from the uncropped cut, not the delivered clip: the point
@@ -6201,7 +6293,7 @@ async def add_hook(req: HookRequest, request: Request):
     else:
         clip_data['auto_hook'] = {
             "text": req.text, "style": req.style, "font": req.font, "position": req.position,
-            "duration_seconds": req.duration_seconds,
+            "duration_seconds": req.duration_seconds, "size": req.size or "M",
         }
 
     # Update Persistence (Same logic as subtitles)

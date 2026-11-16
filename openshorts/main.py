@@ -1406,8 +1406,11 @@ def auto_hook_clip(clip_path, clip, captions=None, mark=False):
             output_dir, f"hooked_{int(time.time())}_{os.path.basename(clip_path)}")
         # "auto": off the speaker's face and off the captions (hook_placement);
         # the layout ranges say where the captions sit (the seam on SPLIT).
+        size = os.environ.get("AUTO_HOOK_SIZE", "M")
+        size_map = {"S": 0.8, "M": 1.0, "L": 1.3}
+        font_scale = size_map.get(size, 1.0)
         config = {"text": text, "style": style, "position": "auto",
-                  "duration_seconds": seconds}
+                  "duration_seconds": seconds, "size": size}
         place = {"position": "auto", "layout_ranges": clip.get('layout_ranges'),
                  "has_captions": bool(captions)}
 
@@ -1426,7 +1429,8 @@ def auto_hook_clip(clip_path, clip, captions=None, mark=False):
                           os.path.join(output_dir, watermarked.marked_name(captioned)))
             try:
                 note(add_hook_to_video(clip_path, text, out_path, duration=seconds,
-                                       style=style, also=(vf, captioned), mark=marked,
+                                       style=style, font_scale=font_scale,
+                                       also=(vf, captioned), mark=marked,
                                        **place))
                 print(f"   🪝 Hook + 💬 captions burned in one pass ({style}, {seconds:g}s): {text}")
                 return out_path, {**config, "_captioned": captioned}
@@ -1445,7 +1449,7 @@ def auto_hook_clip(clip_path, clip, captions=None, mark=False):
                     if partial and os.path.exists(partial):
                         os.remove(partial)
         note(add_hook_to_video(clip_path, text, out_path, duration=seconds,
-                               style=style, **place))
+                               style=style, font_scale=font_scale, **place))
         print(f"   🪝 Hook burned ({style}, {seconds:g}s): {text}")
         return out_path, config
     except Exception as e:

@@ -50,7 +50,8 @@ def test_status_endpoint_includes_stages(tmp_path, monkeypatch):
 def test_retry_endpoint(tmp_path, monkeypatch):
     out_root = tmp_path / "output"
     up_root = tmp_path / "uploads"
-    job_dir = out_root / "retry_test_job"
+    job_id = "e1a82c34-8c09-4d6b-b4a1-0987654321ab"
+    job_dir = out_root / job_id
     job_dir.mkdir(parents=True)
     up_root.mkdir(parents=True)
 
@@ -58,7 +59,7 @@ def test_retry_endpoint(tmp_path, monkeypatch):
     monkeypatch.setattr(app_module, "UPLOAD_DIR", str(up_root))
 
     # Video en uploads
-    src = up_root / "retry_test_job_input.mp4"
+    src = up_root / f"{job_id}_input.mp4"
     src.write_bytes(b"content")
 
     # Transcript checkpoint
@@ -66,17 +67,17 @@ def test_retry_endpoint(tmp_path, monkeypatch):
         "transcript": {"segments": [{"start": 0, "end": 10, "text": "words"}]}
     }))
 
-    app_module.jobs["retry_test_job"] = {
+    app_module.jobs[job_id] = {
         "status": "failed",
         "logs": app_module._TimedLog(["failed"]),
         "user_id": None,
         "cmd": ["python", "main.py", "-i", str(src)],
     }
 
-    resp = _request("POST", "/api/jobs/retry_test_job/retry")
+    resp = _request("POST", f"/api/jobs/{job_id}/retry")
     assert resp.status_code == 200
     data = resp.json()
     assert data["success"] is True
     assert data["status"] == "queued"
-    assert app_module.jobs["retry_test_job"]["status"] == "queued"
-    assert "--transcript" in app_module.jobs["retry_test_job"]["cmd"]
+    assert app_module.jobs[job_id]["status"] == "queued"
+    assert "--transcript" in app_module.jobs[job_id]["cmd"]
