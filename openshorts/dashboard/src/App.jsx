@@ -690,14 +690,22 @@ function App() {
     }
   };
 
-  const handleRetryCurrentJob = async () => {
+  const handleRetryCurrentJob = async (stageName = null) => {
     if (!jobId || retryingJob) return;
     setRetryingJob(true);
     setJobError('');
     try {
-      await apiJson(`/api/jobs/${jobId}/retry`, { method: 'POST' });
+      const qs = (stageName && typeof stageName === 'string')
+        ? `?resume_from=${encodeURIComponent(stageName)}`
+        : '';
+      await apiJson(`/api/jobs/${jobId}/retry${qs}`, { method: 'POST' });
       setStatus('processing');
-      setLogs((prev) => [...prev, '♻️ Retrying job from last valid stage...']);
+      setLogs((prev) => [
+        ...prev,
+        stageName && typeof stageName === 'string'
+          ? `♻️ Reanudando trabajo desde etapa '${stageName}'...`
+          : '♻️ Reintentando trabajo desde la última etapa válida...',
+      ]);
     } catch (e) {
       alert(`Retry failed: ${e.message}`);
     } finally {
@@ -2227,11 +2235,14 @@ function App() {
                   </div>
                 )}
 
-                {/* Pipeline Stages Progress (Fase 4 & 5) */}
+                {/* Pipeline Stages Progress (Fase 3: ProcessingPanel integrado) */}
                 <StageProgress
                   stagesData={stages}
-                  onRetry={status === 'error' ? handleRetryCurrentJob : null}
+                  logs={logs}
+                  onRetry={handleRetryCurrentJob}
+                  onRetryStage={handleRetryCurrentJob}
                   isRetrying={retryingJob}
+                  status={status}
                 />
 
                 {/* Logs Terminal */}
