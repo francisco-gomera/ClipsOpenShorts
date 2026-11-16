@@ -4484,6 +4484,10 @@ async def retry_job_endpoint(request: Request, job_id: str = Depends(valid_job_i
                 base_cmd = manifest.get("cmd") or []
 
         retry_cmd = stage_tracker.build_retry_command(job_id, OUTPUT_DIR, UPLOAD_DIR, base_cmd)
+        resume_from = request.query_params.get("resume_from")
+        if resume_from and resume_from in stage_tracker.STAGES_ORDER:
+            if "--resume-from" not in retry_cmd:
+                retry_cmd.extend(["--resume-from", resume_from])
 
         # Reutilizar el env del trabajo anterior o reconstruirlo
         if job and job.get("env"):
