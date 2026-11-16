@@ -2,6 +2,7 @@ import argparse
 import json
 import mimetypes
 import os
+import re
 import sys
 from typing import List, Optional
 
@@ -458,6 +459,59 @@ class GeminiBlockedError(ValueError):
     video's content is the problem, not the service."""
 
 
+class GeminiRateLimitError(RuntimeError):
+    """Gemini rate limit (429 or RESOURCE_EXHAUSTED) was exceeded after retries.
+
+    Message must contain RESOURCE_EXHAUSTED and no permanent error markers so
+    it is correctly treated as a transient failure for job-level auto-retry."""
+
+
+class GeminiDailyQuotaError(RuntimeError):
+    """Gemini daily quota (PerDay) has been exhausted. Immediate failure without retrying."""
+
+
+def parse_retry_delay(err_msg: str) -> Optional[float]:
+    """Parse retry delay in seconds from Gemini / Google error messages.
+
+    Handles formats like:
+    - 'Please retry in 25.09s' or 'retry in 25s'
+    - \"'retryDelay': '25s'\" or \"'retryDelay': '25.09s'\" or '\"retryDelay\": \"25s\"'
+    - 'retry_delay: 25.09'
+    """
+    if not err_msg or not isinstance(err_msg, str):
+        return None
+    # 1. 'Please retry in 25.09s' / 'retry in 25s'
+    m = re.search(r'(?:Please retry in|retry in)\s*([0-9]+(?:\.[0-9]+)?)\s*s?', err_msg, re.IGNORECASE)
+    if m:
+        try:
+            return float(m.group(1))
+        except ValueError:
+            pass
+    # 2. 'retryDelay': '25s' / "retryDelay": "25.09s"
+    m = re.search(r'[\'"]?retryDelay[\'"]?\s*:\s*[\'"]?([0-9]+(?:\.[0-9]+)?)s?[\'"]?', err_msg, re.IGNORECASE)
+    if m:
+        try:
+            return float(m.group(1))
+        except ValueError:
+            pass
+    # 3. retry_delay: 25.09
+    m = re.search(r'[\'"]?retry_delay[\'"]?\s*:\s*[\'"]?([0-9]+(?:\.[0-9]+)?)s?[\'"]?', err_msg, re.IGNORECASE)
+    if m:
+        try:
+            return float(m.group(1))
+        except ValueError:
+            pass
+    return None
+
+
+def is_daily_quota(err_msg: str) -> bool:
+    """True if error message points to daily quota exhaustion (e.g. PerDay in quotaId)."""
+    if not err_msg or not isinstance(err_msg, str):
+        return False
+    lower = err_msg.lower()
+    return "perday" in lower or "quota_exceeded_daily" in lower
+
+
 _BLOCKED_FINISH_REASONS = {"SAFETY", "PROHIBITED_CONTENT", "BLOCKLIST",
                            "SPII", "IMAGE_SAFETY", "RECITATION"}
 
@@ -609,6 +663,11 @@ def main() -> int:
     prompt = template.format(**fmt)
 
     _log(f"🤖 Gemini worker request: mode={args.mode} strategy={args.strategy} model={model_name} items={len(payload.get('windows', []))}")
+    try:
+        import gemini_ratelimit
+        gemini_ratelimit.acquire_gemini_slot(api_key, model_name)
+    except Exception:
+        pass
     response = client.models.generate_content(
         model=model_name,
         contents=prompt,

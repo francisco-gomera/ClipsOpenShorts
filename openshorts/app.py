@@ -25,7 +25,7 @@ from contextlib import asynccontextmanager, suppress
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Request, Header, BackgroundTasks, Depends, Path as FastAPIPath
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
+from fastapi.responses import HTMLResponse, FileResponse, JSONResponse, Response
 from starlette.background import BackgroundTask
 from pydantic import BaseModel
 from s3_uploader import upload_job_artifacts, list_all_clips, upload_actor_to_s3, list_actor_gallery, upload_video_to_gallery, list_video_gallery
@@ -67,7 +67,7 @@ def valid_job_id(job_id: str = FastAPIPath(..., description="Job UUIDv4")) -> st
 
 # Configuration
 # Default to 1 if not set, but user can set higher for powerful servers
-MAX_CONCURRENT_JOBS = int(os.environ.get("MAX_CONCURRENT_JOBS", "5"))
+MAX_CONCURRENT_JOBS = int(os.environ.get("MAX_CONCURRENT_JOBS", "1"))
 MAX_FILE_SIZE_MB = 2048  # 2GB limit
 
 # How TikTok receives our uploads. MEDIA_UPLOAD lands the video in the user's
@@ -1914,6 +1914,9 @@ def _enforce_uploads_size_cap():
     used = _dir_size(UPLOAD_DIR)
     if used <= cap:
         return
+    pct = (used / cap * 100) if cap > 0 else 0
+    if pct >= 80:
+        print(f"⚠️ Almacenamiento de subidas al {pct:.1f}% ({used / 1024**3:.1f} GB de {UPLOADS_MAX_GB} GB).")
     files = []
     for name in os.listdir(UPLOAD_DIR):
         p = os.path.join(UPLOAD_DIR, name)
@@ -1943,6 +1946,9 @@ def _enforce_output_size_cap():
     used = _dir_size(OUTPUT_DIR)
     if used <= cap:
         return
+    pct = (used / cap * 100) if cap > 0 else 0
+    if pct >= 80:
+        print(f"⚠️ Almacenamiento de proyectos al {pct:.1f}% ({used / 1024**3:.1f} GB de {OUTPUT_MAX_GB} GB).")
     thumbs = os.path.basename(THUMBNAILS_DIR)
     candidates = []
     for job_id in os.listdir(OUTPUT_DIR):
@@ -4136,7 +4142,12 @@ def _presented_status(job_id, job):
 
 
 @app.get("/api/status/{job_id}")
-async def get_status(request: Request, job_id: str):
+async def get_status(
+    request: Request,
+    job_id: str,
+    since_version: Optional[int] = None,
+    log_offset: Optional[int] = None,
+):
     if not job_id or ".." in job_id.replace("\\", "/").split("/"):
         raise HTTPException(status_code=400, detail="Invalid job ID")
     job = jobs.get(job_id)
@@ -4154,26 +4165,55 @@ async def get_status(request: Request, job_id: str):
     if not stages_data or not isinstance(stages_data, dict):
         stages_data = stage_tracker.infer_stages_from_disk(os.path.join(OUTPUT_DIR, job_id), job_id)
 
-    return {
-        "status": _presented_status(job_id, job),
+    current_version = stages_data.get("version") if isinstance(stages_data, dict) else None
+    etag = f'"{current_version}"' if current_version is not None else None
+    all_logs = _logs_view[0] or []
+    all_times = _logs_view[1] or []
+    total_logs = len(all_logs)
+    presented_st = _presented_status(job_id, job)
+
+    req_etag = request.headers.get("if-none-match")
+    offset = max(0, log_offset) if log_offset is not None else 0
+    has_new_logs = total_logs > offset
+
+    if etag and req_etag == etag and not has_new_logs:
+        return Response(status_code=304, headers={"ETag": etag})
+
+    if since_version is not None and current_version is not None and current_version <= since_version and not has_new_logs:
+        resp_headers = {"ETag": etag} if etag else {}
+        return JSONResponse(
+            content={
+                "unchanged": True,
+                "version": current_version,
+                "status": presented_st,
+                "log_offset": total_logs,
+            },
+            headers=resp_headers
+        )
+
+    logs_slice = all_logs[offset:] if log_offset is not None else all_logs
+    times_slice = all_times[offset:] if (log_offset is not None and all_times) else all_times
+
+    content = {
+        "status": presented_st,
         "stages": stages_data,
         "progress": stages_data,
+        "version": current_version,
         "percent": stages_data.get("percent") if isinstance(stages_data, dict) else None,
         "mode": stages_data.get("mode") if isinstance(stages_data, dict) else "indeterminate",
         "eta_seconds": stages_data.get("eta_seconds") if isinstance(stages_data, dict) else None,
         "clips": stages_data.get("clips") if isinstance(stages_data, dict) else [],
         "counters": stages_data.get("counters") if isinstance(stages_data, dict) else {"total": 0, "ready": 0, "failed": 0},
         "recovery": stages_data.get("recovery") if isinstance(stages_data, dict) else {"state": "normal", "retry_at": None, "message": None},
-        "logs": _logs_view[0],
-        # When each line arrived (epoch seconds, parallel to "logs"), or None.
-        "log_times": _logs_view[1],
+        "logs": logs_slice,
+        "log_times": times_slice,
+        "log_offset": total_logs,
         "result": _with_download_urls(job.get('result')),
-        # Position in line and a rough wait while the job is still queued.
         "queue": queue_snapshot(job_id),
-        # Set when only the first part of the source was clipped (quota wall
-        # offer), so the dashboard can say so next to the clips.
         "partial": job.get('partial'),
     }
+    resp_headers = {"ETag": etag} if etag else {}
+    return JSONResponse(content=content, headers=resp_headers)
 
 
 def _locate_source(job_id: str):
@@ -4375,7 +4415,27 @@ async def list_projects_endpoint(request: Request):
     """List available projects."""
     if not BILLING_ENABLED:
         projects = project_manager.list_projects(OUTPUT_DIR, UPLOAD_DIR, jobs)
-        return {"projects": projects, "total": len(projects)}
+        used_uploads = _dir_size(UPLOAD_DIR)
+        cap_uploads = UPLOADS_MAX_GB * 1024 ** 3
+        used_output = _dir_size(OUTPUT_DIR)
+        cap_output = OUTPUT_MAX_GB * 1024 ** 3
+        pct_uploads = round((used_uploads / cap_uploads * 100), 1) if cap_uploads > 0 else 0
+        pct_output = round((used_output / cap_output * 100), 1) if cap_output > 0 else 0
+        has_warning = bool(pct_uploads >= 80.0 or pct_output >= 80.0)
+        return {
+            "projects": projects,
+            "total": len(projects),
+            "disk_usage": {
+                "uploads_used_bytes": used_uploads,
+                "uploads_cap_bytes": cap_uploads,
+                "uploads_percent": pct_uploads,
+                "output_used_bytes": used_output,
+                "output_cap_bytes": cap_output,
+                "output_percent": pct_output,
+                "warning": has_warning,
+                "warning_message": "El almacenamiento está al 80% o más de su capacidad. Elimina proyectos o archivos antiguos si es necesario." if has_warning else None,
+            }
+        }
     from cloud.videos import list_projects as cloud_list_projects
     return await cloud_list_projects(request)
 

@@ -130,6 +130,8 @@ def _ask_gemini(frames, prompt, api_key):
     client = genai.Client(api_key=api_key)
     model_name = os.environ.get("GEMINI_MODEL") or "gemini-3.1-flash-lite"
     parts = [genai_types.Part.from_bytes(data=b, mime_type="image/jpeg") for b in frames]
+    import gemini_ratelimit
+    gemini_ratelimit.acquire_gemini_slot(api_key, model_name)
     response = client.models.generate_content(
         model=model_name,
         contents=parts + [prompt],
