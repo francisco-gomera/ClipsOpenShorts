@@ -51,6 +51,80 @@ export async function apiFetch(path, options = {}) {
   return res;
 }
 
+// Upload files with real XMLHttpRequest upload.onprogress tracking
+export function apiUpload(path, body, options = {}, onProgress = null) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    const url = getApiUrl(path);
+
+    xhr.open(options.method || 'POST', url);
+
+    const token = getToken();
+    if (token) {
+      xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    }
+
+    if (options.headers) {
+      for (const [key, value] of Object.entries(options.headers)) {
+        if (key.toLowerCase() !== 'content-type') {
+          xhr.setRequestHeader(key, value);
+        }
+      }
+    }
+
+    if (xhr.upload && onProgress) {
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const percent = (event.loaded / event.total) * 100;
+          onProgress({
+            percent: Math.round(percent * 10) / 10,
+            loaded: event.loaded,
+            total: event.total,
+          });
+        }
+      };
+    }
+
+    xhr.onload = () => {
+      const status = xhr.status;
+      const resText = xhr.responseText;
+      let data = null;
+      try {
+        data = JSON.parse(resText);
+      } catch (_) {
+        data = resText;
+      }
+
+      if (status === 402) {
+        reject(new QuotaError(typeof data === 'object' ? data?.detail || data : {}));
+        return;
+      }
+
+      if (status >= 200 && status < 300) {
+        resolve({
+          ok: true,
+          status,
+          json: async () => (typeof data === 'object' ? data : JSON.parse(resText)),
+          text: async () => resText,
+        });
+      } else {
+        const detail = (typeof data === 'object' && data?.detail) ? data.detail : resText;
+        reject(new ApiError(status, detail, resText));
+      }
+    };
+
+    xhr.onerror = () => {
+      reject(new Error('Network error during file upload'));
+    };
+
+    xhr.onabort = () => {
+      reject(new Error('Upload aborted'));
+    };
+
+    xhr.send(body);
+  });
+}
+
 // A failed request, carrying the server's own explanation. Callers that show an
 // alert should prefer `detail` — the generic "something went wrong" strings hid
 // real, actionable messages (e.g. a declined card blocking checkout).

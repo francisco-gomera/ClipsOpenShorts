@@ -128,12 +128,19 @@ class _NullGate:
 _NULL_GATE = _NullGate()
 
 
-class _TranscribeProgress:
-    """Emits '🎙️ Transcribing… NN% (Xs)' lines at 25% steps.
+_transcribe_progress_hook = None
 
-    These are the only transcription lines cloud users see (log_view keeps
-    them), so they must stay free of technical detail.
+
+def set_transcribe_progress_hook(callback):
+    """Establece un callback global para recibir actualizaciones continuas de progreso de transcripción:
+    callback(position_seconds: float, total_seconds: float).
     """
+    global _transcribe_progress_hook
+    _transcribe_progress_hook = callback
+
+
+class _TranscribeProgress:
+    """Emits '🎙️ Transcribing… NN% (Xs)' lines at 25% steps and notifies progress hook."""
 
     def __init__(self, total_seconds):
         self.total = max(float(total_seconds or 0), 0.0)
@@ -143,6 +150,11 @@ class _TranscribeProgress:
     def update(self, position_seconds):
         if self.total <= 0:
             return
+        if _transcribe_progress_hook:
+            try:
+                _transcribe_progress_hook(position_seconds, self.total)
+            except Exception:
+                pass
         pct = min(int(position_seconds / self.total * 100), 100)
         while pct >= self.next_pct and self.next_pct <= 100:
             elapsed = int(time.time() - self.started)

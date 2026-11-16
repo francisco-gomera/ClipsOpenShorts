@@ -6,6 +6,7 @@ import argparse
 import re
 import sys
 import threading
+from typing import Dict, Any, Optional, List, Tuple
 import unicodedata
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -41,6 +42,237 @@ import json
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning, module='google.protobuf')
 import stage_tracker
+
+global_reporter: Optional['ProgressReporter'] = None
+
+
+class ProgressReporter:
+    """Thread-safe reporter que gestiona el Contrato Uniforme de progreso de la Fase 2,
+    emitiendo líneas 'PROGRESS {json}' a stdout con rate-limiting (<= 1 cada 250ms o cambio >= 1%)
+    y persistiendo a stages.json.
+    """
+    def __init__(self, output_dir: str, job_id: Optional[str] = None, media_duration: Optional[float] = None):
+        self.output_dir = output_dir
+        self.job_id = job_id or os.path.basename(output_dir)
+        self.media_duration = media_duration
+        self._lock = threading.Lock()
+        self._last_emit_time = 0.0
+        self._last_emit_percent = -1.0
+        self._last_disk_time = 0.0
+        self._last_emitted_stage = None
+        self._data = stage_tracker.init_stages(output_dir, self.job_id)
+        base_out = os.path.dirname(output_dir.rstrip("/\\")) if output_dir else "output"
+        self._history_averages = stage_tracker.load_stage_history_averages(base_out)
+        self._recalculate_global_progress()
+
+    def set_media_duration(self, duration: float):
+        with self._lock:
+            self.media_duration = duration
+            self._recalculate_global_progress()
+
+    def _recalculate_global_progress(self):
+        """Calcula el progreso global (percent) y ETA si hay histórico fiable."""
+        stages = self._data.get("stages", {})
+        if self._data.get("status") == "completed":
+            self._data["percent"] = 100.0
+            self._data["mode"] = "determinate"
+            self._data["eta_seconds"] = 0
+            self._data["eta_confidence"] = "history" if self._history_averages else "none"
+            return
+
+        if self._history_averages and self.media_duration and self.media_duration > 0:
+            media_mins = max(0.1, self.media_duration / 60.0)
+            total_expected_sec = sum(self._history_averages.get(s, 10.0) * media_mins for s in stage_tracker.STAGES_ORDER)
+            done_sec = 0.0
+            for s in stage_tracker.STAGES_ORDER:
+                s_info = stages.get(s, {})
+                s_weight = self._history_averages.get(s, 10.0) * media_mins
+                if s_info.get("status") in ("completed", "skipped"):
+                    done_sec += s_weight
+                elif s_info.get("status") == "running":
+                    pct = float(s_info.get("percent") or 0.0) / 100.0
+                    done_sec += s_weight * pct
+
+            if total_expected_sec > 0:
+                calc_pct = round(min(99.0, (done_sec / total_expected_sec) * 100.0), 1)
+                self._data["percent"] = calc_pct
+                self._data["mode"] = "determinate"
+                remaining_sec = max(0, int(total_expected_sec - done_sec))
+                self._data["eta_seconds"] = remaining_sec
+                self._data["eta_confidence"] = "history"
+                return
+
+        self._data["mode"] = "indeterminate"
+        self._data["percent"] = None
+        self._data["eta_seconds"] = None
+        self._data["eta_confidence"] = "none"
+
+    def _should_emit(self, force: bool = False, curr_pct: Optional[float] = None, curr_stage: Optional[str] = None) -> bool:
+        if force:
+            return True
+        now = time.time()
+        time_diff = now - self._last_emit_time
+        if time_diff < 0.250:
+            return False
+        if curr_stage != self._last_emitted_stage:
+            return True
+        if curr_pct is not None and self._last_emit_percent is not None:
+            if abs(curr_pct - self._last_emit_percent) >= 1.0:
+                return True
+        return time_diff >= 1.0
+
+    def _emit(self, force: bool = False):
+        now = time.time()
+        self._recalculate_global_progress()
+        curr_pct = self._data.get("percent")
+        curr_stage = self._data.get("current_stage")
+
+        if not self._should_emit(force=force, curr_pct=curr_pct, curr_stage=curr_stage):
+            return
+
+        self._last_emit_time = now
+        self._last_emit_percent = curr_pct if curr_pct is not None else -1.0
+        self._last_emitted_stage = curr_stage
+        self._data["updated_at"] = now
+
+        try:
+            line = f"PROGRESS {json.dumps(self._data)}\n"
+            sys.stdout.write(line)
+            sys.stdout.flush()
+        except Exception:
+            pass
+
+        if force or (now - self._last_disk_time >= 2.0):
+            self._last_disk_time = now
+            stage_tracker.save_stages_direct(self.output_dir, self._data)
+
+    def start_stage(self, stage_name: str, mode: Optional[str] = None):
+        with self._lock:
+            self._data["status"] = "processing"
+            self._data["current_stage"] = stage_name
+            if stage_name in stage_tracker.STAGES_ORDER:
+                self._data["stage_index"] = stage_tracker.STAGES_ORDER.index(stage_name) + 1
+            s_info = self._data.get("stages", {}).setdefault(stage_name, stage_tracker._create_stage_item(stage_name))
+            s_info["status"] = "running"
+            s_info["started_at"] = time.time()
+            s_info["updated_at"] = time.time()
+            s_info["error"] = None
+            if mode:
+                s_info["mode"] = mode
+            self._emit(force=True)
+
+    def update_stage(self, stage_name: str, percent: Optional[float] = None, mode: Optional[str] = None,
+                     message: Optional[str] = None, units: Optional[Dict[str, Any]] = None,
+                     bytes_count: Optional[int] = None, speed: Optional[float] = None,
+                     eta_seconds: Optional[float] = None):
+        with self._lock:
+            s_info = self._data.get("stages", {}).setdefault(stage_name, stage_tracker._create_stage_item(stage_name))
+            s_info["updated_at"] = time.time()
+            if percent is not None:
+                s_info["percent"] = round(float(percent), 1)
+            if mode:
+                s_info["mode"] = mode
+            if message is not None:
+                s_info["message"] = str(message)
+            if units is not None:
+                s_info["units"] = units
+            if bytes_count is not None:
+                s_info["bytes"] = int(bytes_count)
+            if speed is not None:
+                s_info["speed"] = round(float(speed), 1)
+            if eta_seconds is not None:
+                s_info["eta_seconds"] = max(0, int(eta_seconds))
+            self._emit(force=False)
+
+    def finish_stage(self, stage_name: str, error: Optional[str] = None, skip: bool = False,
+                     skipped_reason: Optional[str] = None):
+        with self._lock:
+            s_info = self._data.get("stages", {}).setdefault(stage_name, stage_tracker._create_stage_item(stage_name))
+            now = time.time()
+            s_info["updated_at"] = now
+            if error:
+                s_info["status"] = "failed"
+                s_info["error"] = str(error)
+                self._data["status"] = "failed"
+            elif skip:
+                s_info["status"] = "skipped"
+                s_info["skipped_reason"] = skipped_reason or "Stage not requested"
+                s_info["percent"] = 100.0
+            else:
+                s_info["status"] = "completed"
+                s_info["error"] = None
+                s_info["percent"] = 100.0
+            s_info["completed_at"] = now
+            if s_info.get("started_at"):
+                s_info["duration_seconds"] = round(now - s_info["started_at"], 2)
+            self._emit(force=True)
+
+    def update_clip(self, clip_index: int, substage: Optional[str] = None, percent: Optional[float] = None,
+                    status: Optional[str] = None, ready: bool = False, file: Optional[str] = None):
+        with self._lock:
+            clips = self._data.setdefault("clips", [])
+            while len(clips) <= clip_index:
+                idx = len(clips)
+                clips.append({
+                    "index": idx,
+                    "status": "pending",
+                    "substage": None,
+                    "percent": 0.0,
+                    "ready": False,
+                    "file": None,
+                })
+            c = clips[clip_index]
+            substage_changed = (substage is not None and substage != c.get("substage"))
+            if status:
+                c["status"] = status
+            if substage:
+                c["substage"] = substage
+            if percent is not None:
+                c["percent"] = round(float(percent), 1)
+            if ready:
+                c["ready"] = True
+                c["status"] = "completed"
+                c["percent"] = 100.0
+            if file:
+                c["file"] = file
+
+            total = len(clips)
+            ready_count = sum(1 for item in clips if item.get("ready"))
+            failed_count = sum(1 for item in clips if item.get("status") == "failed")
+            self._data["counters"] = {
+                "total": total,
+                "ready": ready_count,
+                "failed": failed_count,
+            }
+
+            if total > 0 and self._data.get("current_stage") == "cut_and_reframe":
+                avg_clip_pct = sum(item.get("percent", 0.0) for item in clips) / float(total)
+                self._data["stages"]["cut_and_reframe"]["percent"] = round(avg_clip_pct, 1)
+
+            self._emit(force=(ready or substage_changed))
+
+    def set_recovery(self, state: str = "normal", retry_at: Optional[float] = None, message: Optional[str] = None):
+        with self._lock:
+            self._data["recovery"] = {
+                "state": state,
+                "retry_at": retry_at,
+                "message": message,
+            }
+            self._emit(force=True)
+
+    def complete_job(self):
+        with self._lock:
+            self._data["status"] = "completed"
+            self._data["current_stage"] = "complete"
+            self._data["percent"] = 100.0
+            self._data["mode"] = "determinate"
+            self._data["eta_seconds"] = 0
+            self._data["stage_index"] = len(stage_tracker.STAGES_ORDER)
+            self._emit(force=True)
+            if self.media_duration and self.media_duration > 0:
+                base_out = os.path.dirname(self.output_dir.rstrip("/\\")) if self.output_dir else "output"
+                stage_tracker.record_stage_history(base_out, self.job_id, self.media_duration, self._data.get("stages", {}))
+
 
 # Load environment variables
 load_dotenv()
@@ -1002,12 +1234,30 @@ def _download_youtube_video(url, output_dir=".", on_audio=None, allow_paid=True,
         if d.get('status') == 'downloading':
             # Bytes of a fragment still in flight: a failed attempt has
             # already paid for these even though 'finished' never fires.
-            _dl_bytes["partial"] = int(d.get('downloaded_bytes') or 0)
+            dl = int(d.get('downloaded_bytes') or 0)
+            _dl_bytes["partial"] = dl
+            if global_reporter:
+                tot = int(d.get('total_bytes') or d.get('total_bytes_estimate') or 0)
+                spd = float(d.get('speed') or 0.0)
+                eta = float(d.get('eta') or 0.0)
+                pct = round((dl / tot * 100.0), 1) if tot > 0 else None
+                mode = "determinate" if tot > 0 else "indeterminate"
+                global_reporter.update_stage(
+                    "download",
+                    percent=pct,
+                    mode=mode,
+                    bytes_count=dl,
+                    speed=spd,
+                    eta_seconds=eta,
+                    units={"done": dl, "total": tot, "label": "bytes"} if tot > 0 else None
+                )
         elif d.get('status') == 'finished':
             _dl_bytes["partial"] = 0
             _dl_bytes["total"] += int(d.get('total_bytes')
                                       or d.get('total_bytes_estimate')
                                       or d.get('downloaded_bytes') or 0)
+            if global_reporter:
+                global_reporter.update_stage("download", percent=100.0, mode="determinate")
 
     _early = {"started": False}
 
@@ -2352,6 +2602,8 @@ if __name__ == '__main__':
                         help="Output aspect: vertical/auto (9:16), horizontal (keep 16:9), square (1:1).")
     parser.add_argument('--transcript', type=str,
                         help="Path to a precomputed transcript JSON (transcribe_media shape); skips transcription.")
+    parser.add_argument('--resume-from', type=str, choices=stage_tracker.STAGES_ORDER,
+                        help="Resume pipeline from a specific stage, skipping verified prior stages.")
 
     args = parser.parse_args()
     output_format = args.format
@@ -2381,20 +2633,46 @@ if __name__ == '__main__':
             os.makedirs(path, exist_ok=True)
         return path
     
-    # 1. Get Input Video
+    # Resolver output_dir y crear global_reporter de Fase 2
     if args.url:
-        # For multi-clip runs, treat --output as an OUTPUT DIRECTORY (create it if needed).
-        # For whole-video runs (--skip-analysis), --output can be a file path.
         if args.output and not args.skip_analysis:
             output_dir = _ensure_dir(args.output)
         else:
-            # If output is a directory, use it; if it's a filename, use its directory; else default "."
             if args.output and os.path.isdir(args.output):
                 output_dir = args.output
             elif args.output and not os.path.isdir(args.output):
                 output_dir = os.path.dirname(args.output) or "."
             else:
                 output_dir = "."
+    else:
+        if args.output and not args.skip_analysis:
+            output_dir = _ensure_dir(args.output)
+        else:
+            if args.output and os.path.isdir(args.output):
+                output_dir = args.output
+            elif args.output and not os.path.isdir(args.output):
+                output_dir = os.path.dirname(args.output) or os.path.dirname(args.input)
+            else:
+                output_dir = os.path.dirname(args.input) or "."
+
+    # Inicializar ProgressReporter global
+    global_reporter = ProgressReporter(output_dir, job_id=os.path.basename(output_dir))
+
+    # Conectar hook continuo de transcripción
+    import transcribe_backends
+    def _on_transcribe_progress(pos_sec, total_sec):
+        if global_reporter and total_sec > 0:
+            pct = round(min(99.0, (pos_sec / total_sec) * 100.0), 1)
+            global_reporter.update_stage(
+                "transcription",
+                percent=pct,
+                mode="determinate",
+                units={"done": round(pos_sec, 1), "total": round(total_sec, 1), "label": "seconds"}
+            )
+    transcribe_backends.set_transcribe_progress_hook(_on_transcribe_progress)
+
+    # 1. Get Input Video
+    if args.url:
         
         # Transcription (and the Gemini pick) start on the audio track while the
         # video is still downloading; see download_youtube_video(on_audio=).
@@ -2434,26 +2712,33 @@ if __name__ == '__main__':
                      and os.environ.get("EARLY_AUDIO", "1").strip() != "0"
                      and not os.environ.get("MAX_SOURCE_MINUTES", "").strip()
                      and not os.path.exists(os.path.join(output_dir, TRANSCRIPT_CHECKPOINT)))
-        stage_tracker.start_stage(output_dir, "download")
+        if global_reporter:
+            global_reporter.start_stage("download", mode="indeterminate")
+        else:
+            stage_tracker.start_stage(output_dir, "download")
         input_video, video_title = download_youtube_video(
             args.url, output_dir, on_audio=_on_audio if use_early else None)
-        stage_tracker.finish_stage(output_dir, "download")
+        if global_reporter:
+            global_reporter.finish_stage("download")
+        else:
+            stage_tracker.finish_stage(output_dir, "download")
     else:
         input_video = args.input
         video_title = os.path.splitext(os.path.basename(input_video))[0]
         
         if args.output and not args.skip_analysis:
-            # For multi-clip runs, treat --output as an OUTPUT DIRECTORY (create it if needed).
             output_dir = _ensure_dir(args.output)
         else:
-            # If output is a directory, use it; if it's a filename, use its directory; else default to input dir.
             if args.output and os.path.isdir(args.output):
                 output_dir = args.output
             elif args.output and not os.path.isdir(args.output):
                 output_dir = os.path.dirname(args.output) or os.path.dirname(input_video)
             else:
                 output_dir = os.path.dirname(input_video)
-        stage_tracker.finish_stage(output_dir, "download")
+        if global_reporter:
+            global_reporter.finish_stage("download", skip=True, skipped_reason="Local source provided")
+        else:
+            stage_tracker.finish_stage(output_dir, "download", skip=True)
 
     if not os.path.exists(input_video):
         print(f"❌ Input file not found: {input_video}")
@@ -2534,14 +2819,19 @@ if __name__ == '__main__':
     else:
         # Get duration (needed by both the transcript and the vision path).
         cap = cv2.VideoCapture(input_video)
-        fps = cap.get(cv2.CAP_PROP_FPS)
+        fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
         frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         duration = frame_count / fps
         cap.release()
+        if global_reporter:
+            global_reporter.set_media_duration(duration)
 
         # 3. Transcribe — unless the video has no audio, in which case fall back
         # to Gemini vision (picks clips from the imagery instead of the speech).
-        stage_tracker.start_stage(output_dir, "transcription")
+        if global_reporter:
+            global_reporter.start_stage("transcription", mode="determinate")
+        else:
+            stage_tracker.start_stage(output_dir, "transcription")
         from transcribe_backends import NoAudioError
         transcript = None
         # Module handover (issue #68): another module already transcribed this
@@ -2590,10 +2880,16 @@ if __name__ == '__main__':
                   f"switching to visual analysis.")
             transcript = None
 
-        stage_tracker.finish_stage(output_dir, "transcription")
+        if global_reporter:
+            global_reporter.finish_stage("transcription")
+        else:
+            stage_tracker.finish_stage(output_dir, "transcription")
 
         # 4. Gemini Analysis (transcript-driven, or vision for silent videos)
-        stage_tracker.start_stage(output_dir, "clip_selection")
+        if global_reporter:
+            global_reporter.start_stage("clip_selection", mode="determinate")
+        else:
+            stage_tracker.start_stage(output_dir, "clip_selection")
         early_clips = (early_state or {}).get("clips") if early_state else None
         if (transcript is not None and early_clips
                 and transcript is early_state["transcript"]):
@@ -2605,10 +2901,10 @@ if __name__ == '__main__':
             clips_data = get_visual_clips(input_video, duration)
 
         if not clips_data or 'shorts' not in clips_data:
-            # Deliberately fail instead of reframing the whole video: that path
-            # wrote no metadata.json, so app.py marked the job failed anyway
-            # (app.py:1087) after burning GPU on a render nobody could see.
-            stage_tracker.finish_stage(output_dir, "clip_selection", error="Clip detection failed")
+            if global_reporter:
+                global_reporter.finish_stage("clip_selection", error="Clip detection failed")
+            else:
+                stage_tracker.finish_stage(output_dir, "clip_selection", error="Clip detection failed")
             raise RuntimeError(
                 "Clip detection failed — the AI model did not return usable clips for this video.")
         else:
@@ -2617,10 +2913,6 @@ if __name__ == '__main__':
             # Save metadata. Silent videos have no transcript → no subtitles,
             # which is correct (there's no speech to caption).
             clips_data['transcript'] = transcript or {"language": "none", "segments": []}
-            # The clip editor's re-render path needs to find the source video
-            # again and reproduce the render settings, so record both. The
-            # basename is enough — the file sits in the job dir (URL jobs with
-            # --keep-original) or in uploads/ (upload jobs).
             clips_data['source_video'] = os.path.basename(input_video)
             clips_data['output_format'] = output_format
             if source_subtitle_band:
@@ -2629,53 +2921,73 @@ if __name__ == '__main__':
             with open(metadata_file, 'w') as f:
                 json.dump(clips_data, f, indent=2)
             print(f"   Saved metadata to {metadata_file}")
-            stage_tracker.finish_stage(output_dir, "clip_selection")
+            if global_reporter:
+                global_reporter.finish_stage("clip_selection")
+            else:
+                stage_tracker.finish_stage(output_dir, "clip_selection")
 
-            # 5. Process clips in parallel: each worker cuts + renders one
-            # clip. Renders are mostly ffmpeg subprocesses (parallelize well);
-            # detector inference is serialized internally via DETECT_LOCK.
-            stage_tracker.start_stage(output_dir, "cut_and_reframe")
+            # 5. Process clips in parallel: each worker cuts + renders one clip
+            if global_reporter:
+                global_reporter.start_stage("cut_and_reframe", mode="determinate")
+            else:
+                stage_tracker.start_stage(output_dir, "cut_and_reframe")
+
+            def _is_clip_already_rendered(idx):
+                clean = f"{video_title}_clip_{idx+1}.mp4"
+                candidates = [
+                    os.path.join(output_dir, clean),
+                    *glob.glob(os.path.join(output_dir, f"subtitled_*_{clean}")),
+                    *glob.glob(os.path.join(output_dir, f"hooked_*_{clean}")),
+                    *glob.glob(os.path.join(output_dir, f"wm_*_{clean}")),
+                ]
+                for c in candidates:
+                    if os.path.isfile(c) and os.path.getsize(c) > 1000:
+                        return c
+                return None
+
             def _process_one_clip(i, clip):
                 start = clip['start']
                 end = clip['end']
                 print(f"\n🎬 Processing Clip {i+1}: {start}s - {end}s")
                 print(f"   Title: {clip.get('video_title_for_youtube_short', 'No Title')}")
 
+                # Si se reanuda con --resume-from y el clip ya existe válidamente en disco, no re-renderizar
+                if args.resume_from in ("cut_and_reframe", "hooks", "subtitles"):
+                    prev_rendered = _is_clip_already_rendered(i)
+                    if prev_rendered:
+                        print(f"   ♻️ Clip {i+1} already exists ({os.path.basename(prev_rendered)}) — skipping render.")
+                        if global_reporter:
+                            global_reporter.update_clip(i, substage="done", percent=100.0, status="completed", ready=True, file=os.path.basename(prev_rendered))
+                        print(f"CLIP_READY {i} {os.path.basename(prev_rendered)}")
+                        return True
+
                 clip_filename = f"{video_title}_clip_{i+1}.mp4"
                 clip_temp_path = os.path.join(output_dir, f"temp_{clip_filename}")
                 clip_final_path = os.path.join(output_dir, clip_filename)
 
                 try:
+                    if global_reporter:
+                        global_reporter.update_clip(i, substage="cut", percent=15.0, status="processing")
                     # ffmpeg cut — re-encoding for precision on strict seconds
                     cut_clip(input_video, clip_temp_path, start, end, i + 1)
 
-                    # Layer order: the canonical reframe stays CLEAN, the hook
-                    # is a derived hooked_ file, captions go last on top of
-                    # whichever is current, and on the free plan the served
-                    # file is a wm_ copy of that final (mark_delivery). The
-                    # mark used to ride the reframe encode, which made it
-                    # permanent: paying could not remove it from clips already
-                    # made. Each worker writes only its own clip dict, so the
-                    # re-dump after the pool is race-free.
+                    if global_reporter:
+                        global_reporter.update_clip(i, substage="reframe", percent=45.0, status="processing")
                     success = render_clip(clip_temp_path, clip_final_path, output_format,
                                           subtitle_band=source_subtitle_band)
                     if success:
                         print(f"   🎞️ Clip {i+1} framed")
                     deliver_path = clip_final_path
-                    # Which stretches were stacked (SPLIT): captions go on the
-                    # seam there, and /api/subtitle needs it again later.
+
                     import layout_ranges as _layouts
                     clip['layout_ranges'] = _layouts.read(clip_final_path)
-                    # The hook was written from the transcript alone. When the
-                    # render put this clip's meaning on the screen, rewrite hook
-                    # and title from three of its frames BEFORE burning them.
                     if success and hook_grounding.wanted(clip['layout_ranges'], end - start):
                         hook_grounding.reground(clip_final_path, clip, transcript, start, end)
                     captioned = None
                     split_ranges = _layouts.split_ranges(clip['layout_ranges'])
                     if success and os.environ.get("AUTO_HOOK") == "1":
-                        # Captions ride the hook's ffmpeg (one decode, two
-                        # outputs) when both are on; see auto_hook_clip.
+                        if global_reporter:
+                            global_reporter.update_clip(i, substage="hook", percent=70.0, status="processing")
                         plan = None
                         if (clip.get('viral_hook_text') or '').strip():
                             plan = auto_caption_clip(clip_final_path, transcript, start, end,
@@ -2687,6 +2999,8 @@ if __name__ == '__main__':
                             captioned = clip['auto_hook'].pop("_captioned", None)
                     if success:
                         if not captioned:
+                            if global_reporter:
+                                global_reporter.update_clip(i, substage="subtitles", percent=90.0, status="processing")
                             captioned = auto_caption_clip(
                                 deliver_path, transcript, start, end,
                                 split_ranges=split_ranges,
@@ -2695,35 +3009,28 @@ if __name__ == '__main__':
                         if os.environ.get("WATERMARK") == "1":
                             served = mark_delivery(served)
                         print(f"   ✅ Clip {i+1} ready: {clip_final_path}")
-                        # Hand the API the file to actually serve for this clip.
-                        # Without it the status poller guesses the clean reframe
-                        # name, so a job in flight showed every clip stripped of
-                        # its hook and captions until the WHOLE job finished and
-                        # the result got rebuilt through _canonical_clip_file.
-                        # Printed only after the full chain (reframe, watermark,
-                        # hook, captions) so the file is complete when it is
-                        # announced, never one that ffmpeg is still writing.
+                        if global_reporter:
+                            global_reporter.update_clip(i, substage="done", percent=100.0, status="completed", ready=True, file=os.path.basename(served))
                         print(f"CLIP_READY {i} {os.path.basename(served)}")
+                    else:
+                        if global_reporter:
+                            global_reporter.update_clip(i, substage="failed", percent=0.0, status="failed")
                     return success
+                except Exception as e:
+                    if global_reporter:
+                        global_reporter.update_clip(i, substage="failed", percent=0.0, status="failed")
+                    raise
                 finally:
                     if os.path.exists(clip_temp_path):
                         os.remove(clip_temp_path)
 
-            # 6, not 3: measured side by side on the GPU host at load 48-67, a 7-clip
-            # job finished 16% sooner with the same CPU, and the peak VRAM stayed
-            # at 12 GB of 20 (bench, 25-sep-2026).
             clip_workers = max(int(os.environ.get("CLIP_WORKERS", "6")), 1)
             shorts = clips_data['shorts']
             failed = []
             if os.environ.get("WATERMARK") == "1":
-                # Tells the /videos guard that the clean twins in this
-                # directory are not for serving (watermarked.MARKER_FILE).
                 import watermarked
                 watermarked.mark_job(output_dir)
             with ThreadPoolExecutor(max_workers=min(clip_workers, len(shorts))) as pool:
-                # Best clip first: the pool starts work in submission order, so
-                # the user's first delivered clip is the strongest one instead
-                # of whatever came first in the video.
                 futures = {pool.submit(_process_one_clip, i, shorts[i]): i
                            for i in clip_render_order(shorts)}
                 for future in as_completed(futures):
@@ -2735,10 +3042,6 @@ if __name__ == '__main__':
                         print(f"   ❌ Clip {i+1} failed: {type(e).__name__}: {e}")
                         failed.append(i)
 
-            # A clip that failed mid-render is usually a transient GPU / NVENC
-            # condition on a busy card (22-sep-2026: 2 of 3 clips of a job "never
-            # rendered" during a CUDA OOM burst). Try each one once more, alone,
-            # after a pause and with the cache freed, before giving up on it.
             for i in sorted(failed, key=lambda k: clip_render_order(shorts).index(k)):
                 print(f"   🔁 Retrying clip {i+1} once…")
                 time.sleep(CLIP_RETRY_PAUSE_SECONDS)
@@ -2749,23 +3052,35 @@ if __name__ == '__main__':
                 except Exception as e:
                     print(f"   ❌ Clip {i+1} failed again: {type(e).__name__}: {e}")
 
-            stage_tracker.finish_stage(output_dir, "cut_and_reframe")
-            if os.environ.get("AUTO_HOOK") == "1":
-                stage_tracker.finish_stage(output_dir, "hooks")
+            if global_reporter:
+                global_reporter.finish_stage("cut_and_reframe")
+                if os.environ.get("AUTO_HOOK") == "1":
+                    global_reporter.finish_stage("hooks")
+                else:
+                    global_reporter.finish_stage("hooks", skip=True)
+                if os.environ.get("AUTO_CAPTIONS", "1").strip() != "0":
+                    global_reporter.finish_stage("subtitles")
+                else:
+                    global_reporter.finish_stage("subtitles", skip=True)
             else:
-                stage_tracker.finish_stage(output_dir, "hooks", skip=True)
-            if os.environ.get("AUTO_CAPTIONS", "1").strip() != "0":
-                stage_tracker.finish_stage(output_dir, "subtitles")
-            else:
-                stage_tracker.finish_stage(output_dir, "subtitles", skip=True)
+                stage_tracker.finish_stage(output_dir, "cut_and_reframe")
+                if os.environ.get("AUTO_HOOK") == "1":
+                    stage_tracker.finish_stage(output_dir, "hooks")
+                else:
+                    stage_tracker.finish_stage(output_dir, "hooks", skip=True)
+                if os.environ.get("AUTO_CAPTIONS", "1").strip() != "0":
+                    stage_tracker.finish_stage(output_dir, "subtitles")
+                else:
+                    stage_tracker.finish_stage(output_dir, "subtitles", skip=True)
 
-            # Persist per-clip render results added by the workers (auto_hook)
-            # so the editor can see what is already burned into each clip.
             if any('auto_hook' in c or 'hook_grounding' in c for c in shorts):
                 with open(metadata_file, 'w') as f:
                     json.dump(clips_data, f, indent=2)
 
-    stage_tracker.complete_job(output_dir)
+    if global_reporter:
+        global_reporter.complete_job()
+    else:
+        stage_tracker.complete_job(output_dir)
 
     # Clean up original if requested
     if args.url and not args.keep_original and os.path.exists(input_video):
