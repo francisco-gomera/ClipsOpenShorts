@@ -2269,17 +2269,17 @@ def _run_gemini_stage(client, model_name, prompt, schema):
             raise  # deterministic policy block — never retry
         except Exception as e:
             msg = str(e)
-            if gemini_worker.is_daily_quota(msg):
+            if gemini_worker.is_daily_quota(e):
                 raise gemini_worker.GeminiDailyQuotaError(
                     f"RESOURCE_EXHAUSTED: Gemini daily quota exceeded (PerDay). {msg}")
             
-            is_rate_limit = any(tok in msg for tok in ('429', 'RESOURCE_EXHAUSTED')) or ('quota' in msg.lower() and 'exceeded' in msg.lower())
+            is_rate_limit = gemini_worker.is_rate_limit(e)
             if is_rate_limit and not use_local:
                 rate_limit_attempts += 1
                 if rate_limit_attempts > rate_limit_max_retries:
                     raise gemini_worker.GeminiRateLimitError(
                         f"RESOURCE_EXHAUSTED: Gemini rate limit exceeded after {rate_limit_max_retries} retries. {msg}")
-                parsed_delay = gemini_worker.parse_retry_delay(msg)
+                parsed_delay = gemini_worker.parse_retry_delay_from_exception(e)
                 backoff = 2.0 ** rate_limit_attempts
                 delay_base = max(parsed_delay or 0.0, backoff)
                 jitter = random.uniform(0.8, 1.2)
