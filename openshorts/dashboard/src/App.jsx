@@ -32,6 +32,7 @@ import Modal from './components/ui/Modal';
 import { useAuth } from './contexts/AuthContext';
 import { apiFetch, apiUpload, apiJson, QuotaError, QUOTA_WALL_EVENT } from './lib/api';
 import { track } from './lib/analytics';
+import { brandConfig } from './brand.config';
 
 // Enhanced "Encryption" using XOR + Base64 with a Salt
 // This is better than plain Base64 but still client-side.
@@ -1613,11 +1614,11 @@ function App() {
   // entirely — an unlabelled 80px rail ate a fifth of a phone screen.
   const Sidebar = () => (
     <div className="hidden md:flex w-20 lg:w-64 bg-paper2 border-r border-rule flex-col h-full shrink-0 transition-all duration-300">
-      <a href="#app" onClick={() => goToTab('dashboard')} className="p-6 flex items-center gap-3" title="openshorts home">
+      <a href="#app" onClick={() => goToTab('dashboard')} className="p-6 flex items-center gap-3" title={`${brandConfig.name} home`}>
         <div className="w-8 h-8 bg-paper3 rounded-input flex items-center justify-center shrink-0 overflow-hidden border border-rule">
-          <img src="/logo-openshorts.png" alt="Logo" className="w-full h-full object-cover" />
+          <img src={brandConfig.logo} alt="Logo" className="w-full h-full object-cover" />
         </div>
-        <span className="font-display lowercase text-lg text-ink hidden lg:block">openshorts</span>
+        <span className="font-display lowercase text-lg text-ink hidden lg:block">{brandConfig.name}</span>
       </a>
 
       <nav className="flex-1 px-4 py-4 space-y-1">
@@ -1671,9 +1672,9 @@ function App() {
         <div className="flex items-center justify-between px-5 h-14 border-b border-rule shrink-0">
           <a href="#app" className="flex items-center gap-2.5" onClick={() => goToTab('dashboard')}>
             <div className="w-7 h-7 bg-paper3 rounded-input overflow-hidden border border-rule shrink-0">
-              <img src="/logo-openshorts.png" alt="" className="w-full h-full object-cover" />
+              <img src={brandConfig.logo} alt="" className="w-full h-full object-cover" />
             </div>
-            <span className="font-display lowercase text-lg text-ink">openshorts</span>
+            <span className="font-display lowercase text-lg text-ink">{brandConfig.name}</span>
           </a>
           <button
             onClick={() => setNavOpen(false)}
@@ -1781,7 +1782,7 @@ function App() {
               <Menu size={20} />
             </button>
             <span data-tutorial="nav-clips" className="md:hidden font-display lowercase text-base text-ink truncate">
-              {activeNav?.label || 'openshorts'}
+              {activeNav?.label || brandConfig.name}
             </span>
             {status !== 'idle' && (
               <button
@@ -1854,7 +1855,7 @@ function App() {
               <div className="min-w-0">
                 <span className="font-medium text-ink">Required API key missing.</span>{' '}
                 <span className="text-muted">
-                  Set your Gemini API key to use OpenShorts.
+                  Set your Gemini API key to use {brandConfig.name}.
                 </span>
               </div>
             </div>
@@ -2783,7 +2784,7 @@ function App() {
       >
         <div className="space-y-4">
           <p className="text-sm text-muted">
-            OpenShorts needs a <strong className="text-ink2">Gemini</strong> API key to identify and score viral clips.
+            {brandConfig.name} needs a <strong className="text-ink2">Gemini</strong> API key to identify and score viral clips.
           </p>
 
           {/* Gemini block */}

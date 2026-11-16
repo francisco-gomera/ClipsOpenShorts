@@ -1,10 +1,10 @@
-# Design — OpenShorts
+# Design System
 
 A locked design system for this app (dashboard + landing). Every page redesign
 reads this file before emitting code. Do not regenerate per page — extend or
 amend this file when the system needs to grow.
 
-Theme: **Lumen · Night Foundry** (Hallmark catalog, atmospheric genre).
+Theme: **Atmospheric Studio** (open-licensed local typography & warm brass palette).
 Register: premium AI-tool instrument (Modal / Anthropic / ElevenLabs school).
 The product's own numbers — timecodes, aspect ratios, clip counts, costs —
 are the decoration: they render as UPPERCASE mono readouts.
@@ -15,7 +15,7 @@ atmospheric
 
 ## Macrostructure family
 
-- Marketing pages (Landing): **Marquee Hero, Lumen-canonical** — lowercase
+- Marketing pages (Landing): **Marquee Hero** — lowercase
   serif headline hero-left with one coral verb-landmark, hand-built CSS
   apparatus hero-right, meter strip below the fold, then sections with mono
   eyebrows. Nav: N9 edge-aligned minimal. Footer: Ft5 Statement.
@@ -25,7 +25,7 @@ atmospheric
 - Content pages (Legal): **Long Document** — single column, 65ch measure,
   inline headings, typographic links.
 
-## Theme tokens (Night Foundry)
+## Theme tokens (Studio Palette)
 
 - `--color-paper`      oklch(13% 0.014 265)   — page canvas, late-night violet
 - `--color-paper-2`    oklch(16.5% 0.015 265) — elevated surface (cards, modals, sidebar)

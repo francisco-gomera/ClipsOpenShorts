@@ -35,6 +35,17 @@ Ingest (yt-dlp or upload) → transcription (word timestamps) → scene detectio
 - `cloud/`: auth, API keys, metering, billing, lifecycle emails, account erasure, autopilot, proxy ledger, alerts.
 - `dashboard/src/App.jsx`: main React component. `dashboard/vite-plugin-seo.js` + `dashboard/seo/`: build-time SEO pages, sitemap, llms.txt. `dashboard/seo/data.js`: single source of truth for pricing/pipeline/competitor facts.
 
+## Evolution Plan & Customization Rules
+
+The repository follows the Master Evolution Plan with decisions D1-D5:
+- **D1. Secondary tools navigation:** The main dashboard navigation shows only Core tools: Clip Generator, Projects, and Settings. Secondary tools (AI Shorts, AI Agent, UGC Gallery, YouTube Studio) remain available behind the `VITE_SHOW_EXTRA_TOOLS=1` environment flag without deleting their code or endpoints.
+- **D2. Internal & Personal Use:** Personal/internal use is the primary deployment target. Billing, auth and cloud integrations are strictly preserved without regressions.
+- **D3. CPU-first execution:** AMD GPU on Docker Windows means the CPU path is primary. GPU decode and rendering paths must never be broken, but local verification runs against the CPU path.
+- **D4. Brand Name & Rebranding:** Configurable brand name (`brand.config.js`) reads `VITE_BRAND_NAME`, falling back to the provisional placeholder `ClipsOpenShorts`. Typography is 100% open-licensed and locally hosted (Instrument Serif, Geist, JetBrains Mono).
+- **D5. Upstream sync:** No upstream sync during evolution phases.
+- **Hook Defaults:** Default hook style is `classic`, font `anton`, position `top`, size `M`, duration `5.0s`.
+- **Upload-Post Optionality:** The Upload-Post API key is strictly optional; lack of this key never blocks clip generation or downloading.
+
 ## Subsystem reference (read before touching)
 
 - SEO pages, free tools, attribution → `docs/architecture/seo-and-tools.md`
