@@ -1646,26 +1646,26 @@ def auto_hook_clip(clip_path, clip, captions=None, mark=False):
     text = (clip.get('viral_hook_text') or '').strip()
     if not text:
         return None
-    style = os.environ.get("AUTO_HOOK_STYLE", "pill")
+    style = os.environ.get("AUTO_HOOK_STYLE", "classic")
+    font = os.environ.get("AUTO_HOOK_FONT", "anton")
+    position = os.environ.get("AUTO_HOOK_POSITION", "top")
+    size = os.environ.get("AUTO_HOOK_SIZE", "M")
     try:
-        seconds = float(os.environ.get("AUTO_HOOK_SECONDS", "5"))
+        seconds = float(os.environ.get("AUTO_HOOK_SECONDS", "5.0"))
     except ValueError:
         seconds = 5.0
     try:
         from hooks import add_hook_to_video, HOOK_STYLES
         if style not in HOOK_STYLES:
-            style = "pill"
+            style = "classic"
         output_dir = os.path.dirname(clip_path)
         out_path = os.path.join(
             output_dir, f"hooked_{int(time.time())}_{os.path.basename(clip_path)}")
-        # "auto": off the speaker's face and off the captions (hook_placement);
-        # the layout ranges say where the captions sit (the seam on SPLIT).
-        size = os.environ.get("AUTO_HOOK_SIZE", "M")
         size_map = {"S": 0.8, "M": 1.0, "L": 1.3}
         font_scale = size_map.get(size, 1.0)
-        config = {"text": text, "style": style, "position": "auto",
+        config = {"text": text, "style": style, "font": font, "position": position,
                   "duration_seconds": seconds, "size": size}
-        place = {"position": "auto", "layout_ranges": clip.get('layout_ranges'),
+        place = {"position": position, "layout_ranges": clip.get('layout_ranges'),
                  "has_captions": bool(captions)}
 
         def note(result):
@@ -1683,7 +1683,7 @@ def auto_hook_clip(clip_path, clip, captions=None, mark=False):
                           os.path.join(output_dir, watermarked.marked_name(captioned)))
             try:
                 note(add_hook_to_video(clip_path, text, out_path, duration=seconds,
-                                       style=style, font_scale=font_scale,
+                                       style=style, font=font, font_scale=font_scale,
                                        also=(vf, captioned), mark=marked,
                                        **place))
                 print(f"   🪝 Hook + 💬 captions burned in one pass ({style}, {seconds:g}s): {text}")
@@ -1703,7 +1703,7 @@ def auto_hook_clip(clip_path, clip, captions=None, mark=False):
                     if partial and os.path.exists(partial):
                         os.remove(partial)
         note(add_hook_to_video(clip_path, text, out_path, duration=seconds,
-                               style=style, font_scale=font_scale, **place))
+                               style=style, font=font, font_scale=font_scale, **place))
         print(f"   🪝 Hook burned ({style}, {seconds:g}s): {text}")
         return out_path, config
     except Exception as e:
