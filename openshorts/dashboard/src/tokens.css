@@ -5,6 +5,8 @@
  */
 
 :root {
+  color-scheme: dark;
+
   /* paper */
   --color-paper: oklch(13% 0.014 265);
   --color-paper-2: oklch(16.5% 0.015 265);
