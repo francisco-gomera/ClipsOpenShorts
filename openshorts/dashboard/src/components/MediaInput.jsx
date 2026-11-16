@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Link2, Upload, FileVideo, X, Info, Loader2, ChevronDown } from 'lucide-react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { Link2, Upload, FileVideo, X, Info, Loader2, ChevronDown, CheckCircle2, Youtube, ExternalLink } from 'lucide-react';
 import { track } from '../lib/analytics';
 import { getApiUrl } from '../config';
 import SourceCost from './SourceCost';
@@ -55,8 +55,7 @@ export default function MediaInput({ onProcess, isProcessing }) {
         try { return localStorage.getItem('os_auto_hook') !== '0'; } catch { return true; }
     });
     const [autoHookStyle, setAutoHookStyle] = useState(() => {
-        // v2 key: the default became 'pill'; an old saved 'classic' was just the old default.
-        try { return localStorage.getItem('os_auto_hook_style_v2') || 'pill'; } catch { return 'pill'; }
+        try { return localStorage.getItem('os_auto_hook_style_v2') || 'classic'; } catch { return 'classic'; }
     });
     // Layout: 'auto' lets the AI pick per video (server default); the others
     // force one on so a podcast host who knows what they uploaded doesn't
@@ -64,6 +63,26 @@ export default function MediaInput({ onProcess, isProcessing }) {
     const [layout, setLayout] = useState(() => {
         try { return localStorage.getItem('os_layout') || 'auto'; } catch { return 'auto'; }
     });
+    const [previewUrl, setPreviewUrl] = useState(null);
+
+    useEffect(() => {
+        if (!file) {
+            setPreviewUrl(null);
+            return;
+        }
+        const objUrl = URL.createObjectURL(file);
+        setPreviewUrl(objUrl);
+        return () => {
+            URL.revokeObjectURL(objUrl);
+        };
+    }, [file]);
+
+    const ytId = useMemo(() => {
+        if (mode !== 'url' || !url) return null;
+        const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+        return m ? m[1] : null;
+    }, [mode, url]);
+
     const infoRef = useRef(null);
 
     // Close the compatibility popover on any outside click.
@@ -215,26 +234,73 @@ export default function MediaInput({ onProcess, isProcessing }) {
                                 )}
                             </div>
                         </div>
+                        {/* URL Media Preview */}
+                        {ytId && (
+                            <div className="rounded-card overflow-hidden bg-paper2 border border-rule p-3 animate-fade flex flex-col sm:flex-row gap-3 items-center">
+                                <div className="relative w-full sm:w-44 h-28 rounded-input overflow-hidden bg-black shrink-0">
+                                    <img
+                                        src={`https://img.youtube.com/vi/${ytId}/hqdefault.jpg`}
+                                        alt="YouTube video thumbnail"
+                                        className="w-full h-full object-cover"
+                                    />
+                                    <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/80 text-[10px] text-white flex items-center gap-1 font-mono">
+                                        <Youtube size={11} className="text-danger" /> YouTube
+                                    </span>
+                                </div>
+                                <div className="min-w-0 flex-1 text-left space-y-1">
+                                    <p className="text-xs font-semibold text-ok flex items-center gap-1.5">
+                                        <CheckCircle2 size={14} /> Video identified
+                                    </p>
+                                    <p className="text-xs text-muted truncate">{url}</p>
+                                    <a
+                                        href={url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-xs text-brass hover:underline inline-flex items-center gap-1 pt-1"
+                                    >
+                                        Open source link <ExternalLink size={12} />
+                                    </a>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 ) : (
                     <div
                         data-tutorial="drop-zone"
-                        className={`border-2 border-dashed rounded-card p-6 sm:p-8 text-center transition-colors ${file ? 'border-brass' : 'border-rule2 hover:border-brass'
+                        className={`border-2 border-dashed rounded-card p-4 sm:p-6 text-center transition-colors ${file ? 'border-brass bg-paper2' : 'border-rule2 hover:border-brass'
                             }`}
                         onDragOver={(e) => e.preventDefault()}
                         onDrop={handleDrop}
                     >
                         {file ? (
-                            <div className="flex items-center justify-center gap-3 text-ok min-w-0">
-                                <FileVideo size={18} className="shrink-0" />
-                                <span className="font-medium truncate">{file.name}</span>
-                                <button
-                                    type="button"
-                                    onClick={() => setFile(null)}
-                                    className="p-1 text-muted hover:text-ink hover:bg-paper3 rounded-full transition-colors"
-                                >
-                                    <X size={16} />
-                                </button>
+                            <div className="space-y-3">
+                                <div className="flex flex-col sm:flex-row gap-3 items-center">
+                                    {previewUrl && (
+                                        <video
+                                            src={previewUrl}
+                                            controls
+                                            className="w-full sm:w-44 h-28 object-contain rounded-input bg-black shrink-0"
+                                            preload="metadata"
+                                        />
+                                    )}
+                                    <div className="min-w-0 flex-1 text-left space-y-1">
+                                        <div className="flex items-center gap-2">
+                                            <FileVideo size={16} className="text-brass shrink-0" />
+                                            <span className="font-medium text-sm text-ink truncate">{file.name}</span>
+                                        </div>
+                                        <p className="text-xs text-muted">
+                                            {(file.size / (1024 * 1024)).toFixed(1)} MB
+                                            {fileSeconds != null ? ` · ${Math.round(fileSeconds)}s duration` : ''}
+                                        </p>
+                                        <button
+                                            type="button"
+                                            onClick={() => setFile(null)}
+                                            className="text-xs text-danger hover:underline pt-1 flex items-center gap-1"
+                                        >
+                                            <X size={12} /> Remove and choose another
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         ) : null}
                         {file && fileTooShort ? (
@@ -244,16 +310,16 @@ export default function MediaInput({ onProcess, isProcessing }) {
                             </p>
                         ) : null}
                         {!file && (
-                            <label className="cursor-pointer block">
+                            <label className="cursor-pointer block py-4">
                                 <input
                                     type="file"
                                     accept="video/*"
                                     onChange={(e) => setFile(e.target.files?.[0] || null)}
                                     className="hidden"
                                 />
-                                <Upload className="mx-auto mb-3 text-muted" size={18} />
-                                <p className="text-ink2 lowercase">Click to upload or drag and drop</p>
-                                <p className="readout mt-2">MP4, MOV up to 500MB · at least {MIN_SOURCE_SECONDS}s long</p>
+                                <Upload className="mx-auto mb-3 text-muted" size={24} />
+                                <p className="text-ink font-medium text-sm">Click to upload or drag and drop</p>
+                                <p className="readout mt-1.5 text-xs text-muted">MP4, MOV up to 500MB · at least {MIN_SOURCE_SECONDS}s long</p>
                             </label>
                         )}
                     </div>
@@ -384,8 +450,8 @@ export default function MediaInput({ onProcess, isProcessing }) {
                                         onChange={(e) => setAutoHookStyle(e.target.value)}
                                         className="input-field !w-auto text-xs py-1.5"
                                     >
-                                        <option value="pill">Pills</option>
                                         <option value="classic">Classic</option>
+                                        <option value="pill">Pills</option>
                                         <option value="dark">Dark</option>
                                         <option value="yellow">Yellow</option>
                                         <option value="red">Red</option>
