@@ -151,6 +151,35 @@ def complete_job(job_dir: str) -> Dict[str, Any]:
     return data
 
 
+def mark_stage_failed(
+    job_dir: str,
+    stage_name: Optional[str] = None,
+    error: Optional[str] = None
+) -> Dict[str, Any]:
+    """Marca la etapa indicada (o la etapa activa si no se especifica) como 'failed'
+    en stages.json con el mensaje de error correspondiente.
+    """
+    data = read_stages(job_dir) or init_stages(job_dir)
+    target_stage = stage_name or data.get("current_stage")
+
+    if not target_stage or target_stage == "complete":
+        for sname, sinfo in data.get("stages", {}).items():
+            if sinfo.get("status") == "running":
+                target_stage = sname
+                break
+
+    if not target_stage:
+        for sname in reversed(list(data.get("stages", {}).keys())):
+            if data.get("stages", {}).get(sname, {}).get("started_at"):
+                target_stage = sname
+                break
+
+    if not target_stage:
+        target_stage = "download"
+
+    return finish_stage(job_dir, target_stage, error=error or "Stage execution failed")
+
+
 def infer_stages_from_disk(job_dir: str, job_id: Optional[str] = None) -> Dict[str, Any]:
     """
     Reconstruye o infiere el estado de las etapas a partir de los artefactos
@@ -237,6 +266,10 @@ def can_retry_job(
     Verifica si un trabajo puede reintentarse desde su última etapa válida.
     Retorna (can_retry, reason, stage_info).
     """
+    from project_manager import locate_source_file
+    if not job_id or ".." in job_id.replace("\\", "/").split("/") or "/" in job_id or "\\" in job_id:
+        return False, "Identificador de trabajo con traversal o inválido", {}
+
     job_dir = os.path.join(output_dir, job_id)
     if not os.path.isdir(job_dir):
         return False, "Project directory not found", {}
@@ -246,7 +279,6 @@ def can_retry_job(
 
     # Para poder reintentar necesitamos al menos que exista o pueda recuperarse la fuente
     # o un transcript válido
-    from project_manager import locate_source_file
     source_path, _ = locate_source_file(job_id, output_dir, upload_dir)
     has_source = bool(source_path and os.path.isfile(source_path))
 
@@ -268,9 +300,12 @@ def build_retry_command(
     """
     Construye la línea de comandos optimizada para reintentar el trabajo
     reutilizando artefactos válidos (evita re-descargar o re-transcribir).
+    Restaura opciones originales guardadas en job_options.json (sin secretos).
     """
     import sys
     from project_manager import locate_source_file
+    if not job_id or ".." in job_id.replace("\\", "/").split("/") or "/" in job_id or "\\" in job_id:
+        raise ValueError(f"Identificador de trabajo con traversal o inválido: {job_id}")
 
     job_dir = os.path.join(output_dir, job_id)
     source_path, _ = locate_source_file(job_id, output_dir, upload_dir)
@@ -308,12 +343,31 @@ def build_retry_command(
         except Exception:
             pass
 
-    # 4. Conservar parámetros adicionales del comando base (format, etc.)
+    # 4. Cargar opciones persistidas en job_options.json
+    options_file = os.path.join(job_dir, "job_options.json")
+    saved_options = {}
+    if os.path.isfile(options_file):
+        try:
+            with open(options_file, "r", encoding="utf-8") as f:
+                saved_options = json.load(f)
+        except Exception:
+            pass
+
+    # 5. Conservar parámetros adicionales del comando base o de job_options.json
     if base_cmd:
         for i, arg in enumerate(base_cmd):
             if arg in ("--format",) and i + 1 < len(base_cmd):
                 cmd.extend([arg, base_cmd[i + 1]])
-            elif arg in ("--keep-original",):
-                cmd.append(arg)
+            elif arg in ("--keep-original", "--skip-analysis"):
+                if arg not in cmd:
+                    cmd.append(arg)
+
+    if saved_options.get("format") and "--format" not in cmd and saved_options["format"] != "auto":
+        cmd.extend(["--format", saved_options["format"]])
+    if saved_options.get("keep_original") and "--keep-original" not in cmd:
+        cmd.append("--keep-original")
+    if saved_options.get("skip_analysis") and "--skip-analysis" not in cmd:
+        cmd.append("--skip-analysis")
 
     return cmd
+
