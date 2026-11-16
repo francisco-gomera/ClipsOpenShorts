@@ -96,14 +96,14 @@ function Root() {
     if (hash.startsWith('#/deleted')) return 'deleted';
     if (hash.startsWith('#/pricing')) return 'pricing';
     if (hash === '#legal') return 'legal';
-    // The app lives at #app (and #app?tab=… deep links). Everything else,
-    // including a bare / and the section anchors (#features, #pricing…) and
-    // #landing, is the landing page. There is deliberately no "returning
-    // visitor" shortcut into the app: the static fallback is the landing, so
-    // swapping it for the app after hydration made / jump a second after load,
-    // and the logo of every page has to reach the landing.
+    // Fase 8: root (bare /) and #app go directly to the dashboard app.
+    // Landing is kept at #landing for those who want it, but is no longer the
+    // default entry point — this is a self-hosted tool, not a marketing site.
+    if (hash === '#landing') return 'landing';
     if (hash === '#app' || hash.startsWith('#app?')) return 'app';
-    return 'landing';
+    // Any unrecognised hash (section anchors like #features, #pricing…) also
+    // goes to the app rather than the landing.
+    return 'app';
   };
 
   const [view, setView] = useState(resolveView);
