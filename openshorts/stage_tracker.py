@@ -32,38 +32,120 @@ STAGE_LABELS = {
 }
 
 
+"""
+Módulo de seguimiento y reintento de etapas de procesamiento (Fases 1 y 2).
+Gestiona stages.json en el directorio del proyecto con contrato uniforme y Lock thread-safe:
+- Registrar el progreso de cada etapa con timestamps, duración, porcentaje, unidades y velocidad.
+- Contrato uniforme con sub-etapas de clips, contadores y estado de recuperación.
+- Estimación de progreso global y ETA con base en historial (output/.stats/stage_history.json).
+- Inferir el estado de etapas a partir de artefactos en disco.
+- Determinar la última etapa válida para reanudar/reintentar trabajos fallidos o interrumpidos.
+"""
+
+import os
+import json
+import time
+import glob
+import threading
+from typing import Dict, Any, Optional, List, Tuple
+
+
+_tracker_lock = threading.Lock()
+
+STAGES_ORDER = [
+    "download",
+    "transcription",
+    "clip_selection",
+    "cut_and_reframe",
+    "hooks",
+    "subtitles",
+]
+
+STAGE_LABELS = {
+    "download": "Source Preparation",
+    "transcription": "Audio Transcription",
+    "clip_selection": "AI Moment Selection",
+    "cut_and_reframe": "Cut & Reframe (9:16)",
+    "hooks": "Visual Hooks",
+    "subtitles": "Subtitle Burn-in",
+}
+
+
 def _stages_file(job_dir: str) -> str:
     return os.path.join(job_dir, "stages.json")
 
 
-def init_stages(job_dir: str, job_id: Optional[str] = None) -> Dict[str, Any]:
-    """Inicializa la estructura de stages.json para un nuevo job."""
-    os.makedirs(job_dir, exist_ok=True)
-    stages = {}
-    for st in STAGES_ORDER:
-        stages[st] = {
-            "name": st,
-            "label": STAGE_LABELS.get(st, st),
-            "status": "pending",  # pending, running, completed, failed, skipped
-            "started_at": None,
-            "completed_at": None,
-            "duration_seconds": None,
-            "error": None,
-        }
-    data = {
-        "job_id": job_id or os.path.basename(job_dir),
-        "status": "queued",
-        "current_stage": None,
-        "created_at": time.time(),
-        "updated_at": time.time(),
-        "stages": stages,
+def _stats_history_file(base_output_dir: str) -> str:
+    stats_dir = os.path.join(base_output_dir, ".stats")
+    os.makedirs(stats_dir, exist_ok=True)
+    return os.path.join(stats_dir, "stage_history.json")
+
+
+def _create_stage_item(st: str) -> Dict[str, Any]:
+    return {
+        "name": st,
+        "label": STAGE_LABELS.get(st, st),
+        "status": "pending",  # pending, running, completed, failed, skipped
+        "mode": "determinate" if st in ("download", "transcription", "cut_and_reframe") else "indeterminate",
+        "percent": 0.0 if st in ("download", "transcription", "cut_and_reframe") else None,
+        "message": None,
+        "started_at": None,
+        "completed_at": None,
+        "updated_at": None,
+        "duration_seconds": None,
+        "units": None,  # {"done": 0, "total": 0, "label": "..."}
+        "bytes": None,
+        "speed": None,
+        "eta_seconds": None,
+        "attempts": 1,
+        "error": None,
+        "skipped_reason": None,
     }
-    _save_stages(job_dir, data)
-    return data
+
+
+def init_stages(job_dir: str, job_id: Optional[str] = None) -> Dict[str, Any]:
+    """Inicializa la estructura de stages.json con el Contrato Uniforme."""
+    with _tracker_lock:
+        os.makedirs(job_dir, exist_ok=True)
+        stages = {st: _create_stage_item(st) for st in STAGES_ORDER}
+        now = time.time()
+        data = {
+            "version": 1,
+            "job_id": job_id or os.path.basename(job_dir),
+            "status": "queued",
+            "percent": None,
+            "mode": "indeterminate",
+            "eta_seconds": None,
+            "eta_confidence": "none",
+            "stage_index": 0,
+            "stage_total": len(STAGES_ORDER),
+            "current_stage": None,
+            "created_at": now,
+            "updated_at": now,
+            "stages": stages,
+            "clips": [],
+            "counters": {
+                "total": 0,
+                "ready": 0,
+                "failed": 0,
+            },
+            "recovery": {
+                "state": "normal",  # normal, waiting_rate_limit, retrying
+                "retry_at": None,
+                "message": None,
+            },
+        }
+        _save_stages_locked(job_dir, data)
+        return data
 
 
 def read_stages(job_dir: str) -> Optional[Dict[str, Any]]:
-    """Lee stages.json del directorio del trabajo."""
+    """Lee stages.json del directorio del trabajo de forma thread-safe."""
+    with _tracker_lock:
+        return _read_stages_unlocked(job_dir)
+
+
+def _read_stages_unlocked(job_dir: str) -> Optional[Dict[str, Any]]:
     path = _stages_file(job_dir)
     if not os.path.isfile(path):
         return None
@@ -75,11 +157,17 @@ def read_stages(job_dir: str) -> Optional[Dict[str, Any]]:
         return None
 
 
-def _save_stages(job_dir: str, data: Dict[str, Any]):
-    """Guarda de forma atómica stages.json."""
+def save_stages_direct(job_dir: str, data: Dict[str, Any]):
+    """Guarda stages.json de forma atómica y thread-safe directamente desde un búfer."""
+    with _tracker_lock:
+        _save_stages_locked(job_dir, data)
+
+
+def _save_stages_locked(job_dir: str, data: Dict[str, Any]):
+    """Guarda de forma atómica stages.json (asume _tracker_lock adquirido)."""
     os.makedirs(job_dir, exist_ok=True)
     path = _stages_file(job_dir)
-    temp_path = f"{path}.tmp.{os.getpid()}"
+    temp_path = f"{path}.tmp.{os.getpid()}_{threading.get_ident()}"
     try:
         data["updated_at"] = time.time()
         with open(temp_path, "w", encoding="utf-8") as f:
@@ -94,61 +182,276 @@ def _save_stages(job_dir: str, data: Dict[str, Any]):
         print(f"⚠️ Error guardando stages.json en {job_dir}: {e}")
 
 
-def start_stage(job_dir: str, stage_name: str) -> Dict[str, Any]:
-    """Marca una etapa como 'running'."""
-    data = read_stages(job_dir) or init_stages(job_dir)
-    data["status"] = "processing"
-    data["current_stage"] = stage_name
-    stage_info = data.get("stages", {}).setdefault(stage_name, {
-        "name": stage_name,
-        "label": STAGE_LABELS.get(stage_name, stage_name),
-    })
-    stage_info["status"] = "running"
-    stage_info["started_at"] = time.time()
-    stage_info["error"] = None
-    _save_stages(job_dir, data)
-    return data
+def _save_stages(job_dir: str, data: Dict[str, Any]):
+    """Guarda stages.json adquiriendo el lock del tracker."""
+    with _tracker_lock:
+        _save_stages_locked(job_dir, data)
+
+
+def start_stage(job_dir: str, stage_name: str, mode: Optional[str] = None) -> Dict[str, Any]:
+    """Marca una etapa como 'running' con contrato uniforme."""
+    with _tracker_lock:
+        data = _read_stages_unlocked(job_dir) or init_stages(job_dir)
+        data["status"] = "processing"
+        data["current_stage"] = stage_name
+        if stage_name in STAGES_ORDER:
+            data["stage_index"] = STAGES_ORDER.index(stage_name) + 1
+
+        stage_info = data.get("stages", {}).setdefault(stage_name, _create_stage_item(stage_name))
+        stage_info["status"] = "running"
+        stage_info["started_at"] = time.time()
+        stage_info["updated_at"] = time.time()
+        stage_info["error"] = None
+        if mode:
+            stage_info["mode"] = mode
+        _save_stages_locked(job_dir, data)
+        return data
+
+
+def update_stage_progress(
+    job_dir: str,
+    stage_name: str,
+    percent: Optional[float] = None,
+    mode: Optional[str] = None,
+    message: Optional[str] = None,
+    units: Optional[Dict[str, Any]] = None,
+    bytes_count: Optional[int] = None,
+    speed: Optional[float] = None,
+    eta_seconds: Optional[float] = None,
+) -> Dict[str, Any]:
+    """Actualiza métricas de progreso de una etapa activa."""
+    with _tracker_lock:
+        data = _read_stages_unlocked(job_dir) or init_stages(job_dir)
+        stage_info = data.get("stages", {}).setdefault(stage_name, _create_stage_item(stage_name))
+        stage_info["updated_at"] = time.time()
+        if percent is not None:
+            stage_info["percent"] = round(float(percent), 1)
+        if mode:
+            stage_info["mode"] = mode
+        if message is not None:
+            stage_info["message"] = str(message)
+        if units is not None:
+            stage_info["units"] = units
+        if bytes_count is not None:
+            stage_info["bytes"] = int(bytes_count)
+        if speed is not None:
+            stage_info["speed"] = round(float(speed), 1)
+        if eta_seconds is not None:
+            stage_info["eta_seconds"] = max(0, int(eta_seconds))
+
+        _save_stages_locked(job_dir, data)
+        return data
+
+
+def update_clip_progress(
+    job_dir: str,
+    clip_index: int,
+    substage: Optional[str] = None,
+    percent: Optional[float] = None,
+    status: Optional[str] = None,
+    ready: bool = False,
+    file: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Actualiza el progreso de un clip individual en clips[] y contadores."""
+    with _tracker_lock:
+        data = _read_stages_unlocked(job_dir) or init_stages(job_dir)
+        clips = data.setdefault("clips", [])
+
+        # Asegurar tamaño suficiente en clips list
+        while len(clips) <= clip_index:
+            idx = len(clips)
+            clips.append({
+                "index": idx,
+                "status": "pending",
+                "substage": None,
+                "percent": 0.0,
+                "ready": False,
+                "file": None,
+            })
+
+        c = clips[clip_index]
+        if status:
+            c["status"] = status
+        if substage:
+            c["substage"] = substage
+        if percent is not None:
+            c["percent"] = round(float(percent), 1)
+        if ready:
+            c["ready"] = True
+            c["status"] = "completed"
+            c["percent"] = 100.0
+        if file:
+            c["file"] = file
+
+        # Recalcular counters
+        total = len(clips)
+        ready_count = sum(1 for item in clips if item.get("ready"))
+        failed_count = sum(1 for item in clips if item.get("status") == "failed")
+        data["counters"] = {
+            "total": total,
+            "ready": ready_count,
+            "failed": failed_count,
+        }
+
+        _save_stages_locked(job_dir, data)
+        return data
+
+
+def set_recovery_state(
+    job_dir: str,
+    state: str = "normal",
+    retry_at: Optional[float] = None,
+    message: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Actualiza el estado de recuperación (ej. waiting_rate_limit de Gemini)."""
+    with _tracker_lock:
+        data = _read_stages_unlocked(job_dir) or init_stages(job_dir)
+        data["recovery"] = {
+            "state": state,
+            "retry_at": retry_at,
+            "message": message,
+        }
+        _save_stages_locked(job_dir, data)
+        return data
 
 
 def finish_stage(
     job_dir: str,
     stage_name: str,
     error: Optional[str] = None,
-    skip: bool = False
+    skip: bool = False,
+    skipped_reason: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Marca una etapa como 'completed', 'failed' o 'skipped'."""
-    data = read_stages(job_dir) or init_stages(job_dir)
-    stage_info = data.get("stages", {}).setdefault(stage_name, {
-        "name": stage_name,
-        "label": STAGE_LABELS.get(stage_name, stage_name),
-    })
-    now = time.time()
-    if error:
-        stage_info["status"] = "failed"
-        stage_info["error"] = str(error)
-        data["status"] = "failed"
-        data["error"] = str(error)
-    elif skip:
-        stage_info["status"] = "skipped"
-    else:
-        stage_info["status"] = "completed"
-        stage_info["error"] = None
+    with _tracker_lock:
+        data = _read_stages_unlocked(job_dir) or init_stages(job_dir)
+        stage_info = data.get("stages", {}).setdefault(stage_name, _create_stage_item(stage_name))
+        now = time.time()
+        stage_info["updated_at"] = now
+        if error:
+            stage_info["status"] = "failed"
+            stage_info["error"] = str(error)
+            data["status"] = "failed"
+            data["error"] = str(error)
+        elif skip:
+            stage_info["status"] = "skipped"
+            stage_info["skipped_reason"] = skipped_reason or "Stage not requested"
+            stage_info["percent"] = 100.0
+        else:
+            stage_info["status"] = "completed"
+            stage_info["error"] = None
+            stage_info["percent"] = 100.0
 
-    stage_info["completed_at"] = now
-    if stage_info.get("started_at"):
-        stage_info["duration_seconds"] = round(now - stage_info["started_at"], 2)
+        stage_info["completed_at"] = now
+        if stage_info.get("started_at"):
+            stage_info["duration_seconds"] = round(now - stage_info["started_at"], 2)
 
-    _save_stages(job_dir, data)
-    return data
+        _save_stages_locked(job_dir, data)
+        return data
 
 
-def complete_job(job_dir: str) -> Dict[str, Any]:
-    """Marca el trabajo completo en stages.json."""
-    data = read_stages(job_dir) or init_stages(job_dir)
-    data["status"] = "completed"
-    data["current_stage"] = "complete"
-    _save_stages(job_dir, data)
-    return data
+def complete_job(job_dir: str, media_duration_seconds: Optional[float] = None) -> Dict[str, Any]:
+    """Marca el trabajo completo en stages.json y registra histórico."""
+    with _tracker_lock:
+        data = _read_stages_unlocked(job_dir) or init_stages(job_dir)
+        data["status"] = "completed"
+        data["current_stage"] = "complete"
+        data["percent"] = 100.0
+        data["mode"] = "determinate"
+        data["eta_seconds"] = 0
+        data["stage_index"] = len(STAGES_ORDER)
+        _save_stages_locked(job_dir, data)
+
+        # Registrar en histórico si hay información de duración de medio
+        if media_duration_seconds and media_duration_seconds > 0:
+            base_out = os.path.dirname(job_dir.rstrip("/\\"))
+            job_id = data.get("job_id", os.path.basename(job_dir))
+            record_stage_history(base_out, job_id, media_duration_seconds, data.get("stages", {}))
+
+        return data
+
+
+def record_stage_history(
+    base_output_dir: str,
+    job_id: str,
+    media_duration_seconds: float,
+    stages_dict: Dict[str, Any]
+):
+    """Guarda la duración de cada etapa normalizada por minuto de medio en output/.stats/stage_history.json
+    con tamaño máximo y rotación de hasta 500 registros.
+    """
+    if not media_duration_seconds or media_duration_seconds <= 0:
+        return
+    history_file = _stats_history_file(base_output_dir)
+    media_minutes = max(0.1, media_duration_seconds / 60.0)
+
+    stage_durations = {}
+    for st_name, st_info in stages_dict.items():
+        dur = st_info.get("duration_seconds")
+        if dur is not None and dur > 0 and st_info.get("status") == "completed":
+            stage_durations[st_name] = round(dur / media_minutes, 3)
+
+    if not stage_durations:
+        return
+
+    record = {
+        "job_id": job_id,
+        "timestamp": time.time(),
+        "media_minutes": round(media_minutes, 2),
+        "normalized_durations": stage_durations,
+    }
+
+    try:
+        entries = []
+        if os.path.isfile(history_file):
+            try:
+                with open(history_file, "r", encoding="utf-8") as f:
+                    entries = json.load(f)
+                if not isinstance(entries, list):
+                    entries = []
+            except Exception:
+                entries = []
+
+        entries.append(record)
+        # Rotación a máximo 500 entradas
+        if len(entries) > 500:
+            entries = entries[-500:]
+
+        tmp_hist = f"{history_file}.tmp.{os.getpid()}"
+        with open(tmp_hist, "w", encoding="utf-8") as f:
+            json.dump(entries, f, indent=2)
+        os.replace(tmp_hist, history_file)
+    except Exception as e:
+        print(f"⚠️ Error guardando stage_history.json: {e}")
+
+
+def load_stage_history_averages(base_output_dir: str) -> Optional[Dict[str, float]]:
+    """Carga los promedios normalizados por minuto si hay al menos 5 muestras históricas."""
+    history_file = os.path.join(base_output_dir, ".stats", "stage_history.json")
+    if not os.path.isfile(history_file):
+        return None
+    try:
+        with open(history_file, "r", encoding="utf-8") as f:
+            entries = json.load(f)
+        if not isinstance(entries, list) or len(entries) < 5:
+            return None
+
+        # Calcular promedio por etapa
+        totals = {}
+        counts = {}
+        for entry in entries:
+            durations = entry.get("normalized_durations", {})
+            for st, norm_dur in durations.items():
+                totals[st] = totals.get(st, 0.0) + norm_dur
+                counts[st] = counts.get(st, 0) + 1
+
+        averages = {}
+        for st, tot in totals.items():
+            if counts.get(st, 0) >= 3:
+                averages[st] = tot / counts[st]
+        return averages if averages else None
+    except Exception:
+        return None
 
 
 def mark_stage_failed(

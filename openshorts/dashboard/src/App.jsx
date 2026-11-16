@@ -30,7 +30,7 @@ import StageProgress from './components/StageProgress';
 import ProfileMenu from './components/ProfileMenu';
 import Modal from './components/ui/Modal';
 import { useAuth } from './contexts/AuthContext';
-import { apiFetch, apiJson, QuotaError, QUOTA_WALL_EVENT } from './lib/api';
+import { apiFetch, apiUpload, apiJson, QuotaError, QUOTA_WALL_EVENT } from './lib/api';
 import { track } from './lib/analytics';
 
 // Enhanced "Encryption" using XOR + Base64 with a Salt
@@ -1211,7 +1211,15 @@ function App() {
         body = formData;
       }
 
-      const res = await apiFetch('/api/process', { method: 'POST', headers, body });
+      let res;
+      if (body instanceof FormData) {
+        setLogs(["Uploading video to server... 0%"]);
+        res = await apiUpload('/api/process', body, { headers }, (progress) => {
+          setLogs([`Uploading video to server... ${progress.percent}% (${(progress.loaded / (1024 * 1024)).toFixed(1)} / ${(progress.total / (1024 * 1024)).toFixed(1)} MB)`]);
+        });
+      } else {
+        res = await apiFetch('/api/process', { method: 'POST', headers, body });
+      }
 
       if (!res.ok) throw new Error(await res.text());
       const resData = await res.json();

@@ -3055,6 +3055,25 @@ def enqueue_output(out, job_id):
                 # Internal marker: a clip finished its whole chain and this is
                 # the file to serve for it. Consumed here like PROXY_BYTES so it
                 # never reaches the user's log.
+                if decoded_line.startswith("PROGRESS "):
+                    try:
+                        progress_payload = json.loads(decoded_line[9:])
+                        if job_id in jobs:
+                            jobs[job_id]['stages'] = progress_payload
+                            # Throttle de persistencia a disco (máximo cada 2.0s salvo cambio de etapa o estado terminal)
+                            now = time.time()
+                            last_disk_time = jobs[job_id].get('_last_disk_stages_time', 0.0)
+                            last_st = jobs[job_id].get('_last_disk_stage_name')
+                            curr_st = progress_payload.get('current_stage')
+                            is_terminal = progress_payload.get('status') in ('completed', 'failed')
+                            if (now - last_disk_time >= 2.0) or (curr_st != last_st) or is_terminal:
+                                jobs[job_id]['_last_disk_stages_time'] = now
+                                jobs[job_id]['_last_disk_stage_name'] = curr_st
+                                job_output_dir = os.path.join(OUTPUT_DIR, job_id)
+                                stage_tracker.save_stages_direct(job_output_dir, progress_payload)
+                    except Exception as e:
+                        print(f"⚠️ Error procesando PROGRESS marker: {e}")
+                    continue
                 if decoded_line.startswith("CLIP_READY "):
                     try:
                         _, index, filename = decoded_line.split(" ", 2)
@@ -4128,10 +4147,23 @@ async def get_status(request: Request, job_id: str):
 
     await _assert_job_owner(request, job)
     _logs_view = _visible_logs_timed(job['logs'])
-    stages_data = stage_tracker.infer_stages_from_disk(os.path.join(OUTPUT_DIR, job_id), job_id)
+    # Servir stages desde memoria si está activo; si no, desde disco
+    stages_data = job.get('stages')
+    if not stages_data or not isinstance(stages_data, dict):
+        stages_data = stage_tracker.read_stages(os.path.join(OUTPUT_DIR, job_id))
+    if not stages_data or not isinstance(stages_data, dict):
+        stages_data = stage_tracker.infer_stages_from_disk(os.path.join(OUTPUT_DIR, job_id), job_id)
+
     return {
         "status": _presented_status(job_id, job),
         "stages": stages_data,
+        "progress": stages_data,
+        "percent": stages_data.get("percent") if isinstance(stages_data, dict) else None,
+        "mode": stages_data.get("mode") if isinstance(stages_data, dict) else "indeterminate",
+        "eta_seconds": stages_data.get("eta_seconds") if isinstance(stages_data, dict) else None,
+        "clips": stages_data.get("clips") if isinstance(stages_data, dict) else [],
+        "counters": stages_data.get("counters") if isinstance(stages_data, dict) else {"total": 0, "ready": 0, "failed": 0},
+        "recovery": stages_data.get("recovery") if isinstance(stages_data, dict) else {"state": "normal", "retry_at": None, "message": None},
         "logs": _logs_view[0],
         # When each line arrived (epoch seconds, parallel to "logs"), or None.
         "log_times": _logs_view[1],
