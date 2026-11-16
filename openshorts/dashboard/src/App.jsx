@@ -510,16 +510,6 @@ function App() {
       });
   }, [results]);
 
-  const pendingClips = useMemo(() => {
-    if (status !== 'processing' || !stages?.clips || !Array.isArray(stages.clips)) {
-      return [];
-    }
-    const readyIndices = new Set((results?.clips || []).map((_, i) => i));
-    return stages.clips.filter((c, idx) => {
-      const isReady = c.ready || c.status === 'completed' || readyIndices.has(c.index != null ? c.index : idx);
-      return !isReady;
-    });
-  }, [status, stages?.clips, results?.clips]);
   // Bulk subtitles: apply one style to every clip of the job (triggered from
   // within a clip's subtitle modal via "apply to all").
   const [bulkSub, setBulkSub] = useState({ running: false, current: 0, total: 0, errors: 0 });
@@ -568,6 +558,18 @@ function App() {
   }, [activeTab, status, fetchRecentProjects]);
   const [stages, setStages] = useState(null);
   const [retryingJob, setRetryingJob] = useState(false);
+
+  // Clips in-flight: stages.clips entries not yet in results.clips (R5 progressive display)
+  const pendingClips = useMemo(() => {
+    if (status !== 'processing' || !stages?.clips || !Array.isArray(stages.clips)) {
+      return [];
+    }
+    const readyIndices = new Set((results?.clips || []).map((_, i) => i));
+    return stages.clips.filter((c, idx) => {
+      const isReady = c.ready || c.status === 'completed' || readyIndices.has(c.index != null ? c.index : idx);
+      return !isReady;
+    });
+  }, [status, stages?.clips, results?.clips]);
 
   const [sessionRecovered, setSessionRecovered] = useState(false);
   const [showScheduleWeek, setShowScheduleWeek] = useState(false);
