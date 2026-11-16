@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Upload, Sparkles, Youtube, Instagram, Share2, ChevronDown, Check, Activity, LayoutDashboard, Settings, Plus, History, FolderOpen, X, Terminal, Shield, LayoutGrid, Image, Globe, RotateCcw, Calendar, AlertTriangle, KeyRound, Bot, Users, Smartphone, ExternalLink, Copy, CheckCircle2, Mail, Loader2, Download, Menu, Lock, Rocket } from 'lucide-react';
 import KeyInput from './components/KeyInput';
 import MediaInput from './components/MediaInput';
@@ -257,6 +257,58 @@ const readableError = (raw) => {
   } catch (_) { /* not JSON */ }
   return text.replace(/^Error:\s*/, '').slice(0, 300) || 'Something went wrong.';
 };
+
+const getDiagnosticError = (raw, logs = []) => {
+  const text = (String(raw || '') + ' ' + (Array.isArray(logs) ? logs.slice(-3).join(' ') : '')).toLowerCase();
+
+  if (text.includes('too short') || text.includes('at least 45') || text.includes('min_source_seconds')) {
+    return {
+      title: 'Video Too Short',
+      cause: 'The selected video is too short for automated clipping (minimum 45 seconds required).',
+      action: 'Please provide a longer video or full-length footage to extract clips from.',
+      canRetry: false,
+    };
+  }
+  if (text.includes('quota') || text.includes('resource_exhausted') || text.includes('rate limit') || text.includes('429')) {
+    return {
+      title: 'Gemini API Rate Limit / Quota Exceeded',
+      cause: 'Your Google Gemini API key reached its requests-per-minute or daily quota.',
+      action: 'Wait a moment and click "Resume Job", or check your Gemini API quota in Google AI Studio.',
+      canRetry: true,
+    };
+  }
+  if (text.includes('yt-dlp') || text.includes('download') || text.includes('private video') || text.includes('sign in')) {
+    return {
+      title: 'Video Download Error',
+      cause: 'yt-dlp was unable to download the video stream from this URL (it may be private, age-restricted, or geoblocked).',
+      action: 'Check that the video is public and accessible in your browser, or upload the MP4 file directly.',
+      canRetry: false,
+    };
+  }
+  if (text.includes('whisper') || text.includes('transcrib')) {
+    return {
+      title: 'Transcription Failure',
+      cause: 'Speech-to-text or audio extraction encountered an issue on this media.',
+      action: 'You can resume from the transcription stage or check that the video has an audible audio track.',
+      canRetry: true,
+      stage: 'transcribe',
+    };
+  }
+  if (text.includes('no speech') || text.includes('no transcript')) {
+    return {
+      title: 'No Speech Detected',
+      cause: 'No intelligible spoken words were found in the audio track of the video.',
+      action: 'Ensure the video has clear speech and dialogue, then try again.',
+      canRetry: false,
+    };
+  }
+  return {
+    title: 'Processing Interrupted',
+    cause: readableError(raw) || 'An unexpected error occurred during clip rendering.',
+    action: 'You can try resuming from the last completed stage or restart with a different video.',
+    canRetry: true,
+  };
+};
 // Matches the self-host JOB_RETENTION_SECONDS default. A restore whose job was
 // already purged server-side fails gracefully and clears the saved session.
 const SESSION_MAX_AGE = 86400000; // 24 hours
@@ -274,6 +326,60 @@ const pollJob = async (jobId, { sinceVersion, logOffset, signal } = {}) => {
   if (!res.ok) throw new Error('Status check failed');
   return res.json();
 };
+
+function DiagnosticErrorCard({ error, logs, onRetry, onReset, isRetrying }) {
+  const diag = getDiagnosticError(error, logs);
+  return (
+    <div className="h-full min-h-[340px] flex flex-col items-center justify-center p-6 text-center max-w-md mx-auto animate-fade">
+      <div className="w-12 h-12 rounded-full bg-danger/10 border border-danger/20 flex items-center justify-center text-danger mb-4 shadow-sm">
+        <AlertTriangle size={24} />
+      </div>
+      <h3 className="text-base font-semibold text-ink mb-1.5">
+        {diag.title}
+      </h3>
+      <p className="text-xs text-muted leading-relaxed mb-4">
+        {diag.cause}
+      </p>
+      <div className="w-full p-3.5 rounded-card bg-paper2 border border-rule text-left mb-6 space-y-1.5">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-ink2 block">
+          Recommended Action
+        </span>
+        <p className="text-xs text-muted leading-relaxed">
+          {diag.action}
+        </p>
+      </div>
+      <div className="flex flex-wrap items-center justify-center gap-2.5 w-full">
+        {diag.canRetry && (
+          <button
+            type="button"
+            onClick={() => onRetry(diag.stage || null)}
+            disabled={isRetrying}
+            className="btn-primary py-2 px-4 text-xs flex-1 min-w-[130px] flex items-center justify-center gap-1.5"
+          >
+            {isRetrying ? (
+              <>
+                <Loader2 size={13} className="animate-spin" />
+                Resuming...
+              </>
+            ) : (
+              <>
+                <RotateCcw size={13} />
+                Resume Job
+              </>
+            )}
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={onReset}
+          className="btn-ghost py-2 px-4 text-xs flex-1 min-w-[130px]"
+        >
+          Start New Video
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function App() {
   // Cloud auth/billing session (inert when billing is disabled).
@@ -391,6 +497,33 @@ function App() {
   // True when the current job was reopened from the library: its source video
   // was never persisted, so the session must not fall back to /api/source.
   const [noSource, setNoSource] = useState(false);
+  const [recentProjects, setRecentProjects] = useState([]);
+  const [, setLoadingRecent] = useState(false);
+
+  const fetchRecentProjects = useCallback(async () => {
+    try {
+      setLoadingRecent(true);
+      const res = await apiJson('/api/projects');
+      if (res && Array.isArray(res.projects)) {
+        const sorted = [...res.projects].sort((a, b) => {
+          const tA = new Date(a.updated_at || a.created_at || 0).getTime();
+          const tB = new Date(b.updated_at || b.created_at || 0).getTime();
+          return tB - tA;
+        });
+        setRecentProjects(sorted.slice(0, 3));
+      }
+    } catch {
+      // Ignore
+    } finally {
+      setLoadingRecent(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'dashboard' && status === 'idle') {
+      fetchRecentProjects();
+    }
+  }, [activeTab, status, fetchRecentProjects]);
   const [stages, setStages] = useState(null);
   const [retryingJob, setRetryingJob] = useState(false);
 
@@ -2218,6 +2351,49 @@ function App() {
                   <span className="flex items-center gap-2"><Instagram size={16} /> Instagram</span>
                   <span className="flex items-center gap-2"><TikTokIcon size={16} /> TikTok</span>
                 </div>
+
+                {/* Recent Projects on Dashboard Idle Screen */}
+                {recentProjects.length > 0 && (
+                  <div className="w-full text-left mt-6 pt-5 border-t border-rule space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-medium text-ink2 uppercase tracking-wider flex items-center gap-1.5">
+                        <FolderOpen size={14} className="text-brass" />
+                        Recent Projects
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => goToTab('history')}
+                        className="text-xs text-brass hover:underline flex items-center gap-1"
+                      >
+                        View all projects →
+                      </button>
+                    </div>
+                    <div className="space-y-2">
+                      {recentProjects.map((p) => (
+                        <div
+                          key={p.id || p.job_id}
+                          onClick={() => restoreProject(p.id || p.job_id)}
+                          className="group flex items-center justify-between p-3 rounded-card bg-paper2 border border-rule hover:border-brass/50 hover:bg-paper3 cursor-pointer transition-all"
+                        >
+                          <div className="min-w-0 flex-1 pr-3">
+                            <p className="text-sm font-medium text-ink group-hover:text-brass truncate transition-colors">
+                              {p.title || p.id || 'Untitled Project'}
+                            </p>
+                            <p className="text-xs text-muted mt-0.5">
+                              {p.clip_count ?? p.clips?.length ?? 0} clips · {new Date(p.created_at || p.updated_at || Date.now()).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            className="btn-quiet py-1 px-2.5 text-xs shrink-0 group-hover:border-brass/50"
+                          >
+                            Open →
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
               </div>
             </div>
@@ -2559,9 +2735,13 @@ function App() {
                         </p>
                       </div>
                     ) : status === 'error' ? (
-                      <div className="h-full min-h-[120px] flex flex-col items-center justify-center text-danger space-y-2">
-                        <p>Generation failed.</p>
-                      </div>
+                      <DiagnosticErrorCard
+                        error={jobError}
+                        logs={logs}
+                        onRetry={handleRetryCurrentJob}
+                        onReset={handleReset}
+                        isRetrying={retryingJob}
+                      />
                     ) : null
                   )}
                 </div>
