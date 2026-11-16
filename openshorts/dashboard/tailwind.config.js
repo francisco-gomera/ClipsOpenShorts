@@ -7,7 +7,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Lumen · Night Foundry — values mirror tokens.css (kept literal so
+        // Studio tokens — values mirror tokens.css (kept literal so
         // Tailwind alpha modifiers like bg-brass/10 compile)
         paper: "oklch(13% 0.014 265 / <alpha-value>)",
         paper2: "oklch(16.5% 0.015 265 / <alpha-value>)",
