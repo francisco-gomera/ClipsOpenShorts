@@ -4,7 +4,8 @@ import mimetypes
 import os
 import re
 import sys
-from typing import List, Optional
+import time
+from typing import List, Optional, Any, Union
 
 from dotenv import load_dotenv
 from google import genai
@@ -470,6 +471,74 @@ class GeminiDailyQuotaError(RuntimeError):
     """Gemini daily quota (PerDay) has been exhausted. Immediate failure without retrying."""
 
 
+def _parse_retry_after_value(val: Any) -> Optional[float]:
+    """Parse numeric seconds or HTTP-date from Retry-After header / value."""
+    if val is None:
+        return None
+    if isinstance(val, (int, float)):
+        return max(0.0, float(val))
+    val_str = str(val).strip()
+    # Direct numeric: e.g. "25", "25.09", "25s"
+    m = re.match(r'^([0-9]+(?:\.[0-9]+)?)\s*s?$', val_str, re.IGNORECASE)
+    if m:
+        try:
+            return float(m.group(1))
+        except ValueError:
+            pass
+    # HTTP-date format: e.g. "Wed, 21 Oct 2026 07:28:00 GMT"
+    try:
+        from email.utils import parsedate_to_datetime
+        dt = parsedate_to_datetime(val_str)
+        if dt is not None:
+            diff = dt.timestamp() - time.time()
+            return max(0.0, diff)
+    except Exception:
+        pass
+    return None
+
+
+def _extract_delay_from_detail(item: Any) -> Optional[float]:
+    """Inspect a single error detail item (dict, Protobuf, or namespace) for retry delay."""
+    if item is None:
+        return None
+    if isinstance(item, dict):
+        delay = item.get("retry_delay") or item.get("retryDelay")
+        if delay is not None:
+            if isinstance(delay, dict):
+                sec = float(delay.get("seconds", 0) or 0)
+                nanos = float(delay.get("nanos", 0) or 0)
+                return max(0.0, sec + nanos / 1e9)
+            return _parse_retry_after_value(delay)
+        sub_details = item.get("details")
+        if isinstance(sub_details, (list, tuple)):
+            for sub in sub_details:
+                res = _extract_delay_from_detail(sub)
+                if res is not None:
+                    return res
+        return None
+
+    # Protobuf / object with retry_delay (google.rpc.RetryInfo)
+    if hasattr(item, "retry_delay"):
+        rd = getattr(item, "retry_delay")
+        if rd is not None:
+            if hasattr(rd, "seconds"):
+                sec = float(getattr(rd, "seconds", 0) or 0)
+                nanos = float(getattr(rd, "nanos", 0) or 0)
+                return max(0.0, sec + nanos / 1e9)
+            elif isinstance(rd, (int, float)):
+                return float(rd)
+            elif isinstance(rd, str):
+                return _parse_retry_after_value(rd)
+
+    # Object with direct seconds/nanos fields
+    if hasattr(item, "seconds") and hasattr(item, "nanos"):
+        sec = float(getattr(item, "seconds", 0) or 0)
+        nanos = float(getattr(item, "nanos", 0) or 0)
+        return max(0.0, sec + nanos / 1e9)
+
+    return None
+
+
 def parse_retry_delay(err_msg: str) -> Optional[float]:
     """Parse retry delay in seconds from Gemini / Google error messages.
 
@@ -504,12 +573,109 @@ def parse_retry_delay(err_msg: str) -> Optional[float]:
     return None
 
 
-def is_daily_quota(err_msg: str) -> bool:
-    """True if error message points to daily quota exhaustion (e.g. PerDay in quotaId)."""
-    if not err_msg or not isinstance(err_msg, str):
+def parse_retry_delay_from_exception(exc: Optional[Exception]) -> Optional[float]:
+    """Extract retry delay (in seconds) from a Gemini / Google API exception.
+
+    Inspects in order:
+    1. HTTP response headers ('Retry-After', 'retry-after') if present on exc.response or exc.headers.
+    2. Structured RPC error details (google.rpc.RetryInfo) on exc.error_details or exc.details.
+    3. gRPC trailing metadata or metadata tuples.
+    4. Exception arguments (dict/payload).
+    5. String/regex fallback via parse_retry_delay(str(exc)).
+    """
+    if exc is None:
+        return None
+
+    # 1. Check HTTP response headers
+    for container in (getattr(exc, "response", None), exc):
+        if container is None:
+            continue
+        headers = getattr(container, "headers", None)
+        if headers is not None:
+            val = None
+            if hasattr(headers, "get"):
+                val = headers.get("retry-after") or headers.get("Retry-After")
+            elif isinstance(headers, (list, tuple)):
+                for k, v in headers:
+                    if str(k).lower() == "retry-after":
+                        val = v
+                        break
+            if val is not None:
+                parsed = _parse_retry_after_value(val)
+                if parsed is not None:
+                    return parsed
+
+    # 2. Check structured error details (google.rpc.RetryInfo)
+    details = getattr(exc, "error_details", None) or getattr(exc, "details", None)
+    if isinstance(details, (list, tuple)):
+        for item in details:
+            parsed = _extract_delay_from_detail(item)
+            if parsed is not None:
+                return parsed
+
+    # 3. Check gRPC metadata / trailing_metadata
+    metadata = getattr(exc, "trailing_metadata", None) or getattr(exc, "metadata", None)
+    if metadata and isinstance(metadata, (list, tuple)):
+        for item in metadata:
+            if isinstance(item, (list, tuple)) and len(item) >= 2:
+                k, v = item[0], item[1]
+                if str(k).lower() == "retry-after":
+                    parsed = _parse_retry_after_value(v)
+                    if parsed is not None:
+                        return parsed
+
+    # 4. Check exc.args in case details dict was passed as argument
+    for arg in getattr(exc, "args", ()):
+        if isinstance(arg, dict):
+            parsed = _extract_delay_from_detail(arg)
+            if parsed is not None:
+                return parsed
+        elif isinstance(arg, (list, tuple)):
+            for sub in arg:
+                if isinstance(sub, dict):
+                    parsed = _extract_delay_from_detail(sub)
+                    if parsed is not None:
+                        return parsed
+
+    # 5. String fallback
+    return parse_retry_delay(str(exc))
+
+
+def is_daily_quota(err_or_msg: Union[str, Exception, None]) -> bool:
+    """True if error points to daily quota exhaustion (e.g. PerDay in quotaId)."""
+    if err_or_msg is None:
         return False
-    lower = err_msg.lower()
-    return "perday" in lower or "quota_exceeded_daily" in lower
+    msg = str(err_or_msg)
+    lower = msg.lower()
+    if "perday" in lower or "quota_exceeded_daily" in lower:
+        return True
+    if isinstance(err_or_msg, Exception):
+        details = getattr(err_or_msg, "error_details", None) or getattr(err_or_msg, "details", None)
+        if isinstance(details, (list, tuple)):
+            for d in details:
+                if isinstance(d, dict):
+                    q = d.get("quotaId") or d.get("quota_id") or ""
+                    if "perday" in str(q).lower():
+                        return True
+                elif hasattr(d, "quota_id") or hasattr(d, "quotaId"):
+                    q = getattr(d, "quota_id", None) or getattr(d, "quotaId", None)
+                    if "perday" in str(q).lower():
+                        return True
+    return False
+
+
+def is_rate_limit(exc: Union[str, Exception, None]) -> bool:
+    """True if error represents a rate limit / 429 / RESOURCE_EXHAUSTED."""
+    if exc is None:
+        return False
+    if isinstance(exc, Exception):
+        status = getattr(exc, "status_code", None) or getattr(exc, "code", None)
+        if status == 429 or status == "429":
+            return True
+        if hasattr(status, "name") and status.name == "RESOURCE_EXHAUSTED":
+            return True
+    msg = str(exc)
+    return any(tok in msg for tok in ('429', 'RESOURCE_EXHAUSTED')) or ('quota' in msg.lower() and 'exceeded' in msg.lower())
 
 
 _BLOCKED_FINISH_REASONS = {"SAFETY", "PROHIBITED_CONTENT", "BLOCKLIST",
