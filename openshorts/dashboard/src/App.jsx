@@ -819,7 +819,7 @@ function App() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `openshorts_clips_${(jobId || '').slice(0, 8)}.zip`;
+      a.download = `clips_${(jobId || '').slice(0, 8)}.zip`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -1583,7 +1583,7 @@ function App() {
         <span className={collapsed ? 'hidden lg:block truncate' : 'truncate'}>landing page</span>
       </a>
       <a
-        href="https://github.com/mutonby/openshorts"
+        href={brandConfig.githubUrl}
         target="_blank"
         rel="noopener noreferrer"
         className="flex items-center gap-2 px-3 py-2 text-xs lowercase text-muted hover:text-ink2 transition-colors"
@@ -1601,11 +1601,11 @@ function App() {
         </a>
       )}
       <a
-        href="mailto:info@openshorts.app"
+        href={`mailto:${brandConfig.supportEmail}`}
         className="flex items-center gap-2 px-3 py-2 text-xs lowercase text-muted hover:text-ink2 transition-colors"
       >
         <Mail size={14} className="shrink-0" />
-        <span className={collapsed ? 'hidden lg:block truncate' : 'truncate'}>info@openshorts.app</span>
+        <span className={collapsed ? 'hidden lg:block truncate' : 'truncate'}>{brandConfig.supportEmail}</span>
       </a>
     </>
   );
