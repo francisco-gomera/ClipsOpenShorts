@@ -45,6 +45,24 @@ warnings.filterwarnings("ignore", category=UserWarning, module='google.protobuf'
 import stage_tracker
 import gemini_ratelimit
 
+class JobCancelledException(Exception):
+    """Lanzada cuando un trabajo ha sido cancelado por el usuario."""
+    pass
+
+
+def check_job_cancelled(output_dir: Optional[str]) -> bool:
+    """Verifica si el trabajo ha sido cancelado mediante archivo .cancel."""
+    if not output_dir:
+        return False
+    cancel_marker = os.path.join(output_dir, ".cancel")
+    return os.path.isfile(cancel_marker)
+
+
+def raise_if_cancelled(output_dir: Optional[str]):
+    """Lanza JobCancelledException si el trabajo fue marcado como cancelado."""
+    if check_job_cancelled(output_dir):
+        raise JobCancelledException("Trabajo cancelado por el usuario")
+
 _gemini_calls_count: int = 0
 
 global_reporter: Optional['ProgressReporter'] = None
@@ -2665,7 +2683,8 @@ def get_visual_clips(video_path, video_duration, language="en"):
                 pass
 
 
-if __name__ == '__main__':
+def run_pipeline():
+    global output_format, script_start_time, global_reporter
     parser = argparse.ArgumentParser(description="AutoCrop-Vertical with Viral Clip Detection.")
     
     input_group = parser.add_mutually_exclusive_group(required=True)
@@ -2821,6 +2840,8 @@ if __name__ == '__main__':
         print(f"❌ Input file not found: {input_video}")
         exit(1)
 
+    raise_if_cancelled(output_dir)
+
     # Quota-wall offer: only the first N minutes were paid for (see
     # cap_source_duration). Must run before anything reads the file.
     if os.environ.get("MAX_SOURCE_MINUTES", "").strip():
@@ -2962,6 +2983,8 @@ if __name__ == '__main__':
         else:
             stage_tracker.finish_stage(output_dir, "transcription")
 
+        raise_if_cancelled(output_dir)
+
         # 4. Gemini Analysis (transcript-driven, or vision for silent videos)
         if global_reporter:
             global_reporter.start_stage("clip_selection", mode="determinate")
@@ -3030,6 +3053,7 @@ if __name__ == '__main__':
                 return None
 
             def _process_one_clip(i, clip):
+                raise_if_cancelled(output_dir)
                 start = clip['start']
                 end = clip['end']
                 print(f"\n🎬 Processing Clip {i+1}: {start}s - {end}s")
@@ -3118,6 +3142,7 @@ if __name__ == '__main__':
                 futures = {pool.submit(_process_one_clip, i, shorts[i]): i
                            for i in clip_render_order(shorts)}
                 for future in as_completed(futures):
+                    raise_if_cancelled(output_dir)
                     i = futures[future]
                     try:
                         if not future.result():
@@ -3127,6 +3152,7 @@ if __name__ == '__main__':
                         failed.append(i)
 
             for i in sorted(failed, key=lambda k: clip_render_order(shorts).index(k)):
+                raise_if_cancelled(output_dir)
                 print(f"   🔁 Retrying clip {i+1} once…")
                 time.sleep(CLIP_RETRY_PAUSE_SECONDS)
                 _free_gpu_cache()
@@ -3177,3 +3203,13 @@ if __name__ == '__main__':
     total_time = time.time() - script_start_time
     print(f"\n⏱️  Total execution time: {total_time:.2f}s")
     print(f"📊 Total Gemini calls made in this run: {_gemini_calls_count}")
+
+
+if __name__ == '__main__':
+    try:
+        run_pipeline()
+    except JobCancelledException as e:
+        print(f"\n🛑 Pipeline detenido por cancelación: {e}", flush=True)
+        sys.exit(143)  # 128 + 15 (SIGTERM)
+    except Exception:
+        raise

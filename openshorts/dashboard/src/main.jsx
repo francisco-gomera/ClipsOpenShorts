@@ -97,6 +97,7 @@ function Root() {
     if (hash.startsWith('#/deleted')) return 'deleted';
     if (hash.startsWith('#/pricing')) return 'pricing';
     if (hash === '#legal') return 'legal';
+    if (window.location.pathname.replace(/\/$/, '') === '/en-vivo') return 'app';
     // Fase 8: root (bare /) and #app go directly to the dashboard app.
     // Landing is kept at #landing for those who want it, but is no longer the
     // default entry point — this is a self-hosted tool, not a marketing site.

@@ -88,6 +88,7 @@ export const NAV_GROUPS = [
  * page of its own: /pricing redirects there (nginx.conf). The plan picker and
  * checkout stay at the hash route #/pricing?plan=..., a different thing. */
 export const NAV_LINKS = [
+  { href: '/en-vivo', label: { en: 'Live clipping', es: 'En vivo' } },
   { href: '/#pricing', label: { en: 'Pricing', es: 'Precios' } },
   { href: '/self-hosted-ai-clip-maker', label: { en: 'Open source', es: 'Código abierto' } },
 ]
