@@ -35,6 +35,7 @@ import watermarked
 import media_auth
 import project_manager
 import stage_tracker
+import psutil
 
 load_dotenv()
 
@@ -45,6 +46,8 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 _retry_locks: Dict[str, asyncio.Lock] = {}
+_active_processes: Dict[str, subprocess.Popen] = {}
+_cancelling_jobs: set = set()
 
 
 def valid_job_id(job_id: str = FastAPIPath(..., description="Job UUIDv4")) -> str:
@@ -917,6 +920,12 @@ def queue_snapshot(job_id):
 
 
 def _enqueue_job(job_id: str, priority: int = 2):
+    if _live_api.has_active_session():
+        job = jobs.get(job_id)
+        if job:
+            job["status"] = "blocked"
+            job["error"] = "Live clipping está activo. Detén la sesión antes de iniciar otro proceso."
+        raise HTTPException(status_code=423, detail="Live clipping está activo. Detén la sesión antes de iniciar otro proceso.")
     job_queue.put_nowait((priority, next(_job_seq), job_id))
 
 def _relocate_root_job_artifacts(job_id: str, job_output_dir: str) -> bool:
@@ -2056,6 +2065,10 @@ async def process_queue():
     print(f"🚀 Job Queue Worker started with {MAX_CONCURRENT_JOBS} concurrent slots.")
     while True:
         try:
+            # Live clipping owns the media/ASR pipeline until it stops.
+            if _live_api.has_active_session():
+                await asyncio.sleep(1)
+                continue
             # Wait for a job (priority, seq, job_id) — lowest priority first.
             _priority, _seq, job_id = await job_queue.get()
 
@@ -2239,6 +2252,8 @@ def is_transient_failure(logs) -> bool:
 
 
 def _should_auto_retry(job) -> bool:
+    if job and job.get('status') == 'cancelled':
+        return False
     return bool(job and job.get('status') == 'failed' and not _draining
                 and int(job.get('auto_retries') or 0) < AUTO_RETRY_LIMIT
                 and job.get('cmd') and is_transient_failure(job.get('logs')))
@@ -2750,6 +2765,10 @@ app.include_router(_mcp_server.router)
 import free_tools as _free_tools
 app.include_router(_free_tools.router)
 
+# Live clipping API (session endpoints are introduced in L6).
+import live_api as _live_api
+app.include_router(_live_api.router)
+
 # Enable CORS for frontend. Cloud mode locks this down to the configured origins;
 # self-host keeps the permissive wildcard it has always used.
 app.add_middleware(
@@ -2913,6 +2932,42 @@ def _signed_media_url(url_path: str, base: str = "") -> str:
     if not secret:
         return f"{base.rstrip('/')}{url_path}" if base and url_path.startswith("/") else url_path
     return media_auth.sign_absolute_url(base, url_path, secret)
+
+
+async def _live_access(request: Request):
+    if BILLING_ENABLED and not await resolve_gemini(request):
+        raise gemini_missing_error()
+
+
+def _assert_live_admission():
+    """Start live only when no ordinary work is queued, admitting or running."""
+    busy = bool(_running_jobs or _admitting) or any(
+        job.get("status") in ("queued", "processing") for job in jobs.values()
+    )
+    if busy:
+        raise HTTPException(
+            status_code=409,
+            detail="Hay otro proceso en cola o ejecución. Espera a que termine antes de iniciar live clipping.",
+        )
+
+
+import live_api as _live_api
+_live_api.configure(output_dir=OUTPUT_DIR, owner_resolver=_owner_id,
+                    access_check=_live_access, media_signer=_signed_media_url,
+                    admission_check=_assert_live_admission)
+
+
+@app.middleware("http")
+async def block_other_work_during_live(request: Request, call_next):
+    path = request.url.path
+    changes_state = request.method in {"POST", "PUT", "PATCH", "DELETE"}
+    if (changes_state and path.startswith("/api/") and not path.startswith("/api/live")
+            and _live_api.has_active_session()):
+        return JSONResponse(
+            status_code=423,
+            content={"detail": "Live clipping está activo. Detén la sesión antes de iniciar otra operación."},
+        )
+    return await call_next(request)
 
 
 @app.post("/api/media-token")
@@ -3187,6 +3242,7 @@ async def run_job(job_id, job_data):
             cwd=os.getcwd(),
             preexec_fn=_lower_priority,
         )
+        _active_processes[job_id] = process
         
         # We need to capture logs in a thread because Popen isn't async
         t_log = threading.Thread(target=enqueue_output, args=(process.stdout, job_id))
@@ -3254,6 +3310,16 @@ async def run_job(job_id, job_data):
 
         returncode = process.returncode
         
+        # Si el trabajo fue cancelado durante la ejecución, asegurar que no termine como completed o failed
+        if job_id in _cancelling_jobs or jobs.get(job_id, {}).get('status') == 'cancelled':
+            jobs[job_id]['status'] = 'cancelled'
+            jobs[job_id]['logs'].append("Job was cancelled by user.")
+            try:
+                stage_tracker.mark_stage_cancelled(output_dir)
+            except Exception:
+                pass
+            return
+
         if returncode == 0:
             jobs[job_id]['status'] = 'completed'
             jobs[job_id]['logs'].append("Process finished successfully.")
@@ -3309,6 +3375,13 @@ async def run_job(job_id, job_data):
                 pass
             
     except Exception as e:
+        if job_id in _cancelling_jobs or jobs.get(job_id, {}).get('status') == 'cancelled':
+            jobs[job_id]['status'] = 'cancelled'
+            try:
+                stage_tracker.mark_stage_cancelled(output_dir)
+            except Exception:
+                pass
+            return
         jobs[job_id]['status'] = 'failed'
         # Exception text can embed URLs with credentials (e.g. the proxy URL
         # inside a yt-dlp/httpx error) — scrub before it reaches client logs.
@@ -3318,6 +3391,8 @@ async def run_job(job_id, job_data):
             stage_tracker.mark_stage_failed(output_dir, error=_scrub_secrets(error_msg))
         except Exception:
             pass
+    finally:
+        _active_processes.pop(job_id, None)
 
 @app.get("/health")
 async def health():
@@ -4508,6 +4583,132 @@ async def delete_project_endpoint(request: Request, job_id: str = Depends(valid_
     if not success:
         raise HTTPException(status_code=404, detail="Project not found")
     return {"success": True, "job_id": job_id}
+
+
+def _stop_process_tree(proc: subprocess.Popen, timeout: float = 3.0):
+    """Detiene limpiamente un proceso y todos sus procesos hijos (FFmpeg, yt-dlp, etc.)."""
+    try:
+        parent = psutil.Process(proc.pid)
+        children = parent.children(recursive=True)
+        for child in children:
+            try:
+                child.terminate()
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                pass
+        try:
+            parent.terminate()
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            pass
+
+        gone, alive = psutil.wait_procs(children + [parent], timeout=timeout)
+        for p in alive:
+            try:
+                p.kill()
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                pass
+    except (psutil.NoSuchProcess, psutil.AccessDenied):
+        try:
+            proc.kill()
+        except Exception:
+            pass
+
+
+def _clean_job_temp_artifacts(output_dir: str):
+    """Elimina archivos temporales, fragmentos y clips parciales generados por el job,
+    sin borrar el video fuente original (input_video) ni afectar otros trabajos."""
+    if not os.path.isdir(output_dir):
+        return
+    try:
+        for fname in os.listdir(output_dir):
+            # No tocar el archivo marcador de cancelación mientras se ejecuta la limpieza
+            if fname == ".cancel":
+                continue
+            # No borrar archivos que sean fuentes originales
+            full_path = os.path.join(output_dir, fname)
+            if os.path.isdir(full_path):
+                continue
+            # Borrar temporales, clips intermedios, checkpoints y metadatos parciales
+            if (
+                fname.startswith(("temp_", "hooked_", "subtitled_", "autosubs_", "wm_"))
+                or "_clip_" in fname
+                or fname.endswith(("_metadata.json", ".part", ".ytdl"))
+                or fname in (".transcript_checkpoint.json", ".score_checkpoint.json")
+            ):
+                try:
+                    os.remove(full_path)
+                except OSError:
+                    pass
+    except Exception as e:
+        print(f"⚠️ Error limpiando temporales de {output_dir}: {e}")
+
+
+@app.post("/api/jobs/{job_id}/cancel")
+async def cancel_job_endpoint(request: Request, job_id: str = Depends(valid_job_id)):
+    """Cancela una generación activa de clips desde cualquier etapa, detiene procesos y limpia temporales."""
+    job = jobs.get(job_id)
+    job_output_dir = os.path.join(OUTPUT_DIR, job_id)
+
+    # Idempotencia: si ya está cancelado, responder con éxito inmediatamente
+    if job and job.get("status") == "cancelled":
+        return {
+            "success": True,
+            "job_id": job_id,
+            "status": "cancelled",
+            "message": "El trabajo ya estaba cancelado.",
+        }
+
+    # Verificar si está activo o en cola
+    if not job or job.get("status") not in ("queued", "processing"):
+        # Podría no estar en memoria pero tener stages.json en disco
+        stages_data = stage_tracker.read_stages(job_output_dir) if os.path.isdir(job_output_dir) else None
+        if stages_data and stages_data.get("status") in ("pending", "running"):
+            pass  # Activo según stages.json
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail=f"El trabajo {job_id} no está activo (estado actual: {job.get('status') if job else 'no encontrado'})."
+            )
+
+    # 1. Registrar estado transitorio de cancelación
+    _cancelling_jobs.add(job_id)
+
+    # 2. Escribir marcador .cancel en disco para que main.py y los threads de clips lo detecten
+    if os.path.isdir(job_output_dir):
+        try:
+            with open(os.path.join(job_output_dir, ".cancel"), "w", encoding="utf-8") as f:
+                f.write(str(time.time()))
+        except Exception as e:
+            print(f"⚠️ Error creando archivo .cancel para {job_id}: {e}")
+
+    # 3. Detener procesos activos (main.py + árbol de hijos: ffmpeg, etc.)
+    proc = _active_processes.get(job_id)
+    if proc:
+        _stop_process_tree(proc, timeout=2.0)
+
+    # 4. Limpieza de archivos temporales
+    if os.path.isdir(job_output_dir):
+        _clean_job_temp_artifacts(job_output_dir)
+
+    # 5. Marcar en stages.json y en el diccionario jobs
+    if os.path.isdir(job_output_dir):
+        try:
+            stage_tracker.mark_stage_cancelled(job_output_dir)
+        except Exception:
+            pass
+
+    if job:
+        job["status"] = "cancelled"
+        job["result"] = None
+        job.setdefault("logs", []).append("🛑 Generación cancelada por el usuario.")
+
+    _clear_resume_manifest(job_id)
+
+    return {
+        "success": True,
+        "job_id": job_id,
+        "status": "cancelled",
+        "message": "Generación cancelada exitosamente y archivos temporales limpiados.",
+    }
 
 
 @app.post("/api/jobs/{job_id}/retry")

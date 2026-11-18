@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Upload, Sparkles, Youtube, Instagram, Share2, ChevronDown, Check, Activity, LayoutDashboard, Settings, Plus, History, FolderOpen, X, Shield, LayoutGrid, Image, Globe, RotateCcw, Calendar, AlertTriangle, KeyRound, Bot, Users, Smartphone, ExternalLink, Copy, CheckCircle2, Mail, Loader2, Download, Menu, Lock, Rocket, Film } from 'lucide-react';
 import KeyInput from './components/KeyInput';
 import MediaInput from './components/MediaInput';
@@ -26,6 +26,7 @@ import TrialGate from './components/TrialGate';
 import AdvancedBanner from './components/AdvancedBanner';
 import HistoryTab from './components/HistoryTab';
 import AutopilotTab from './components/AutopilotTab';
+import LivePanel from './components/LivePanel';
 import StageProgress from './components/StageProgress';
 import ProfileMenu from './components/ProfileMenu';
 import Modal from './components/ui/Modal';
@@ -520,7 +521,10 @@ function App() {
   // When each server log line arrived (epoch s, parallel to logs), from /api/status.
   const [logTimes, setLogTimes] = useState([]);
   const [processingMedia, setProcessingMedia] = useState(null);
-  const [activeTab, setActiveTab] = useState('dashboard'); // dashboard, settings
+  const [activeTab, setActiveTab] = useState(() => (
+    window.location.pathname.replace(/\/$/, '') === '/en-vivo' ? 'live' : 'dashboard'
+  )); // dashboard, live, history, settings
+  const [liveExclusive, setLiveExclusive] = useState(false);
   // Mobile only: the full nav lives in a drawer behind the header's menu button.
   const [navOpen, setNavOpen] = useState(false);
   // Reopened-project state (paid mode): per-clip {index, server_file, active_layers}
@@ -558,6 +562,8 @@ function App() {
   }, [activeTab, status, fetchRecentProjects]);
   const [stages, setStages] = useState(null);
   const [retryingJob, setRetryingJob] = useState(false);
+  const [cancellingJob, setCancellingJob] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
 
   // Clips in-flight: stages.clips entries not yet in results.clips (R5 progressive display)
   const pendingClips = useMemo(() => {
@@ -894,6 +900,25 @@ function App() {
       alert(`Retry failed: ${e.message}`);
     } finally {
       setRetryingJob(false);
+    }
+  };
+
+  const handleCancelCurrentJob = async () => {
+    if (!jobId || cancellingJob) return;
+    setCancellingJob(true);
+    try {
+      await apiJson(`/api/jobs/${jobId}/cancel`, { method: 'POST' });
+      setStatus('cancelled');
+      setStages((prev) => prev ? { ...prev, status: 'cancelled' } : null);
+      setLogs((prev) => [
+        ...prev,
+        '🛑 Generación cancelada por el usuario.',
+      ]);
+      setShowCancelModal(false);
+    } catch (e) {
+      alert(`Error al cancelar: ${e.message}`);
+    } finally {
+      setCancellingJob(false);
     }
   };
 
@@ -1243,13 +1268,16 @@ function App() {
   // dropped so a reload does not keep forcing the tab.
   const [autopilotConnected, setAutopilotConnected] = useState(false);
   useEffect(() => {
-    const DEEP_LINK_TABS = ['autopilot', 'history', 'settings', 'thumbnails', 'dashboard', 'saasshorts'];
+    const DEEP_LINK_TABS = ['autopilot', 'history', 'settings', 'thumbnails', 'dashboard', 'saasshorts', 'live'];
     const apply = () => {
       const hash = window.location.hash || '';
       if (!hash.startsWith('#app?')) return;
       const params = new URLSearchParams(hash.slice(5));
       const tab = params.get('tab');
       if (!tab || !DEEP_LINK_TABS.includes(tab)) return;  // e.g. #app?tutorial=1
+      if (tab === 'live' && window.location.pathname.replace(/\/$/, '') !== '/en-vivo') {
+        window.history.replaceState(null, '', '/en-vivo');
+      }
       setActiveTab(tab);
       if (tab === 'autopilot' && params.get('connected') === '1') setAutopilotConnected(true);
       try { window.history.replaceState(null, '', '#app'); } catch (_) { /* ignore */ }
@@ -1587,13 +1615,14 @@ function App() {
   const showExtraTools = import.meta.env.VITE_SHOW_EXTRA_TOOLS === '1';
   const navItems = [
     { id: 'dashboard', ord: '01', icon: LayoutDashboard, label: 'Clip Generator', short: 'clips', primary: true },
-    { id: 'history', ord: '02', icon: FolderOpen, label: 'Projects', short: 'projects', primary: true },
-    { id: 'settings', ord: '03', icon: Settings, label: 'Settings', short: 'settings' },
+    { id: 'live', ord: '02', icon: Film, label: 'En vivo', short: 'en vivo', primary: true },
+    { id: 'history', ord: '03', icon: FolderOpen, label: 'Projects', short: 'projects', primary: true },
+    { id: 'settings', ord: '04', icon: Settings, label: 'Settings', short: 'settings', primary: true },
     ...(showExtraTools ? [
-      { id: 'saasshorts', ord: '04', icon: Sparkles, label: 'AI Shorts', short: 'shorts' },
-      { id: 'ai-agent', ord: '05', icon: Bot, label: 'AI Agent', short: 'agent' },
-      { id: 'ugc-gallery', ord: '06', icon: Image, label: 'UGC Gallery', short: 'ugc' },
-      { id: 'thumbnails', ord: '07', icon: Youtube, label: 'YouTube Studio', short: 'studio' },
+      { id: 'saasshorts', ord: '05', icon: Sparkles, label: 'AI Shorts', short: 'shorts' },
+      { id: 'ai-agent', ord: '06', icon: Bot, label: 'AI Agent', short: 'agent' },
+      { id: 'ugc-gallery', ord: '07', icon: Image, label: 'UGC Gallery', short: 'ugc' },
+      { id: 'thumbnails', ord: '08', icon: Youtube, label: 'YouTube Studio', short: 'studio' },
     ] : [])
   ];
   const activeNav = navItems.find((n) => n.id === activeTab);
@@ -1608,10 +1637,49 @@ function App() {
   }, [navOpen]);
 
   const goToTab = (id) => {
+    if (liveExclusive && id !== 'live') return;
     if (tutorialLock && id !== 'dashboard') return;
+    if (id === 'live' && window.location.pathname.replace(/\/$/, '') !== '/en-vivo') {
+      window.history.pushState(null, '', '/en-vivo');
+    } else if (id !== 'live' && window.location.pathname.replace(/\/$/, '') === '/en-vivo') {
+      window.history.pushState(null, '', '/#app');
+    }
     setActiveTab(id);
     setNavOpen(false);
   };
+
+  useEffect(() => {
+    const syncLiveRoute = () => {
+      if (window.location.pathname.replace(/\/$/, '') === '/en-vivo') setActiveTab('live');
+      else if (activeTab === 'live') setActiveTab('dashboard');
+    };
+    window.addEventListener('popstate', syncLiveRoute);
+    return () => window.removeEventListener('popstate', syncLiveRoute);
+  }, [activeTab]);
+  useEffect(() => {
+    let cancelled = false;
+    const syncActiveLive = async () => {
+      try {
+        const data = await apiJson('/api/live');
+        if (cancelled) return;
+        const active = (data.sessions || []).some((item) =>
+          ['iniciando', 'esperando', 'capturando', 'reconectando', 'deteniendo', 'finalizando'].includes(item.status)
+        );
+        setLiveExclusive(active);
+        if (active) {
+          setActiveTab('live');
+          if (window.location.pathname.replace(/\/$/, '') !== '/en-vivo') {
+            window.history.replaceState(null, '', '/en-vivo');
+          }
+        }
+      } catch {
+        // Keep the last known lock during a temporary network failure.
+      }
+    };
+    syncActiveLive();
+    const timer = window.setInterval(syncActiveLive, 2500);
+    return () => { cancelled = true; window.clearInterval(timer); };
+  }, []);
   const tabLocked = (id) => tutorialLock && id !== 'dashboard';
 
   // Shared footer links (landing, repo, pricing, contact) — same list in the
@@ -1802,6 +1870,22 @@ function App() {
       </nav>
     );
   };
+
+  if (liveExclusive) {
+    return (
+      <div className="h-screen supports-[height:100dvh]:h-[100dvh] overflow-y-auto bg-background">
+        <main className="max-w-6xl mx-auto p-4 sm:p-6 md:p-8">
+          <LivePanel
+            geminiApiKey={apiKey}
+            uploadPostKey={uploadPostKey}
+            uploadUserId={uploadUserId}
+            isManaged={isManaged}
+            onActiveChange={setLiveExclusive}
+          />
+        </main>
+      </div>
+    );
+  }
 
   return (
     /* h-dvh where supported: on mobile Safari/Chrome `100vh` is the tallest the
@@ -2336,6 +2420,20 @@ function App() {
             </div>
           )}
 
+          {activeTab === 'live' && (
+            <div className="h-full overflow-y-auto custom-scrollbar animate-fade">
+              <div className="max-w-6xl mx-auto p-4 sm:p-6 md:p-8">
+                <LivePanel
+                  geminiApiKey={apiKey}
+                  uploadPostKey={uploadPostKey}
+                  uploadUserId={uploadUserId}
+                  isManaged={isManaged}
+                  onActiveChange={setLiveExclusive}
+                />
+              </div>
+            </div>
+          )}
+
           {activeTab === 'thumbnails' && (
             <ThumbnailStudio
               geminiApiKey={apiKey}
@@ -2533,7 +2631,9 @@ function App() {
                   logTimes={logTimes}
                   onRetry={handleRetryCurrentJob}
                   onRetryStage={handleRetryCurrentJob}
+                  onCancelJob={() => setShowCancelModal(true)}
                   isRetrying={retryingJob}
+                  isCancelling={cancellingJob}
                   status={status}
                 />
               </div>
@@ -2752,6 +2852,23 @@ function App() {
                           Clips will appear here progressively as each finishes rendering.
                         </p>
                       </div>
+                    ) : status === 'cancelled' ? (
+                      <div className="h-full min-h-[160px] flex flex-col items-center justify-center text-text-secondary space-y-3 text-center px-4">
+                        <div className="w-10 h-10 rounded-full bg-error/10 border border-error/30 flex items-center justify-center text-error">
+                          ✕
+                        </div>
+                        <p className="text-sm font-medium text-text-primary">Generación cancelada</p>
+                        <p className="text-xs text-text-secondary max-w-[32ch] leading-relaxed">
+                          El proceso fue detenido y se eliminaron los archivos temporales de este trabajo.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={handleReset}
+                          className="btn-primary py-1.5 px-4 text-xs mt-2"
+                        >
+                          Nuevo vídeo
+                        </button>
+                      </div>
                     ) : status === 'error' ? (
                       <DiagnosticErrorCard
                         error={jobError}
@@ -2775,6 +2892,45 @@ function App() {
         <MobileTabBar />
 
       </main>
+
+      {/* Missing API Key Modal */}
+      <Modal
+        isOpen={showCancelModal}
+        onClose={() => !cancellingJob && setShowCancelModal(false)}
+        eyebrow="CANCELAR"
+        title="¿Cancelar generación de clips?"
+        footer={
+          <div className="flex gap-2 justify-end w-full">
+            <button
+              type="button"
+              onClick={() => setShowCancelModal(false)}
+              disabled={cancellingJob}
+              className="btn-ghost px-4 py-2 text-xs"
+            >
+              Continuar procesando
+            </button>
+            <button
+              type="button"
+              onClick={handleCancelCurrentJob}
+              disabled={cancellingJob}
+              className="btn-danger px-4 py-2 text-xs flex items-center gap-1.5"
+            >
+              {cancellingJob ? (
+                <>
+                  <Loader2 size={13} className="animate-spin" />
+                  Cancelando…
+                </>
+              ) : (
+                'Sí, cancelar trabajo'
+              )}
+            </button>
+          </div>
+        }
+      >
+        <p className="text-sm text-text-secondary leading-relaxed">
+          Se detendrán los procesos en curso (análisis, transcripción o renderizado) y se eliminarán los fragmentos y archivos temporales generados por este trabajo.
+        </p>
+      </Modal>
 
       {/* Missing API Key Modal */}
       <Modal

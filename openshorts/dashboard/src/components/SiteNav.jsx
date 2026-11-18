@@ -53,6 +53,7 @@ export default function SiteNav({ className = '' }) {
 
   const NAV_LINKS = [
     { href: '#landing', label: 'Inicio' },
+    { href: '/en-vivo', label: 'En vivo' },
     { href: '#/pricing', label: 'Precios', hidden: !billingEnabled },
     { href: brandConfig.githubUrl, label: 'GitHub', external: true },
   ].filter(l => !l.hidden);

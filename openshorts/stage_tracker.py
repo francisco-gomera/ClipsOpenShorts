@@ -483,6 +483,44 @@ def mark_stage_failed(
     return finish_stage(job_dir, target_stage, error=error or "Stage execution failed")
 
 
+def mark_stage_cancelled(
+    job_dir: str,
+    stage_name: Optional[str] = None,
+    message: Optional[str] = "Generación cancelada por el usuario"
+) -> Dict[str, Any]:
+    """Marca la etapa activa (y el job global) como 'cancelled' en stages.json."""
+    data = read_stages(job_dir) or init_stages(job_dir)
+    target_stage = stage_name or data.get("current_stage")
+
+    if not target_stage or target_stage == "complete":
+        for sname, sinfo in data.get("stages", {}).items():
+            if sinfo.get("status") == "running":
+                target_stage = sname
+                break
+
+    with _tracker_lock:
+        data["status"] = "cancelled"
+        data["mode"] = "indeterminate"
+        data["percent"] = None
+        data["eta_seconds"] = None
+        data["updated_at"] = time.time()
+        data["recovery"] = {
+            "state": "cancelled",
+            "retry_at": None,
+            "message": message,
+        }
+        if target_stage and target_stage in data.get("stages", {}):
+            s_info = data["stages"][target_stage]
+            s_info["status"] = "cancelled"
+            s_info["message"] = message
+            s_info["updated_at"] = time.time()
+            if s_info.get("started_at") and not s_info.get("duration_seconds"):
+                s_info["duration_seconds"] = round(time.time() - s_info["started_at"], 2)
+
+        save_stages_direct(job_dir, data)
+        return data
+
+
 def infer_stages_from_disk(job_dir: str, job_id: Optional[str] = None) -> Dict[str, Any]:
     """
     Reconstruye o infiere el estado de las etapas a partir de los artefactos

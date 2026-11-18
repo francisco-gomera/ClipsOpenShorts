@@ -6,7 +6,9 @@ export default function StageProgress({
   logs = [],
   onRetry = null,
   onRetryStage = null,
+  onCancelJob = null,
   isRetrying = false,
+  isCancelling = false,
   status = 'processing',
 }) {
   if (!stagesData || !stagesData.stages) return null;
@@ -16,7 +18,9 @@ export default function StageProgress({
       stagesData={stagesData}
       logs={logs}
       onRetryStage={onRetryStage || onRetry}
+      onCancelJob={onCancelJob}
       isRetrying={isRetrying}
+      isCancelling={isCancelling}
       status={status}
     />
   );

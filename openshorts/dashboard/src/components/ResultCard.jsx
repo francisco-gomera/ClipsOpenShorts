@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Download, Share2, Instagram, Youtube, Video, AlertCircle, Loader2, Copy, Check, Wand2, Type, Calendar, Languages, FileText, Link2, Scissors, Crosshair, TrendingUp } from 'lucide-react';
 import { getApiUrl } from '../config';
 import { apiFetch } from '../lib/api';
@@ -63,7 +63,7 @@ function formatDuration(clip) {
     return `${String(Math.floor(secs / 60)).padStart(2, '0')}:${String(secs % 60).padStart(2, '0')}`;
 }
 
-export default function ResultCard({ clip, index, jobId, durable, uploadPostKey, uploadUserId, geminiApiKey, elevenLabsKey, isManaged, onPlay, onPause, onBulkSubtitle, clipCount = 1, bulkProgress, initialState = null, onStateChange, connectedPlatforms = null, onConnectSocials, onEditClip = null, onReframeClip = null, onUpgrade = null }) {
+export default function ResultCard({ clip, index, jobId, durable, uploadPostKey, uploadUserId, geminiApiKey, elevenLabsKey, isManaged, onPlay, onPause, onBulkSubtitle, clipCount = 1, bulkProgress, initialState = null, onStateChange, connectedPlatforms = null, onConnectSocials, onEditClip = null, onReframeClip = null, onUpgrade = null, liveMode = false, onEditMetadata = null }) {
     const [showModal, setShowModal] = useState(false);
     // The "why" line is clamped to two lines so cards in a row stay level;
     // when it overflows, a hover (desktop) or tap (touch) shows the whole
@@ -979,14 +979,22 @@ export default function ResultCard({ clip, index, jobId, durable, uploadPostKey,
                         </button>
                     )}
 
-                    <button
-                        onClick={handleAutoEdit}
-                        disabled={isEditing}
-                        className={QUIET_BTN}
-                    >
-                        {isEditing ? <Loader2 size={16} className="animate-spin text-primary shrink-0" /> : <Wand2 size={16} className="text-text-secondary group-hover:text-primary transition-colors shrink-0" />}
-                        {isEditing ? 'editando…' : 'auto editar'}
-                    </button>
+                    {liveMode && onEditMetadata && (
+                        <button onClick={() => onEditMetadata(index)} className={QUIET_BTN}>
+                            <FileText size={16} className="text-text-secondary group-hover:text-primary transition-colors shrink-0" />
+                            editar textos
+                        </button>
+                    )}
+
+                    {!liveMode && <>
+                        <button
+                            onClick={handleAutoEdit}
+                            disabled={isEditing}
+                            className={QUIET_BTN}
+                        >
+                            {isEditing ? <Loader2 size={16} className="animate-spin text-primary shrink-0" /> : <Wand2 size={16} className="text-text-secondary group-hover:text-primary transition-colors shrink-0" />}
+                            {isEditing ? 'editando…' : 'auto editar'}
+                        </button>
 
                     <button
                         onClick={() => setShowSubtitleModal(true)}
@@ -1021,6 +1029,7 @@ export default function ResultCard({ clip, index, jobId, durable, uploadPostKey,
                     >
                         <Share2 size={16} className="shrink-0" /> publicar
                     </button>
+                    </>}
                     <button
                         onClick={(e) => {
                             e.preventDefault();

@@ -38,7 +38,7 @@ Ingest (yt-dlp or upload) → transcription (word timestamps) → scene detectio
 ## Evolution Plan & Customization Rules
 
 The repository follows the Master Evolution Plan with decisions D1-D5:
-- **D1. Secondary tools navigation:** The main dashboard navigation shows only Core tools: Clip Generator, Projects, and Settings. Secondary tools (AI Shorts, AI Agent, UGC Gallery, YouTube Studio) remain available behind the `VITE_SHOW_EXTRA_TOOLS=1` environment flag without deleting their code or endpoints.
+- **D1. Core and secondary tools navigation:** The main dashboard navigation shows Core tools: Clip Generator, En vivo, Projects, and Settings. Secondary tools (AI Shorts, AI Agent, UGC Gallery, YouTube Studio) remain available behind the `VITE_SHOW_EXTRA_TOOLS=1` environment flag without deleting their code or endpoints.
 - **D2. Internal & Personal Use:** Personal/internal use is the primary deployment target. Billing, auth and cloud integrations are strictly preserved without regressions.
 - **D3. CPU-first execution:** AMD GPU on Docker Windows means the CPU path is primary. GPU decode and rendering paths must never be broken, but local verification runs against the CPU path.
 - **D4. Brand Name & Rebranding:** Configurable brand name (`brand.config.js`) reads `VITE_BRAND_NAME`, falling back to the provisional placeholder `ClipsOpenShorts`. Typography is 100% open-licensed and locally hosted (Instrument Serif, Geist, JetBrains Mono).
@@ -57,6 +57,7 @@ The repository follows the Master Evolution Plan with decisions D1-D5:
 - Free-plan watermark (served `wm_` copy, unmark on upgrade) → `docs/architecture/watermark.md`
 - Quota wall, free overflow, lifecycle emails, cancel flow, survey, GDPR erasure → `docs/architecture/billing-and-account.md`
 - Concurrency/VRAM, auto-retry, deploy handover and drain → `docs/architecture/jobs-and-deploys.md`
+- Live clipping capture, ASR, queue and session API → `docs/architecture/live.md`
 - Download routing, yt-dlp clients, paid proxy ledger → `docs/architecture/proxy-routing.md`
 
 ## Hard rules

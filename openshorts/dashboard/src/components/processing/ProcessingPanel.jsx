@@ -9,7 +9,9 @@ export default function ProcessingPanel({
   stagesData = {},
   logs = [],
   onRetryStage = null,
+  onCancelJob = null,
   isRetrying = false,
+  isCancelling = false,
   status = 'processing',
 }) {
   const stages = stagesData.stages || {};
@@ -41,6 +43,31 @@ export default function ProcessingPanel({
         currentStageName={currentStageLabel}
         status={stagesData.status || status}
       />
+
+      {/* Cancel generation button */}
+      {status === 'processing' && onCancelJob && (
+        <div className="flex justify-end pt-1">
+          <button
+            type="button"
+            onClick={onCancelJob}
+            disabled={isCancelling}
+            className="px-3.5 py-1.5 rounded-input text-xs font-medium border border-error/40 text-error hover:bg-error/10 hover:border-error transition-all flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-label="Cancelar generación"
+          >
+            {isCancelling ? (
+              <>
+                <span className="w-2.5 h-2.5 rounded-full border-2 border-error border-t-transparent animate-spin shrink-0" />
+                Cancelando…
+              </>
+            ) : (
+              <>
+                <span className="text-sm leading-none font-bold">✕</span>
+                Cancelar generación
+              </>
+            )}
+          </button>
+        </div>
+      )}
 
       {/* Stage list */}
       <div

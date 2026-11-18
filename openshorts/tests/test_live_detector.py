@@ -1,0 +1,57 @@
+from live.detector import LiveDetector
+from live.judge import judge_candidate
+from live.signals import AudioPeakDetector
+
+
+def test_detector_fuses_audio_and_keyword_and_applies_cooldown():
+    detector = LiveDetector(cooldown_seconds=20, min_seconds=25, max_seconds=60,
+                            audio_detector=AudioPeakDetector(warmup_seconds=0, threshold=3))
+    detector.detect([{"start": 0, "end": 1, "db": -30},
+                     {"start": 1, "end": 2, "db": -30},
+                     {"start": 2, "end": 3, "db": -30}], {"segments": []}, latest_time=3)
+    transcript = {"language": "es", "segments": [{"start": 40, "end": 43,
+        "text": "clipea esto", "words": [
+            {"word": "clipea", "start": 40.0, "end": 41.0},
+            {"word": " esto", "start": 41.1, "end": 42.0},
+        ]}]}
+    candidates = detector.detect([{"start": 42, "end": 43, "db": -5}], transcript, latest_time=80)
+
+    assert len(candidates) == 1
+    candidate = candidates[0]
+    assert candidate["signals"] == ["audio", "keyword"]
+    assert candidate["keyword"] == "clipea esto"
+    assert 25 <= candidate["end"] - candidate["start"] <= 60
+    assert candidate["start"] >= 0
+    assert detector.detect([], transcript, latest_time=80) == []
+
+
+def test_judge_falls_back_to_transcript_templates():
+    candidate = {"id": "live_1", "start": 2, "end": 32, "predicted_score": 80,
+                 "signals": ["audio"], "audio_z": 7, "why": "Pico de audio"}
+    result = judge_candidate(candidate, {"segments": [{"start": 1, "end": 34,
+        "text": "La jugada increíble cambia todo"}]}, generate=lambda *_args, **_kwargs: None)
+
+    assert result["start"] == 2
+    assert result["source_window_id"] == "live_1"
+    assert result["viral_hook_text"]
+    assert result["predicted_score"] == 80
+
+
+def test_judge_fuses_llm_score_with_signals():
+    candidate = {"id": "live_2", "start": 5, "end": 35, "predicted_score": 100,
+                 "signals": ["audio", "keyword"], "audio_z": 6,
+                 "keyword_score": 1, "why": "Pico con reacción"}
+
+    def fake_generate(_prompt, _schema, model=None):
+        return ({"start": 99, "end": 100, "source_window_id": "bad",
+                 "predicted_score": 20, "video_description_for_tiktok": "t",
+                 "video_description_for_instagram": "i",
+                 "video_title_for_youtube_short": "title", "viral_hook_text": "hook",
+                 "why": "reason"}, None)
+
+    result = judge_candidate(candidate, {"segments": []}, generate=fake_generate)
+
+    assert result["start"] == 5
+    assert result["end"] == 35
+    assert result["source_window_id"] == "live_2"
+    assert result["predicted_score"] == 72
