@@ -4494,6 +4494,29 @@ async def download_all_clips(job_id: str = Depends(valid_job_id), request: Reque
     if not files:
         raise HTTPException(status_code=404, detail="No clip files found for this job")
 
+    # The results grid is ordered chronologically by source start time, while
+    # clip numbers retain their original metadata indices. Match that visible
+    # order here so the text file follows the videos as the user sees them.
+    clips_by_index = {i: clip for i, clip in enumerate(data.get("shorts", []))}
+
+    def display_start(index):
+        clip = clips_by_index.get(index) or {}
+        start = clip.get("start")
+        if not isinstance(start, (int, float)):
+            segments = (clip.get("recipe") or {}).get("segments") or []
+            start = segments[0].get("start", 0) if segments else 0
+        return start if isinstance(start, (int, float)) else 0
+
+    descriptions = []
+    for i, _path in sorted(files, key=lambda item: (display_start(item[0]), item[0])):
+        clip = clips_by_index.get(i) or {}
+        tiktok = str(clip.get("video_description_for_tiktok") or "").strip()
+        instagram = str(clip.get("video_description_for_instagram") or "").strip()
+        descriptions.append(
+            f"clip {i + 1}\nTikTok: {tiktok}\nInstagram: {instagram}"
+        )
+    description_text = "\n\n".join(descriptions) + "\n"
+
     # One file per request: two downloads of the same job in the same second
     # used to share a timestamped name, so the second truncated the ZIP the
     # first was still streaming and the first cleanup deleted it under the second.
@@ -4504,6 +4527,7 @@ async def download_all_clips(job_id: str = Depends(valid_job_id), request: Reque
         with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_STORED) as zf:
             for i, path in files:
                 zf.write(path, arcname=f"clip_{i + 1:02d}_{os.path.basename(path)}")
+            zf.writestr("descripcion.txt", description_text)
 
     def remove_zip():
         with suppress(FileNotFoundError):
