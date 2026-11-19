@@ -3778,14 +3778,12 @@ async def process_endpoint(
     max_minutes: Optional[str] = Form(None),
     source_start: Optional[str] = Form(None),
     source_end: Optional[str] = Form(None),
+    generation_mode: Optional[str] = Form("smart"),
+    sequential_count: Optional[str] = Form(None),
+    sequential_seconds: Optional[str] = Form(None),
+    manual_segments: Optional[str] = Form(None),
 ):
     api_key = await resolve_gemini(request)
-    if not api_key and not (llm_backend.active() and not BILLING_ENABLED):
-        # Self-host with an OpenAI-compatible server configured needs no
-        # Google key for the core pipeline: the moment picker runs there and
-        # the frame-based stages degrade on their own (layout_picker returns
-        # "none", silent videos fail with a message that says why).
-        raise gemini_missing_error()
 
     ack_flag = str(acknowledged).lower() in ("1", "true", "yes")
     force_low = str(force_low_quality).lower() in ("1", "true", "yes")
@@ -3812,6 +3810,29 @@ async def process_endpoint(
         max_minutes = body.get("max_minutes")
         source_start = body.get("source_start")
         source_end = body.get("source_end")
+        generation_mode = body.get("generation_mode", "smart")
+        sequential_count = body.get("sequential_count")
+        sequential_seconds = body.get("sequential_seconds")
+        manual_segments = body.get("manual_segments")
+
+    generation_mode = generation_mode or "smart"
+    if generation_mode not in {"smart", "sequential", "full", "manual"}:
+        raise HTTPException(status_code=400, detail="Invalid generation_mode")
+    if generation_mode == "smart" and not api_key and not (llm_backend.active() and not BILLING_ENABLED):
+        raise gemini_missing_error()
+    if generation_mode == "sequential":
+        from generation_modes import build_sequential_clips
+        try:
+            count, seconds = int(sequential_count), float(sequential_seconds)
+            build_sequential_clips(count * seconds, count, seconds)
+        except (TypeError, ValueError) as e:
+            raise HTTPException(status_code=400, detail=str(e))
+    elif generation_mode == "manual":
+        from generation_modes import parse_manual_segments
+        try:
+            manual_segments = parse_manual_segments(manual_segments)
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
 
     # Normalize output format (auto = keep pipeline default).
     if output_format not in ("vertical", "horizontal", "square"):
@@ -3891,6 +3912,15 @@ async def process_endpoint(
     # running this server. Every job then dies on `import cv2`. The quality
     # probe above already gets this right.
     cmd = [sys.executable, "-u", "main.py"] # -u for unbuffered
+    cmd.extend(["--generation-mode", generation_mode])
+    if generation_mode == "sequential":
+        cmd.extend(["--sequential-count", str(int(sequential_count)),
+                    "--sequential-seconds", str(float(sequential_seconds))])
+    elif generation_mode == "manual":
+        manual_path = os.path.join(job_output_dir, "manual_segments.json")
+        with open(manual_path, "w", encoding="utf-8") as f:
+            json.dump(manual_segments, f)
+        cmd.extend(["--manual-segments", manual_path])
     env = child_env()
     if api_key:
         env["GEMINI_API_KEY"] = api_key # Override with key from request
@@ -4030,6 +4060,20 @@ async def process_endpoint(
 
         cmd.extend(["-i", input_path])
 
+    if input_path and generation_mode in {"sequential", "manual"}:
+        from generation_modes import build_sequential_clips, validate_segments
+        source_duration = _media_duration_seconds(input_path)
+        try:
+            if generation_mode == "sequential":
+                validate_segments(build_sequential_clips(
+                    source_duration, int(sequential_count), float(sequential_seconds)), source_duration)
+            else:
+                validate_segments(manual_segments, source_duration)
+        except ValueError as e:
+            _discard_rejected_source(input_path, job_output_dir,
+                                     upload_slot=upload_slot, upload_id=upload_id)
+            raise HTTPException(status_code=400, detail=str(e))
+
     cmd.extend(["-o", job_output_dir])
     if output_format and output_format != "auto":
         cmd.extend(["--format", output_format])
@@ -4141,6 +4185,10 @@ async def process_endpoint(
             "skip_analysis": False,
             "auto_hook": str(auto_hook).lower() in ("1", "true", "yes"),
             "auto_hook_style": auto_hook_style,
+            "generation_mode": generation_mode,
+            "sequential_count": sequential_count,
+            "sequential_seconds": sequential_seconds,
+            "manual_segments": manual_segments,
         }
         with open(os.path.join(job_output_dir, "job_options.json"), "w", encoding="utf-8") as f:
             json.dump(job_opts, f, indent=2)

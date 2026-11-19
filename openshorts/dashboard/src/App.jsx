@@ -1449,6 +1449,10 @@ function App() {
       // Advanced generation controls: only sent when the user set them, so the
       // default request stays byte-identical to the pre-feature one.
       const advanced = {
+        generation_mode: data.generationMode || 'smart',
+        sequential_count: data.sequentialCount || null,
+        sequential_seconds: data.sequentialSeconds || null,
+        manual_segments: data.manualSegments ? JSON.stringify(data.manualSegments) : null,
         target_clips: data.targetClips || null,
         clip_min_seconds: data.clipMinSeconds || null,
         clip_max_seconds: data.clipMaxSeconds || null,

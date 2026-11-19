@@ -2694,6 +2694,10 @@ def run_pipeline():
     parser.add_argument('-o', '--output', type=str, help="Output directory or file (if processing whole video).")
     parser.add_argument('--keep-original', action='store_true', help="Keep the downloaded YouTube video.")
     parser.add_argument('--skip-analysis', action='store_true', help="Skip AI analysis and convert the whole video.")
+    parser.add_argument('--generation-mode', choices=['smart', 'sequential', 'full', 'manual'], default='smart')
+    parser.add_argument('--manual-segments', type=str, help="JSON file containing manual source intervals.")
+    parser.add_argument('--sequential-count', type=int)
+    parser.add_argument('--sequential-seconds', type=float)
     parser.add_argument('--format', type=str, default="auto", choices=["auto", "vertical", "horizontal", "square"],
                         help="Output aspect: vertical/auto (9:16), horizontal (keep 16:9), square (1:1).")
     parser.add_argument('--transcript', type=str,
@@ -2804,7 +2808,7 @@ def run_pipeline():
             threading.Thread(target=_early_work, args=(audio_path, audio_duration),
                              daemon=True).start()
 
-        use_early = (not args.skip_analysis and not args.transcript
+        use_early = (args.generation_mode == "smart" and not args.skip_analysis and not args.transcript
                      and os.environ.get("EARLY_AUDIO", "1").strip() != "0"
                      and not os.environ.get("MAX_SOURCE_MINUTES", "").strip()
                      and not os.path.exists(os.path.join(output_dir, TRANSCRIPT_CHECKPOINT)))
@@ -2972,7 +2976,8 @@ def run_pipeline():
 
         # Music-only or wordless footage transcribes to a handful of words.
         # Clip it by what is on screen instead, like a video with no audio.
-        if transcript is not None and speech_is_sparse(transcript, duration):
+        if (args.generation_mode == "smart" and transcript is not None
+                and speech_is_sparse(transcript, duration)):
             n_words = sum(len((sg.get("text") or "").split()) for sg in transcript["segments"])
             print(f"🔇 Only {n_words} word(s) of speech in {duration:.0f}s — "
                   f"switching to visual analysis.")
@@ -2985,20 +2990,39 @@ def run_pipeline():
 
         raise_if_cancelled(output_dir)
 
-        # 4. Gemini Analysis (transcript-driven, or vision for silent videos)
+        # 4. Pick intervals. Non-smart modes feed the same clip renderer below.
         if global_reporter:
             global_reporter.start_stage("clip_selection", mode="determinate")
         else:
             stage_tracker.start_stage(output_dir, "clip_selection")
         early_clips = (early_state or {}).get("clips") if early_state else None
         try:
-            if (transcript is not None and early_clips and early_clips.get("shorts")):
-                print("♻️ Using the clips Gemini picked while the video downloaded.")
-                clips_data = early_clips
-            elif transcript is not None:
-                clips_data = get_viral_clips(transcript, duration, output_dir=output_dir)
+            if args.generation_mode == "smart":
+                if (transcript is not None and early_clips and early_clips.get("shorts")):
+                    print("♻️ Using the clips Gemini picked while the video downloaded.")
+                    clips_data = early_clips
+                elif transcript is not None:
+                    clips_data = get_viral_clips(transcript, duration, output_dir=output_dir)
+                else:
+                    clips_data = get_visual_clips(input_video, duration)
             else:
-                clips_data = get_visual_clips(input_video, duration)
+                import generation_modes
+                if args.generation_mode == "sequential":
+                    shorts = generation_modes.build_sequential_clips(
+                        duration, args.sequential_count, args.sequential_seconds)
+                elif args.generation_mode == "full":
+                    shorts = generation_modes.build_full_clip(duration)
+                    # A full-length source has one introductory hook. Reuse the
+                    # opening transcript phrase as grounded copy; never repeat it.
+                    opening = " ".join((s.get("text") or "").strip() for s in (transcript or {}).get("segments", [])[:2]).strip()
+                    if opening:
+                        shorts[0]["viral_hook_text"] = " ".join(opening.split()[:10])
+                        shorts[0]["video_title_for_youtube_short"] = opening[:100]
+                else:
+                    with open(args.manual_segments, encoding="utf-8") as f:
+                        shorts = generation_modes.parse_manual_segments(f.read())
+                generation_modes.validate_segments(shorts, duration)
+                clips_data = {"shorts": shorts}
         except (gemini_worker.GeminiRateLimitError, gemini_worker.GeminiDailyQuotaError) as e:
             err_msg = str(e)
             if global_reporter:
@@ -3022,6 +3046,7 @@ def run_pipeline():
             clips_data['transcript'] = transcript or {"language": "none", "segments": []}
             clips_data['source_video'] = os.path.basename(input_video)
             clips_data['output_format'] = output_format
+            clips_data['generation_mode'] = args.generation_mode
             if source_subtitle_band:
                 clips_data['source_subtitle_band'] = source_subtitle_band
             metadata_file = os.path.join(output_dir, f"{video_title}_metadata.json")
