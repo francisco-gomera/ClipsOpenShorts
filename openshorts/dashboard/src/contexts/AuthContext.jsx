@@ -4,9 +4,9 @@
 // - Exposes the current user, plan and minute balance to the app.
 // When billingEnabled is false the provider is inert and the app behaves as the
 // classic BYOK dashboard.
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { getApiUrl } from '../config';
-import { apiFetch, apiJson, getToken, setToken, clearToken } from '../lib/api';
+import { apiFetch, apiJson, getToken, setToken, clearToken, setLocalAuthEnabled, refreshLocalAccess } from '../lib/api';
 import { track, identify, reset as resetAnalytics } from '../lib/analytics';
 import { report as reportAttribution } from '../lib/attribution';
 import { readPendingPlan } from '../lib/pendingPlan';
@@ -35,7 +35,8 @@ const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
 
 export function AuthProvider({ children }) {
-  const [config, setConfig] = useState({ billingEnabled: false, googleAuthEnabled: false });
+  const [config, setConfig] = useState({ billingEnabled: false, googleAuthEnabled: false, localAuthEnabled: false });
+  const localAuthRef = useRef(false);
   const [me, setMe] = useState(null);           // /api/me payload, or null when signed out
   const [loading, setLoading] = useState(true);
   const [signingIn, setSigningIn] = useState(false);
@@ -43,9 +44,12 @@ export function AuthProvider({ children }) {
   const refreshMe = useCallback(async () => {
     if (!getToken()) { setMe(null); return null; }
     try {
-      const data = await apiJson('/api/me');
+      const data = await apiJson(localAuthRef.current ? '/api/auth/me' : '/api/me');
       // Before the user is set: the first players rendered need the token.
-      await ensureMediaToken(data?.user?.id);
+      // The bootstrap account can only change its password before accessing
+      // media or the rest of the API. Avoid clearing its valid login when the
+      // media-token endpoint correctly rejects that forced-change session.
+      if (!data?.user?.must_change_password) await ensureMediaToken(data?.user?.id);
       setMe(data);
       // Same profileId (user uuid) the server-side events use.
       identify(data?.user, { plan: data?.plan || 'free' });
@@ -141,10 +145,15 @@ export function AuthProvider({ children }) {
     (async () => {
       try {
         const cfg = await (await fetch(getApiUrl('/api/config'))).json();
+        localAuthRef.current = !!cfg.localAuthEnabled;
+        setLocalAuthEnabled(cfg.localAuthEnabled);
         setConfig(cfg);
         if (cfg.billingEnabled) {
           const handled = await handleAuthHash();
           if (!handled) await refreshMe();
+        } else if (cfg.localAuthEnabled) {
+          if (!getToken()) await refreshLocalAccess();
+          if (getToken()) await refreshMe();
         }
       } catch (_) { /* config fetch failed — stay in BYOK */ }
       setLoading(false);
@@ -176,6 +185,17 @@ export function AuthProvider({ children }) {
     await refreshMe();
   }, [refreshMe]);
 
+  const loginLocal = useCallback(async (username, password) => {
+    const data = await apiJson('/api/auth/login', {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+    setToken(data.access_token);
+    await refreshMe();
+    return data.user;
+  }, [refreshMe]);
+
   const loginWithGoogle = useCallback(async () => {
     let query = '';
     try {
@@ -193,6 +213,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   const logout = useCallback(() => {
+    if (localAuthRef.current) apiFetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
     clearToken();
     clearMediaToken();
     setMe(null);
@@ -201,6 +222,7 @@ export function AuthProvider({ children }) {
 
   const value = {
     billingEnabled: config.billingEnabled,
+    localAuthEnabled: config.localAuthEnabled,
     localLlm: config.localLlm || null,
     googleAuthEnabled: config.googleAuthEnabled,
     jobRetentionSeconds: config.jobRetentionSeconds || null,
@@ -217,6 +239,7 @@ export function AuthProvider({ children }) {
     refreshMe,
     requestMagicLink,
     loginWithPassword,
+    loginLocal,
     loginWithGoogle,
     logout,
   };

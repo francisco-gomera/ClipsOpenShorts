@@ -718,8 +718,11 @@ async def _authorized(request: Request) -> bool:
 
     The internal endpoints would each reject anonymous calls anyway; failing
     once here with a clear 401 is what lets MCP clients surface 'add your API
-    key' instead of a per-tool 402. Self-host stays open (BYOK)."""
+    key' instead of a per-tool 402. Self-host uses local JWT auth when enabled,
+    and otherwise stays open (BYOK)."""
     if not _billing_enabled():
+        if os.environ.get("LOCAL_AUTH_ENABLED", "true").strip().lower() in ("1", "true", "yes", "on"):
+            return getattr(request.state, "local_user", None) is not None
         return True
     from cloud.auth import get_current_user_optional
     return (await get_current_user_optional(request)) is not None

@@ -33,6 +33,7 @@ import recut
 import layout_ranges
 import watermarked
 import media_auth
+import local_auth
 import project_manager
 import stage_tracker
 import psutil
@@ -824,6 +825,9 @@ async def _owner_id(request):
     """The authenticated cloud user's id to stamp on a new job/session, or None
     for self-host / BYOK / anonymous (BILLING off → nothing to scope)."""
     if not BILLING_ENABLED:
+        if local_auth.enabled():
+            user = getattr(request.state, "local_user", None)
+            return user.get("id") if user else None
         return None
     user = await _user_from_request(request)
     return user.id if user else None
@@ -838,9 +842,15 @@ async def _assert_job_owner(request, record):
     a non-owner can't even confirm the id exists. UUID ids already make these
     stores hard to enumerate; this closes the gap for a shared/leaked id.
     """
-    if not BILLING_ENABLED:
-        return
     owner = record.get("user_id") if isinstance(record, dict) else None
+    if not BILLING_ENABLED:
+        if local_auth.enabled():
+            user = getattr(request.state, "local_user", None)
+            if owner is None or user is None or str(user.get("id")) != str(owner):
+                raise HTTPException(status_code=404, detail="Not found")
+        elif owner is None:
+            return
+        return
     if owner is None:
         return
     user = await _user_from_request(request)
@@ -2713,6 +2723,14 @@ def _purge_local_jobs_for_user(user_id) -> int:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    if local_auth.enabled():
+        legacy_owner_id = local_auth.initialize()
+        # A pre-auth self-hosted instance was single-user. Adopt its finished
+        # projects once so the initial administrator retains access to them.
+        for entry in os.scandir(OUTPUT_DIR):
+            if (entry.is_dir() and not os.path.exists(os.path.join(entry.path, ".owner"))
+                    and glob.glob(os.path.join(entry.path, "*_metadata.json"))):
+                _write_owner_marker(entry.path, legacy_owner_id)
     # Rehydrate finished jobs from disk before serving (survives restarts).
     _recover_jobs_from_disk()
     # Re-enqueue jobs that were mid-processing when we stopped (redeploy). Their
@@ -2754,6 +2772,8 @@ app = FastAPI(lifespan=lifespan)
 # Cloud mode: attach middleware + routers at import time (before the app serves).
 if BILLING_ENABLED:
     cloud.setup_sync(app)
+elif local_auth.enabled():
+    app.include_router(local_auth.router)
 
 # MCP server (/mcp): the pipeline as agent-callable tools. Works in both modes —
 # cloud requires an osk_ API key, self-host keeps BYOK (see mcp_server.py).
@@ -2807,7 +2827,7 @@ _media_legacy_logged: set = set()
 
 def _media_secret() -> str:
     if not BILLING_ENABLED:
-        return ""
+        return os.environ.get("JWT_SECRET", "") if local_auth.enabled() else ""
     return (_cloud_config.settings.jwt_secret or "") if _cloud_config else ""
 
 
@@ -2970,6 +2990,17 @@ async def block_other_work_during_live(request: Request, call_next):
     return await call_next(request)
 
 
+@app.middleware("http")
+async def require_local_auth(request: Request, call_next):
+    if local_auth.local_auth_middleware_enabled(request):
+        try:
+            local_auth.authenticate_request(request)
+        except HTTPException as exc:
+            return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail},
+                                headers=exc.headers)
+    return await call_next(request)
+
+
 @app.post("/api/media-token")
 async def issue_media_token(request: Request):
     """A short-lived token for the caller's own media, for the places that
@@ -2978,11 +3009,16 @@ async def issue_media_token(request: Request):
     secret = _media_secret()
     if not secret:
         return {"token": None, "expires_in": None}
-    user = await _user_from_request(request)
-    if user is None:
-        raise HTTPException(status_code=401, detail="Authentication required")
+    if local_auth.enabled():
+        local_user = local_auth.authenticate_request(request)
+        user_id = local_user["id"]
+    else:
+        user = await _user_from_request(request)
+        if user is None:
+            raise HTTPException(status_code=401, detail="Authentication required")
+        user_id = user.id
     ttl = media_auth.MEDIA_TOKEN_TTL_SECONDS
-    token = media_auth.mint_user_token(user.id, secret, ttl)
+    token = media_auth.mint_user_token(user_id, secret, ttl)
     response = JSONResponse({"token": token, "expires_in": ttl,
                              "expires_at": int(time.time()) + ttl})
     public = os.environ.get("PUBLIC_API_URL", "")
@@ -3418,6 +3454,7 @@ async def get_config():
     return {
         "youtubeUrlEnabled": not DISABLE_YOUTUBE_URL,
         "billingEnabled": BILLING_ENABLED,
+        "localAuthEnabled": local_auth.enabled(),
         "googleAuthEnabled": bool(BILLING_ENABLED and cloud.settings.google_auth_enabled),
         "jobRetentionSeconds": JOB_RETENTION_SECONDS,
         # Self-host only: tells the dashboard the Gemini key is optional
@@ -3612,6 +3649,9 @@ async def put_upload(upload_id: str, request: Request):
     if not slot or time.time() - slot["created"] > UPLOAD_TTL_SECONDS:
         pending_uploads.pop(upload_id, None)
         raise HTTPException(status_code=404, detail="Unknown or expired upload_id")
+    if ((BILLING_ENABLED or local_auth.enabled())
+            and slot.get("user_id") != await _owner_id(request)):
+        raise HTTPException(status_code=404, detail="Unknown or expired upload_id")
     limit_bytes = MAX_FILE_SIZE_MB * 1024 * 1024
     size = 0
     with open(slot["path"], "wb") as out:
@@ -3639,7 +3679,8 @@ async def put_upload(upload_id: str, request: Request):
 async def delete_upload(upload_id: str, request: Request):
     """Drop a slot and its file before it expires (owner only in cloud mode)."""
     slot = pending_uploads.get(upload_id)
-    if not slot or (BILLING_ENABLED and slot.get("user_id") != await _owner_id(request)):
+    if not slot or ((BILLING_ENABLED or local_auth.enabled())
+                    and slot.get("user_id") != await _owner_id(request)):
         raise HTTPException(status_code=404, detail="Unknown or expired upload_id")
     pending_uploads.pop(upload_id, None)
     try:
@@ -3668,7 +3709,7 @@ def _sweep_pending_uploads(now=None):
 def _take_pending_upload(upload_id, user_id):
     """The completed upload for this caller, or an HTTPException."""
     slot = pending_uploads.get(upload_id)
-    if not slot or (BILLING_ENABLED and slot.get("user_id") != user_id):
+    if not slot or ((BILLING_ENABLED or local_auth.enabled()) and slot.get("user_id") != user_id):
         raise HTTPException(status_code=404, detail="Unknown or expired upload_id")
     if not slot.get("complete") or not os.path.exists(slot["path"]):
         raise HTTPException(status_code=409, detail="Upload not received yet: PUT the video to upload_url first")
@@ -4092,6 +4133,8 @@ async def process_endpoint(
         _discard_rejected_source(input_path, job_output_dir,
                                  upload_slot=upload_slot, upload_id=upload_id)
         raise
+    if local_auth.enabled():
+        user_id = await _owner_id(request)
     if getattr(request.state, "paid_allowed", True) is False:
         # Daily paid-proxy budget hit: this job runs on the free routes only.
         env.pop("PROXY_URL", None)
@@ -4375,7 +4418,8 @@ SOURCE_URL_TTL_SECONDS = int(os.environ.get("SOURCE_URL_TTL_SECONDS", "21600"))
 
 def _source_signature(job_id: str, exp: int) -> str:
     """HMAC tying a job id to an expiry, keyed on the app's JWT secret."""
-    secret = (_cloud_config.settings.jwt_secret if BILLING_ENABLED else "") or ""
+    secret = ((_cloud_config.settings.jwt_secret if BILLING_ENABLED else "")
+              or (os.getenv("JWT_SECRET", "") if local_auth.enabled() else ""))
     msg = f"{job_id}:{exp}".encode()
     return hmac.new(secret.encode(), msg, hashlib.sha256).hexdigest()[:32]
 
@@ -4393,7 +4437,7 @@ def _signed_source_url(job_id: str) -> str:
     authenticate, and the clip editor's source monitor 404s in cloud while
     working perfectly in self-host and in every test.
     """
-    if not BILLING_ENABLED:
+    if not BILLING_ENABLED and not local_auth.enabled():
         return f"/api/source/{job_id}"
     exp = int(time.time()) + SOURCE_URL_TTL_SECONDS
     return f"/api/source/{job_id}?exp={exp}&sig={_source_signature(job_id, exp)}"
@@ -4416,7 +4460,7 @@ async def get_source_url(request: Request, job_id: str):
         # its owner), so the only callers this turns away are asking about a
         # job that does not exist. Off billing there is nothing to protect and
         # the self-host preview must keep working.
-        if BILLING_ENABLED:
+        if BILLING_ENABLED or local_auth.enabled():
             raise HTTPException(status_code=404, detail="Source not found")
     else:
         await _assert_job_owner(request, record)
@@ -4439,7 +4483,7 @@ async def get_source_video(request: Request, job_id: str,
     unchanged: there is no owner to check and no secret to sign with.
     """
     signed = (
-        BILLING_ENABLED and sig
+        (BILLING_ENABLED or local_auth.enabled()) and sig
         and exp > time.time()
         and hmac.compare_digest(sig, _source_signature(job_id, exp))
     )
@@ -4447,7 +4491,9 @@ async def get_source_video(request: Request, job_id: str,
     # to _job_view_from_disk, which rescans the whole output directory. Off
     # billing there is no owner to find, so that scan would run on every single
     # preview load and buy nothing.
-    if not signed and BILLING_ENABLED:
+    if not signed and (BILLING_ENABLED or local_auth.enabled()):
+        if local_auth.enabled():
+            local_auth.authenticate_request(request)
         record = _job_record(job_id)
         if record is not None:
             await _assert_job_owner(request, record)

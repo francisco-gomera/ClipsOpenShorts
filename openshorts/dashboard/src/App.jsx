@@ -29,6 +29,7 @@ import AutopilotTab from './components/AutopilotTab';
 import LivePanel from './components/LivePanel';
 import StageProgress from './components/StageProgress';
 import ProfileMenu from './components/ProfileMenu';
+import LocalProfileMenu from './components/LocalProfileMenu';
 import Modal from './components/ui/Modal';
 import { useAuth } from './contexts/AuthContext';
 import { apiFetch, apiUpload, apiJson, QuotaError, QUOTA_WALL_EVENT } from './lib/api';
@@ -420,7 +421,7 @@ function ClipSkeletonCard({ clipNumber, substage = 'rendering', percent = 0 }) {
 
 function App() {
   // Cloud auth/billing session (inert when billing is disabled).
-  const { billingEnabled, isManaged, isSignedIn, me, plan, refreshMe, jobRetentionSeconds, localLlm, loading: authLoading } = useAuth();
+  const { billingEnabled, localAuthEnabled, isManaged, isSignedIn, me, plan, refreshMe, jobRetentionSeconds, localLlm, loading: authLoading } = useAuth();
   const [showLogin, setShowLogin] = useState(false);
   const [showTopUp, setShowTopUp] = useState(false);
   // Free plan: "want the watermark off?" once per job, when the clips land.
@@ -1959,6 +1960,7 @@ function App() {
               </button>
             )}
             {billingEnabled && isSignedIn && <ProfileMenu onUpgrade={isManaged ? openUpsell : null} />}
+            {localAuthEnabled && isSignedIn && <LocalProfileMenu />}
 
             {/* Hidden below sm: the standing banner underneath already says the
                 same thing, and two warnings in a 360px header is just noise. */}

@@ -2,12 +2,17 @@ services:
   backend:
     build: .
     container_name: openshorts-backend
+    environment:
+      LOCAL_AUTH_ENABLED: ${LOCAL_AUTH_ENABLED:-true}
+      JWT_SECRET: ${JWT_SECRET:-}
+      INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD:-}
     ports:
       - "8000:8000"
     volumes:
       - .:/app
       - /app/__pycache__
       - ./output:/app/output
+      - local_auth_data:/app/data
     restart: unless-stopped
 
   frontend:
@@ -40,3 +45,6 @@ services:
     restart: unless-stopped
     depends_on:
       - backend
+
+volumes:
+  local_auth_data:

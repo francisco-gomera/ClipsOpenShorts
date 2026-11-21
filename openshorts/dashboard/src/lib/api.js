@@ -9,6 +9,26 @@ export const getToken = () => localStorage.getItem(AUTH_TOKEN_KEY) || '';
 export const setToken = (t) => localStorage.setItem(AUTH_TOKEN_KEY, t);
 export const clearToken = () => localStorage.removeItem(AUTH_TOKEN_KEY);
 
+let localAuthEnabled = false;
+let refreshingAccess = null;
+export const setLocalAuthEnabled = (enabled) => { localAuthEnabled = !!enabled; };
+
+export async function refreshLocalAccess() {
+  if (!localAuthEnabled) return false;
+  if (!refreshingAccess) {
+    refreshingAccess = fetch(getApiUrl('/api/auth/refresh'), {
+      method: 'POST', credentials: 'include',
+    }).then(async (res) => {
+      if (!res.ok) return false;
+      const data = await res.json();
+      if (!data.access_token) return false;
+      setToken(data.access_token);
+      return true;
+    }).catch(() => false).finally(() => { refreshingAccess = null; });
+  }
+  return refreshingAccess;
+}
+
 export class QuotaError extends Error {
   constructor(detail) {
     super('quota_exceeded');
@@ -38,7 +58,17 @@ export async function apiFetch(path, options = {}) {
   const token = getToken();
   if (token) headers.set('Authorization', `Bearer ${token}`);
 
-  const res = await fetch(getApiUrl(path), { ...options, headers });
+  const fetchOptions = { ...options, headers };
+  if (localAuthEnabled && fetchOptions.credentials == null) fetchOptions.credentials = 'include';
+  let res = await fetch(getApiUrl(path), fetchOptions);
+
+  if (res.status === 401 && localAuthEnabled && token
+      && !['/api/auth/login', '/api/auth/refresh', '/api/auth/logout'].includes(path)) {
+    if (await refreshLocalAccess()) {
+      headers.set('Authorization', `Bearer ${getToken()}`);
+      res = await fetch(getApiUrl(path), fetchOptions);
+    }
+  }
 
   if (res.status === 402) {
     let detail = {};
@@ -52,12 +82,13 @@ export async function apiFetch(path, options = {}) {
 }
 
 // Upload files with real XMLHttpRequest upload.onprogress tracking
-export function apiUpload(path, body, options = {}, onProgress = null) {
+export function apiUpload(path, body, options = {}, onProgress = null, retryAuth = true) {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     const url = getApiUrl(path);
 
     xhr.open(options.method || 'POST', url);
+    if (localAuthEnabled) xhr.withCredentials = true;
 
     const token = getToken();
     if (token) {
@@ -97,6 +128,14 @@ export function apiUpload(path, body, options = {}, onProgress = null) {
 
       if (status === 402) {
         reject(new QuotaError(typeof data === 'object' ? data?.detail || data : {}));
+        return;
+      }
+
+      if (status === 401 && retryAuth && localAuthEnabled && getToken()) {
+        refreshLocalAccess().then((ok) => {
+          if (ok) apiUpload(path, body, options, onProgress, false).then(resolve, reject);
+          else reject(new ApiError(401, 'Session expired. Sign in again.', resText));
+        });
         return;
       }
 
