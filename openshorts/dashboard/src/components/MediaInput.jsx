@@ -49,6 +49,12 @@ export default function MediaInput({ onProcess, isProcessing }) {
     const [targetClips, setTargetClips] = useState('');
     const [clipMinSeconds, setClipMinSeconds] = useState('');
     const [clipMaxSeconds, setClipMaxSeconds] = useState('');
+    const [generationMode, setGenerationMode] = useState('smart');
+    const [sequentialCount, setSequentialCount] = useState('3');
+    const [sequentialSeconds, setSequentialSeconds] = useState('60');
+    const [manualSegments, setManualSegments] = useState([{ start: '0', end: '30' }]);
+    const [manualSegmentIndex, setManualSegmentIndex] = useState(0);
+    const [playheadSeconds, setPlayheadSeconds] = useState(0);
     // Auto-hook: burn the AI hook text into every clip. On by default; the
     // choice persists so turning it off sticks across sessions.
     const [autoHook, setAutoHook] = useState(() => {
@@ -140,6 +146,11 @@ export default function MediaInput({ onProcess, isProcessing }) {
         e.preventDefault();
         if (!acknowledged) return;
         const advanced = {
+            generationMode,
+            sequentialCount: generationMode === 'sequential' ? sequentialCount : null,
+            sequentialSeconds: generationMode === 'sequential' ? sequentialSeconds : null,
+            manualSegments: generationMode === 'manual'
+                ? manualSegments.map((s) => ({ start: Number(s.start), end: Number(s.end) })) : null,
             targetClips: targetClips || null,
             clipMinSeconds: clipMinSeconds || null,
             clipMaxSeconds: clipMaxSeconds || null,
@@ -238,10 +249,12 @@ export default function MediaInput({ onProcess, isProcessing }) {
                         {ytId && (
                             <div className="rounded-card overflow-hidden bg-surface border border-border p-3 animate-fade flex flex-col sm:flex-row gap-3 items-center">
                                 <div className="relative w-full sm:w-44 h-28 rounded-input overflow-hidden bg-black shrink-0">
-                                    <img
-                                        src={`https://img.youtube.com/vi/${ytId}/hqdefault.jpg`}
-                                        alt="Miniatura del vídeo de YouTube"
-                                        className="w-full h-full object-cover"
+                                    <iframe
+                                        src={`https://www.youtube-nocookie.com/embed/${ytId}`}
+                                        title="Vista previa del vídeo de YouTube"
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                        referrerPolicy="strict-origin-when-cross-origin"
+                                        className="w-full h-full border-0"
                                     />
                                     <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/80 text-[10px] text-white flex items-center gap-1 font-mono">
                                         <Youtube size={11} className="text-danger" /> YouTube
@@ -279,6 +292,7 @@ export default function MediaInput({ onProcess, isProcessing }) {
                                         <video
                                             src={previewUrl}
                                             controls
+                                            onTimeUpdate={(e) => setPlayheadSeconds(e.currentTarget.currentTime)}
                                             className="w-full sm:w-44 h-28 object-contain rounded-input bg-black shrink-0"
                                             preload="metadata"
                                         />
@@ -370,6 +384,48 @@ export default function MediaInput({ onProcess, isProcessing }) {
                 </div>
 
                 {/* Advanced generation controls — collapsed by default; blank = AI decides */}
+                <div className="mt-5">
+                    <p className="eyebrow mb-2">Modo de generación</p>
+                    <div className="grid grid-cols-2 gap-2">
+                        {[
+                            ['smart', 'Inteligente', 'La IA encuentra los mejores momentos'],
+                            ['sequential', 'Consecutivos', 'Divide el vídeo en partes iguales'],
+                            ['full', 'Vídeo completo', 'Convierte todo el vídeo'],
+                            ['manual', 'Selección manual', 'Elige los tiempos de cada clip'],
+                        ].map(([value, label, hint]) => (
+                            <button key={value} type="button" onClick={() => setGenerationMode(value)}
+                                aria-pressed={generationMode === value}
+                                className={`rounded-input border p-3 text-left transition-colors ${generationMode === value ? 'border-primary bg-surface' : 'border-border hover:border-primary'}`}>
+                                <span className="block text-sm font-medium">{label}</span>
+                                <span className="block text-[11px] text-text-secondary mt-1">{hint}</span>
+                            </button>
+                        ))}
+                    </div>
+                    {generationMode === 'sequential' && (
+                        <div className="grid grid-cols-2 gap-3 mt-3">
+                            <label className="text-xs text-text-secondary">Cantidad de clips<input type="number" min="1" max="15" step="1" value={sequentialCount} onChange={(e) => setSequentialCount(e.target.value)} className="input-field mt-1" /></label>
+                            <label className="text-xs text-text-secondary">Duración de cada clip (s)<input type="number" min="5" max="240" value={sequentialSeconds} onChange={(e) => setSequentialSeconds(e.target.value)} className="input-field mt-1" /></label>
+                        </div>
+                    )}
+                    {generationMode === 'manual' && (
+                        <div className="mt-3 space-y-2">
+                            <p className="text-xs text-text-secondary">Indica inicio y final en segundos (clips de 5 a 240 s, sin solaparse).</p>
+                            {(previewUrl || ytId) && <p className="text-xs text-text-secondary">Reproduce o busca el vídeo arriba{previewUrl ? ` (${playheadSeconds.toFixed(1)} s)` : ''} y fija el inicio o final del clip seleccionado.</p>}
+                            {manualSegments.map((segment, index) => (
+                                <div onClick={() => setManualSegmentIndex(index)} className={`grid grid-cols-[1fr_1fr_auto] gap-2 items-end rounded-input p-1 ${manualSegmentIndex === index ? 'bg-surface' : ''}`} key={index}>
+                                    <label className="text-xs text-text-secondary">Inicio (s)<input type="number" min="0" step="0.1" value={segment.start} onChange={(e) => setManualSegments((all) => all.map((s, i) => i === index ? { ...s, start: e.target.value } : s))} className="input-field mt-1" /></label>
+                                    <label className="text-xs text-text-secondary">Final (s)<input type="number" min="0" step="0.1" value={segment.end} onChange={(e) => setManualSegments((all) => all.map((s, i) => i === index ? { ...s, end: e.target.value } : s))} className="input-field mt-1" /></label>
+                                    <button type="button" aria-label="Eliminar segmento" disabled={manualSegments.length === 1} onClick={() => setManualSegments((all) => all.filter((_, i) => i !== index))} className="btn-secondary px-3 py-2">×</button>
+                                </div>
+                            ))}
+                            {previewUrl && <div className="flex gap-2"><button type="button" onClick={() => setManualSegments((all) => all.map((s, i) => i === manualSegmentIndex ? { ...s, start: playheadSeconds.toFixed(1) } : s))} className="btn-secondary px-3 py-2 text-xs">Fijar inicio actual</button><button type="button" onClick={() => setManualSegments((all) => all.map((s, i) => i === manualSegmentIndex ? { ...s, end: playheadSeconds.toFixed(1) } : s))} className="btn-secondary px-3 py-2 text-xs">Fijar final actual</button></div>}
+                            <button type="button" disabled={manualSegments.length >= 15} onClick={() => setManualSegments((all) => [...all, { start: '', end: '' }])} className="text-xs text-text-primary hover:underline">+ Añadir clip</button>
+                        </div>
+                    )}
+                    {generationMode === 'smart' && <p className="text-[11px] text-text-secondary mt-2">El modo inteligente conserva los controles y resultados actuales.</p>}
+                </div>
+
+                {/* Advanced generation controls — collapsed by default; blank = AI decides */}
                 <div className="mt-4">
                     <button
                         type="button"
@@ -382,7 +438,7 @@ export default function MediaInput({ onProcess, isProcessing }) {
                             <span className="text-text-primary">·</span>
                         )}
                     </button>
-                    {showAdvanced && (
+                    {showAdvanced && generationMode === 'smart' && (
                         /* Stacked on a phone: three number fields side by side leaves
                            ~100px each, which crushes both label and value. */
                         <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-2 animate-fade">

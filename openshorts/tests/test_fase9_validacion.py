@@ -342,8 +342,9 @@ def test_download_all_zip_valid(zip_project):
     response = run(_go())
     with zipfile.ZipFile(response.path) as zf:
         names = sorted(zf.namelist())
-        assert len(names) == 2
-        assert all(n.endswith(".mp4") for n in names)
+        assert names == ["clip_01_clip_a.mp4", "clip_02_clip_b.mp4", "descripcion.txt"]
+        assert sum(n.endswith(".mp4") for n in names) == 2
+        assert "descripcion.txt" in names
         assert zf.testzip() is None   # no corrupt entries
     # Cleanup
     asyncio.run(response.background())

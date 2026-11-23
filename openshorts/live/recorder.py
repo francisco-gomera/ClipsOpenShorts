@@ -75,8 +75,8 @@ class StreamRecorder:
         self.next_number = max((e.index for e in entries), default=-1) + 1
         return self.start(video_url, audio_url)
 
-    def supervise(self, url: str, *, resolve, on_state=None, retry_min: float = 2.0,
-                  retry_max: float = 30.0, sleep=time.sleep):
+    def supervise(self, url: str, *, resolve, on_state=None, on_capture_end=None,
+                  retry_min: float = 2.0, retry_max: float = 30.0, sleep=time.sleep):
         """Run capture with re-resolution and bounded backoff after disconnects.
 
         `resolve(url)` must return a resolver result. Upcoming streams are
@@ -126,7 +126,11 @@ class StreamRecorder:
                     self._stop_event.wait(delay)
                     delay = min(max(delay * 2, retry_min), retry_max)
             finally:
-                self.stop()
+                try:
+                    self.stop()
+                finally:
+                    if on_capture_end:
+                        on_capture_end()
 
         self._supervisor_thread = threading.Thread(target=loop, name="live-recorder", daemon=True)
         self._supervisor_thread.start()

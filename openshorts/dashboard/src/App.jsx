@@ -29,6 +29,7 @@ import AutopilotTab from './components/AutopilotTab';
 import LivePanel from './components/LivePanel';
 import StageProgress from './components/StageProgress';
 import ProfileMenu from './components/ProfileMenu';
+import LocalProfileMenu from './components/LocalProfileMenu';
 import Modal from './components/ui/Modal';
 import { useAuth } from './contexts/AuthContext';
 import { apiFetch, apiUpload, apiJson, QuotaError, QUOTA_WALL_EVENT } from './lib/api';
@@ -420,8 +421,11 @@ function ClipSkeletonCard({ clipNumber, substage = 'rendering', percent = 0 }) {
 
 function App() {
   // Cloud auth/billing session (inert when billing is disabled).
-  const { billingEnabled, isManaged, isSignedIn, me, plan, refreshMe, jobRetentionSeconds, localLlm, loading: authLoading } = useAuth();
+  const { billingEnabled, localAuthEnabled, isManaged, isSignedIn, me, plan, refreshMe, authExpired, jobRetentionSeconds, localLlm, loading: authLoading } = useAuth();
   const [showLogin, setShowLogin] = useState(false);
+  useEffect(() => {
+    if (billingEnabled && authExpired) setShowLogin(true);
+  }, [billingEnabled, authExpired]);
   const [showTopUp, setShowTopUp] = useState(false);
   // Free plan: "want the watermark off?" once per job, when the clips land.
   const [showWmNotice, setShowWmNotice] = useState(false);
@@ -1449,6 +1453,10 @@ function App() {
       // Advanced generation controls: only sent when the user set them, so the
       // default request stays byte-identical to the pre-feature one.
       const advanced = {
+        generation_mode: data.generationMode || 'smart',
+        sequential_count: data.sequentialCount || null,
+        sequential_seconds: data.sequentialSeconds || null,
+        manual_segments: data.manualSegments ? JSON.stringify(data.manualSegments) : null,
         target_clips: data.targetClips || null,
         clip_min_seconds: data.clipMinSeconds || null,
         clip_max_seconds: data.clipMaxSeconds || null,
@@ -1955,6 +1963,7 @@ function App() {
               </button>
             )}
             {billingEnabled && isSignedIn && <ProfileMenu onUpgrade={isManaged ? openUpsell : null} />}
+            {localAuthEnabled && isSignedIn && <LocalProfileMenu />}
 
             {/* Hidden below sm: the standing banner underneath already says the
                 same thing, and two warnings in a 360px header is just noise. */}

@@ -33,6 +33,7 @@ import recut
 import layout_ranges
 import watermarked
 import media_auth
+import local_auth
 import project_manager
 import stage_tracker
 import psutil
@@ -824,6 +825,9 @@ async def _owner_id(request):
     """The authenticated cloud user's id to stamp on a new job/session, or None
     for self-host / BYOK / anonymous (BILLING off → nothing to scope)."""
     if not BILLING_ENABLED:
+        if local_auth.enabled():
+            user = getattr(request.state, "local_user", None)
+            return user.get("id") if user else None
         return None
     user = await _user_from_request(request)
     return user.id if user else None
@@ -838,9 +842,15 @@ async def _assert_job_owner(request, record):
     a non-owner can't even confirm the id exists. UUID ids already make these
     stores hard to enumerate; this closes the gap for a shared/leaked id.
     """
-    if not BILLING_ENABLED:
-        return
     owner = record.get("user_id") if isinstance(record, dict) else None
+    if not BILLING_ENABLED:
+        if local_auth.enabled():
+            user = getattr(request.state, "local_user", None)
+            if owner is None or user is None or str(user.get("id")) != str(owner):
+                raise HTTPException(status_code=404, detail="Not found")
+        elif owner is None:
+            return
+        return
     if owner is None:
         return
     user = await _user_from_request(request)
@@ -2713,6 +2723,14 @@ def _purge_local_jobs_for_user(user_id) -> int:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    if local_auth.enabled():
+        legacy_owner_id = local_auth.initialize()
+        # A pre-auth self-hosted instance was single-user. Adopt its finished
+        # projects once so the initial administrator retains access to them.
+        for entry in os.scandir(OUTPUT_DIR):
+            if (entry.is_dir() and not os.path.exists(os.path.join(entry.path, ".owner"))
+                    and glob.glob(os.path.join(entry.path, "*_metadata.json"))):
+                _write_owner_marker(entry.path, legacy_owner_id)
     # Rehydrate finished jobs from disk before serving (survives restarts).
     _recover_jobs_from_disk()
     # Re-enqueue jobs that were mid-processing when we stopped (redeploy). Their
@@ -2754,6 +2772,8 @@ app = FastAPI(lifespan=lifespan)
 # Cloud mode: attach middleware + routers at import time (before the app serves).
 if BILLING_ENABLED:
     cloud.setup_sync(app)
+elif local_auth.enabled():
+    app.include_router(local_auth.router)
 
 # MCP server (/mcp): the pipeline as agent-callable tools. Works in both modes —
 # cloud requires an osk_ API key, self-host keeps BYOK (see mcp_server.py).
@@ -2807,7 +2827,7 @@ _media_legacy_logged: set = set()
 
 def _media_secret() -> str:
     if not BILLING_ENABLED:
-        return ""
+        return os.environ.get("JWT_SECRET", "") if local_auth.enabled() else ""
     return (_cloud_config.settings.jwt_secret or "") if _cloud_config else ""
 
 
@@ -2935,8 +2955,59 @@ def _signed_media_url(url_path: str, base: str = "") -> str:
 
 
 async def _live_access(request: Request):
-    if BILLING_ENABLED and not await resolve_gemini(request):
-        raise gemini_missing_error()
+    if BILLING_ENABLED:
+        # Live workers belong to a dashboard session, never an API key.  A
+        # stale JWT must be reported as authentication failure (401), not as a
+        # missing managed Gemini entitlement (402).
+        await cloud.auth.get_session_user_required(request)
+
+
+async def _live_auth_context(request: Request):
+    if local_auth.enabled():
+        family = local_auth.refresh_family_for_request(request)
+        if not family:
+            raise HTTPException(status_code=401, detail="La sesión no se puede renovar. Inicia sesión nuevamente.")
+        return {"type": "local", "session_ref": family}
+    if BILLING_ENABLED:
+        auth = request.headers.get("Authorization", "")
+        token = auth[7:].strip() if auth.lower().startswith("bearer ") else ""
+        claims = cloud.auth._decode_jwt(token)
+        if not claims or not claims.get("exp"):
+            raise HTTPException(status_code=401, detail="La sesión expiró. Inicia sesión nuevamente.")
+        user = await cloud.auth.get_session_user_required(request)
+        if not managed_keys.has_active_entitlement(user):
+            raise gemini_missing_error()
+        return {"type": "cloud", "expires_at": float(claims["exp"]),
+                "session_ref": claims.get("jti") or hashlib.sha256(token.encode()).hexdigest()}
+    return None
+
+
+def _live_auth_still_valid(state: dict):
+    auth_type = state.get("auth_type")
+    if auth_type == "local":
+        ref = state.get("auth_session_ref")
+        return local_auth.refresh_family_is_valid(ref) if ref else False
+    if auth_type == "cloud":
+        expiry = state.get("auth_expires_at")
+        if not expiry or time.time() >= float(expiry):
+            return False
+        async def user_still_exists():
+            import uuid as _uuid
+            from cloud.database import session as cloud_session
+            from cloud.models import RevokedSessionToken, User
+            async with cloud_session() as session:
+                user = await session.get(User, _uuid.UUID(str(state.get("user_id"))))
+                if user is None:
+                    return False
+                if state.get("auth_session_ref") and await session.get(
+                        RevokedSessionToken, state["auth_session_ref"]):
+                    return False
+                return True
+        try:
+            return asyncio.run(user_still_exists())
+        except Exception:
+            return None
+    return True
 
 
 def _assert_live_admission():
@@ -2954,19 +3025,42 @@ def _assert_live_admission():
 import live_api as _live_api
 _live_api.configure(output_dir=OUTPUT_DIR, owner_resolver=_owner_id,
                     access_check=_live_access, media_signer=_signed_media_url,
-                    admission_check=_assert_live_admission)
+                    admission_check=_assert_live_admission,
+                    auth_context_resolver=_live_auth_context,
+                    auth_checker=_live_auth_still_valid)
 
 
 @app.middleware("http")
 async def block_other_work_during_live(request: Request, call_next):
     path = request.url.path
     changes_state = request.method in {"POST", "PUT", "PATCH", "DELETE"}
-    if (changes_state and path.startswith("/api/") and not path.startswith("/api/live")
+    auth_route = path.startswith("/api/auth/")
+    if changes_state and path.startswith("/api/") and not path.startswith("/api/live") and not auth_route:
+        try:
+            if local_auth.local_auth_middleware_enabled(request):
+                local_auth.authenticate_request(request)
+            elif BILLING_ENABLED and await _user_from_request(request) is None:
+                raise HTTPException(status_code=401, detail="Authentication required")
+        except HTTPException as exc:
+            return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail},
+                                headers=exc.headers)
+    if (changes_state and path.startswith("/api/") and not path.startswith("/api/live") and not auth_route
             and _live_api.has_active_session()):
         return JSONResponse(
             status_code=423,
             content={"detail": "Live clipping está activo. Detén la sesión antes de iniciar otra operación."},
         )
+    return await call_next(request)
+
+
+@app.middleware("http")
+async def require_local_auth(request: Request, call_next):
+    if local_auth.local_auth_middleware_enabled(request):
+        try:
+            local_auth.authenticate_request(request)
+        except HTTPException as exc:
+            return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail},
+                                headers=exc.headers)
     return await call_next(request)
 
 
@@ -2978,11 +3072,16 @@ async def issue_media_token(request: Request):
     secret = _media_secret()
     if not secret:
         return {"token": None, "expires_in": None}
-    user = await _user_from_request(request)
-    if user is None:
-        raise HTTPException(status_code=401, detail="Authentication required")
+    if local_auth.enabled():
+        local_user = local_auth.authenticate_request(request)
+        user_id = local_user["id"]
+    else:
+        user = await _user_from_request(request)
+        if user is None:
+            raise HTTPException(status_code=401, detail="Authentication required")
+        user_id = user.id
     ttl = media_auth.MEDIA_TOKEN_TTL_SECONDS
-    token = media_auth.mint_user_token(user.id, secret, ttl)
+    token = media_auth.mint_user_token(user_id, secret, ttl)
     response = JSONResponse({"token": token, "expires_in": ttl,
                              "expires_at": int(time.time()) + ttl})
     public = os.environ.get("PUBLIC_API_URL", "")
@@ -3418,6 +3517,7 @@ async def get_config():
     return {
         "youtubeUrlEnabled": not DISABLE_YOUTUBE_URL,
         "billingEnabled": BILLING_ENABLED,
+        "localAuthEnabled": local_auth.enabled(),
         "googleAuthEnabled": bool(BILLING_ENABLED and cloud.settings.google_auth_enabled),
         "jobRetentionSeconds": JOB_RETENTION_SECONDS,
         # Self-host only: tells the dashboard the Gemini key is optional
@@ -3612,6 +3712,9 @@ async def put_upload(upload_id: str, request: Request):
     if not slot or time.time() - slot["created"] > UPLOAD_TTL_SECONDS:
         pending_uploads.pop(upload_id, None)
         raise HTTPException(status_code=404, detail="Unknown or expired upload_id")
+    if ((BILLING_ENABLED or local_auth.enabled())
+            and slot.get("user_id") != await _owner_id(request)):
+        raise HTTPException(status_code=404, detail="Unknown or expired upload_id")
     limit_bytes = MAX_FILE_SIZE_MB * 1024 * 1024
     size = 0
     with open(slot["path"], "wb") as out:
@@ -3639,7 +3742,8 @@ async def put_upload(upload_id: str, request: Request):
 async def delete_upload(upload_id: str, request: Request):
     """Drop a slot and its file before it expires (owner only in cloud mode)."""
     slot = pending_uploads.get(upload_id)
-    if not slot or (BILLING_ENABLED and slot.get("user_id") != await _owner_id(request)):
+    if not slot or ((BILLING_ENABLED or local_auth.enabled())
+                    and slot.get("user_id") != await _owner_id(request)):
         raise HTTPException(status_code=404, detail="Unknown or expired upload_id")
     pending_uploads.pop(upload_id, None)
     try:
@@ -3668,7 +3772,7 @@ def _sweep_pending_uploads(now=None):
 def _take_pending_upload(upload_id, user_id):
     """The completed upload for this caller, or an HTTPException."""
     slot = pending_uploads.get(upload_id)
-    if not slot or (BILLING_ENABLED and slot.get("user_id") != user_id):
+    if not slot or ((BILLING_ENABLED or local_auth.enabled()) and slot.get("user_id") != user_id):
         raise HTTPException(status_code=404, detail="Unknown or expired upload_id")
     if not slot.get("complete") or not os.path.exists(slot["path"]):
         raise HTTPException(status_code=409, detail="Upload not received yet: PUT the video to upload_url first")
@@ -3778,14 +3882,12 @@ async def process_endpoint(
     max_minutes: Optional[str] = Form(None),
     source_start: Optional[str] = Form(None),
     source_end: Optional[str] = Form(None),
+    generation_mode: Optional[str] = Form("smart"),
+    sequential_count: Optional[str] = Form(None),
+    sequential_seconds: Optional[str] = Form(None),
+    manual_segments: Optional[str] = Form(None),
 ):
     api_key = await resolve_gemini(request)
-    if not api_key and not (llm_backend.active() and not BILLING_ENABLED):
-        # Self-host with an OpenAI-compatible server configured needs no
-        # Google key for the core pipeline: the moment picker runs there and
-        # the frame-based stages degrade on their own (layout_picker returns
-        # "none", silent videos fail with a message that says why).
-        raise gemini_missing_error()
 
     ack_flag = str(acknowledged).lower() in ("1", "true", "yes")
     force_low = str(force_low_quality).lower() in ("1", "true", "yes")
@@ -3812,6 +3914,29 @@ async def process_endpoint(
         max_minutes = body.get("max_minutes")
         source_start = body.get("source_start")
         source_end = body.get("source_end")
+        generation_mode = body.get("generation_mode", "smart")
+        sequential_count = body.get("sequential_count")
+        sequential_seconds = body.get("sequential_seconds")
+        manual_segments = body.get("manual_segments")
+
+    generation_mode = generation_mode or "smart"
+    if generation_mode not in {"smart", "sequential", "full", "manual"}:
+        raise HTTPException(status_code=400, detail="Invalid generation_mode")
+    if generation_mode == "smart" and not api_key and not (llm_backend.active() and not BILLING_ENABLED):
+        raise gemini_missing_error()
+    if generation_mode == "sequential":
+        from generation_modes import build_sequential_clips
+        try:
+            count, seconds = int(sequential_count), float(sequential_seconds)
+            build_sequential_clips(count * seconds, count, seconds)
+        except (TypeError, ValueError) as e:
+            raise HTTPException(status_code=400, detail=str(e))
+    elif generation_mode == "manual":
+        from generation_modes import parse_manual_segments
+        try:
+            manual_segments = parse_manual_segments(manual_segments)
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
 
     # Normalize output format (auto = keep pipeline default).
     if output_format not in ("vertical", "horizontal", "square"):
@@ -3891,6 +4016,15 @@ async def process_endpoint(
     # running this server. Every job then dies on `import cv2`. The quality
     # probe above already gets this right.
     cmd = [sys.executable, "-u", "main.py"] # -u for unbuffered
+    cmd.extend(["--generation-mode", generation_mode])
+    if generation_mode == "sequential":
+        cmd.extend(["--sequential-count", str(int(sequential_count)),
+                    "--sequential-seconds", str(float(sequential_seconds))])
+    elif generation_mode == "manual":
+        manual_path = os.path.join(job_output_dir, "manual_segments.json")
+        with open(manual_path, "w", encoding="utf-8") as f:
+            json.dump(manual_segments, f)
+        cmd.extend(["--manual-segments", manual_path])
     env = child_env()
     if api_key:
         env["GEMINI_API_KEY"] = api_key # Override with key from request
@@ -4030,6 +4164,20 @@ async def process_endpoint(
 
         cmd.extend(["-i", input_path])
 
+    if input_path and generation_mode in {"sequential", "manual"}:
+        from generation_modes import build_sequential_clips, validate_segments
+        source_duration = _media_duration_seconds(input_path)
+        try:
+            if generation_mode == "sequential":
+                validate_segments(build_sequential_clips(
+                    source_duration, int(sequential_count), float(sequential_seconds)), source_duration)
+            else:
+                validate_segments(manual_segments, source_duration)
+        except ValueError as e:
+            _discard_rejected_source(input_path, job_output_dir,
+                                     upload_slot=upload_slot, upload_id=upload_id)
+            raise HTTPException(status_code=400, detail=str(e))
+
     cmd.extend(["-o", job_output_dir])
     if output_format and output_format != "auto":
         cmd.extend(["--format", output_format])
@@ -4048,6 +4196,8 @@ async def process_endpoint(
         _discard_rejected_source(input_path, job_output_dir,
                                  upload_slot=upload_slot, upload_id=upload_id)
         raise
+    if local_auth.enabled():
+        user_id = await _owner_id(request)
     if getattr(request.state, "paid_allowed", True) is False:
         # Daily paid-proxy budget hit: this job runs on the free routes only.
         env.pop("PROXY_URL", None)
@@ -4141,6 +4291,10 @@ async def process_endpoint(
             "skip_analysis": False,
             "auto_hook": str(auto_hook).lower() in ("1", "true", "yes"),
             "auto_hook_style": auto_hook_style,
+            "generation_mode": generation_mode,
+            "sequential_count": sequential_count,
+            "sequential_seconds": sequential_seconds,
+            "manual_segments": manual_segments,
         }
         with open(os.path.join(job_output_dir, "job_options.json"), "w", encoding="utf-8") as f:
             json.dump(job_opts, f, indent=2)
@@ -4327,7 +4481,8 @@ SOURCE_URL_TTL_SECONDS = int(os.environ.get("SOURCE_URL_TTL_SECONDS", "21600"))
 
 def _source_signature(job_id: str, exp: int) -> str:
     """HMAC tying a job id to an expiry, keyed on the app's JWT secret."""
-    secret = (_cloud_config.settings.jwt_secret if BILLING_ENABLED else "") or ""
+    secret = ((_cloud_config.settings.jwt_secret if BILLING_ENABLED else "")
+              or (os.getenv("JWT_SECRET", "") if local_auth.enabled() else ""))
     msg = f"{job_id}:{exp}".encode()
     return hmac.new(secret.encode(), msg, hashlib.sha256).hexdigest()[:32]
 
@@ -4345,7 +4500,7 @@ def _signed_source_url(job_id: str) -> str:
     authenticate, and the clip editor's source monitor 404s in cloud while
     working perfectly in self-host and in every test.
     """
-    if not BILLING_ENABLED:
+    if not BILLING_ENABLED and not local_auth.enabled():
         return f"/api/source/{job_id}"
     exp = int(time.time()) + SOURCE_URL_TTL_SECONDS
     return f"/api/source/{job_id}?exp={exp}&sig={_source_signature(job_id, exp)}"
@@ -4368,7 +4523,7 @@ async def get_source_url(request: Request, job_id: str):
         # its owner), so the only callers this turns away are asking about a
         # job that does not exist. Off billing there is nothing to protect and
         # the self-host preview must keep working.
-        if BILLING_ENABLED:
+        if BILLING_ENABLED or local_auth.enabled():
             raise HTTPException(status_code=404, detail="Source not found")
     else:
         await _assert_job_owner(request, record)
@@ -4391,7 +4546,7 @@ async def get_source_video(request: Request, job_id: str,
     unchanged: there is no owner to check and no secret to sign with.
     """
     signed = (
-        BILLING_ENABLED and sig
+        (BILLING_ENABLED or local_auth.enabled()) and sig
         and exp > time.time()
         and hmac.compare_digest(sig, _source_signature(job_id, exp))
     )
@@ -4399,7 +4554,9 @@ async def get_source_video(request: Request, job_id: str,
     # to _job_view_from_disk, which rescans the whole output directory. Off
     # billing there is no owner to find, so that scan would run on every single
     # preview load and buy nothing.
-    if not signed and BILLING_ENABLED:
+    if not signed and (BILLING_ENABLED or local_auth.enabled()):
+        if local_auth.enabled():
+            local_auth.authenticate_request(request)
         record = _job_record(job_id)
         if record is not None:
             await _assert_job_owner(request, record)
@@ -4446,6 +4603,29 @@ async def download_all_clips(job_id: str = Depends(valid_job_id), request: Reque
     if not files:
         raise HTTPException(status_code=404, detail="No clip files found for this job")
 
+    # The results grid is ordered chronologically by source start time, while
+    # clip numbers retain their original metadata indices. Match that visible
+    # order here so the text file follows the videos as the user sees them.
+    clips_by_index = {i: clip for i, clip in enumerate(data.get("shorts", []))}
+
+    def display_start(index):
+        clip = clips_by_index.get(index) or {}
+        start = clip.get("start")
+        if not isinstance(start, (int, float)):
+            segments = (clip.get("recipe") or {}).get("segments") or []
+            start = segments[0].get("start", 0) if segments else 0
+        return start if isinstance(start, (int, float)) else 0
+
+    descriptions = []
+    for i, _path in sorted(files, key=lambda item: (display_start(item[0]), item[0])):
+        clip = clips_by_index.get(i) or {}
+        tiktok = str(clip.get("video_description_for_tiktok") or "").strip()
+        instagram = str(clip.get("video_description_for_instagram") or "").strip()
+        descriptions.append(
+            f"clip {i + 1}\nTikTok: {tiktok}\nInstagram: {instagram}"
+        )
+    description_text = "\n\n".join(descriptions) + "\n"
+
     # One file per request: two downloads of the same job in the same second
     # used to share a timestamped name, so the second truncated the ZIP the
     # first was still streaming and the first cleanup deleted it under the second.
@@ -4456,6 +4636,7 @@ async def download_all_clips(job_id: str = Depends(valid_job_id), request: Reque
         with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_STORED) as zf:
             for i, path in files:
                 zf.write(path, arcname=f"clip_{i + 1:02d}_{os.path.basename(path)}")
+            zf.writestr("descripcion.txt", description_text)
 
     def remove_zip():
         with suppress(FileNotFoundError):

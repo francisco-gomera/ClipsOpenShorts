@@ -18,6 +18,7 @@ uploads/
 downloads/
 videos/
 output/
+data/
 
 # OS / IDE
 .DS_Store

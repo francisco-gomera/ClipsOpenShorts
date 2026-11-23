@@ -44,6 +44,8 @@ def _fallback(candidate: dict, text: str) -> dict:
     return {
         "start": float(candidate["start"]), "end": float(candidate["end"]),
         "source_window_id": str(candidate.get("id", "live")),
+        "min_clip_seconds": int(candidate.get("min_clip_seconds", 30)),
+        "max_clip_seconds": int(candidate.get("max_clip_seconds", 60)),
         "predicted_score": int(candidate.get("predicted_score", 50)),
         "video_description_for_tiktok": f"{hook} #directo #shorts",
         "video_description_for_instagram": f"{hook} #reels",
@@ -102,6 +104,7 @@ def judge_candidate(candidate: dict, transcript: dict, *, generate=None,
 Escribe en español cuando el texto esté en español. Puntúa el potencial de 0 a 100.
 No inventes hechos. El hook debe ser breve. Conserva exactamente estos tiempos y source_window_id.
 Tiempos: {candidate['start']:.3f}–{candidate['end']:.3f}
+Duración configurada para esta sesión: {fallback['min_clip_seconds']}–{fallback['max_clip_seconds']} segundos.
 source_window_id: {candidate.get('id', 'live')}
 Señales: {', '.join(candidate.get('signals', []))}; razón: {candidate.get('why', '')}
 Transcripción con contexto:{no_think}
@@ -123,6 +126,8 @@ Transcripción con contexto:{no_think}
         parsed["start"] = fallback["start"]
         parsed["end"] = fallback["end"]
         parsed["source_window_id"] = fallback["source_window_id"]
+        parsed["min_clip_seconds"] = fallback["min_clip_seconds"]
+        parsed["max_clip_seconds"] = fallback["max_clip_seconds"]
         parsed.setdefault("why", fallback["why"])
         components = []
         if "audio" in candidate.get("signals", []):

@@ -7,6 +7,9 @@ import { capture as captureAttribution } from './lib/attribution'
 import PricingPage from './components/PricingPage'
 import AccountPage from './components/AccountPage'
 import LoginModal from './components/LoginModal'
+import LocalLoginPage from './components/LocalLoginPage'
+import LocalSecurityPage from './components/LocalSecurityPage'
+import AdminUsersPage from './components/AdminUsersPage'
 import { readPendingPlan } from './lib/pendingPlan'
 import { track } from './lib/analytics'
 import { applyConsent } from './lib/consent'
@@ -89,11 +92,14 @@ function DeletedView() {
 }
 
 function Root() {
+  const { localAuthEnabled, isSignedIn, user, loading } = useAuth();
   const resolveView = () => {
     const hash = window.location.hash || '';
     if (hash.startsWith('#/auth/')) return 'auth';       // AuthContext consumes then redirects
     if (hash.startsWith('#/oauth/authorize')) return 'oauth';
     if (hash.startsWith('#/account')) return 'account';
+    if (hash.startsWith('#/security')) return 'security';
+    if (hash.startsWith('#/admin/users')) return 'admin-users';
     if (hash.startsWith('#/deleted')) return 'deleted';
     if (hash.startsWith('#/pricing')) return 'pricing';
     if (hash === '#legal') return 'legal';
@@ -125,9 +131,25 @@ function Root() {
   if (view === 'pricing') return <PricingView />;
   if (view === 'account') return <AccountView />;
   if (view === 'oauth') return <OAuthConsent />;
+  if (localAuthEnabled && view === 'security') {
+    if (loading) return <div className="min-h-screen flex items-center justify-center">Cargando…</div>;
+    if (!isSignedIn) return <LocalLoginPage />;
+    return <LocalSecurityPage />;
+  }
+  if (localAuthEnabled && view === 'admin-users') {
+    if (loading) return <div className="min-h-screen flex items-center justify-center">Cargando…</div>;
+    if (!isSignedIn) return <LocalLoginPage />;
+    if (user?.role !== 'admin') { window.location.hash = '#app'; return null; }
+    return <AdminUsersPage />;
+  }
   if (view === 'deleted') return <DeletedView />;
   if (view === 'auth') {
     return <div className="min-h-screen flex items-center justify-center bg-background text-text-secondary text-sm">signing you in…</div>;
+  }
+  if (view === 'app' && localAuthEnabled) {
+    if (loading) return <div className="min-h-screen flex items-center justify-center text-text-secondary">Cargando…</div>;
+    if (!isSignedIn) return <LocalLoginPage />;
+    if (user?.must_change_password) return <LocalSecurityPage forced />;
   }
   if (view === 'app') return <App />;
   return <Landing onLaunchApp={handleLaunchApp} />;

@@ -2,7 +2,7 @@
 // If VITE_API_URL is set (e.g. in production), use it.
 // Otherwise, default to empty string which means relative paths (proxied in dev).
 
-export const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+export const API_BASE_URL = import.meta.env?.VITE_API_URL || '';
 
 // Cloud: /videos and /thumbnails answer only to their owner. A <video> or
 // <img> cannot send the Authorization header, so the app fetches a short-lived

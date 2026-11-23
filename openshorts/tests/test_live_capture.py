@@ -1,4 +1,5 @@
 import os
+import threading
 import time
 
 import pytest
@@ -58,6 +59,24 @@ def test_resolver_reports_scheduled_stream(monkeypatch):
     monkeypatch.setattr(resolver, "_attempts", lambda: [(None, False)])
     monkeypatch.setattr(resolver, "assert_public_url", lambda _url: None)
     assert resolver.resolve_live("https://youtube.com/watch?v=abc", ydl_factory=FakeYdl)["state"] == "programado"
+
+
+def test_recorder_notifies_supervisor_completion_when_capture_never_started(tmp_path):
+    finalized = threading.Event()
+    statuses = []
+    recorder = StreamRecorder(tmp_path)
+
+    thread = recorder.supervise(
+        "https://youtube.com/live/example",
+        resolve=lambda _url: {"state": "no_en_vivo"},
+        on_state=lambda status, _details: statuses.append(status),
+        on_capture_end=finalized.set,
+    )
+    thread.join(timeout=2)
+
+    assert not thread.is_alive()
+    assert finalized.is_set()
+    assert statuses == ["finalizando"]
 
 
 def test_recorder_command_supports_split_audio_and_resume_number(tmp_path):
