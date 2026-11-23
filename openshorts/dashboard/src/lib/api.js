@@ -1,32 +1,58 @@
 // Centralized API client for cloud mode.
 // Adds the Authorization: Bearer header from the stored session token, and turns
 // a 402 (quota exceeded) into a typed QuotaError the UI can catch to prompt a top-up.
-import { getApiUrl } from '../config';
+import { getApiUrl } from '../config.js';
 
 export const AUTH_TOKEN_KEY = 'openshorts_auth';
+export const AUTH_EXPIRED_EVENT = 'os:auth-expired';
 
 export const getToken = () => localStorage.getItem(AUTH_TOKEN_KEY) || '';
-export const setToken = (t) => localStorage.setItem(AUTH_TOKEN_KEY, t);
+let expirationNotified = false;
+export const setToken = (t) => {
+  expirationNotified = false;
+  localStorage.setItem(AUTH_TOKEN_KEY, t);
+};
 export const clearToken = () => localStorage.removeItem(AUTH_TOKEN_KEY);
 
 let localAuthEnabled = false;
+let managedAuthEnabled = false;
 let refreshingAccess = null;
 export const setLocalAuthEnabled = (enabled) => { localAuthEnabled = !!enabled; };
+export const setManagedAuthEnabled = (enabled) => { managedAuthEnabled = !!enabled; };
 
-export async function refreshLocalAccess() {
-  if (!localAuthEnabled) return false;
+function notifyAuthExpired() {
+  clearToken();
+  if (expirationNotified) return;
+  expirationNotified = true;
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent(AUTH_EXPIRED_EVENT, {
+      detail: { message: 'Tu sesión ha caducado. Inicia sesión nuevamente.' },
+    }));
+  }
+}
+
+export function refreshLocalAccessResult() {
+  if (!localAuthEnabled) return Promise.resolve({ status: 'unavailable' });
   if (!refreshingAccess) {
-    refreshingAccess = fetch(getApiUrl('/api/auth/refresh'), {
+    const pending = fetch(getApiUrl('/api/auth/refresh'), {
       method: 'POST', credentials: 'include',
     }).then(async (res) => {
-      if (!res.ok) return false;
+      if (res.status === 401) return { status: 'expired' };
+      if (!res.ok) return { status: 'unavailable' };
       const data = await res.json();
-      if (!data.access_token) return false;
+      if (!data.access_token) return { status: 'expired' };
       setToken(data.access_token);
-      return true;
-    }).catch(() => false).finally(() => { refreshingAccess = null; });
+      return { status: 'ok' };
+    }).catch(() => ({ status: 'unavailable' })).finally(() => {
+      if (refreshingAccess === pending) refreshingAccess = null;
+    });
+    refreshingAccess = pending;
   }
   return refreshingAccess;
+}
+
+export async function refreshLocalAccess() {
+  return (await refreshLocalAccessResult()).status === 'ok';
 }
 
 export class QuotaError extends Error {
@@ -62,12 +88,20 @@ export async function apiFetch(path, options = {}) {
   if (localAuthEnabled && fetchOptions.credentials == null) fetchOptions.credentials = 'include';
   let res = await fetch(getApiUrl(path), fetchOptions);
 
-  if (res.status === 401 && localAuthEnabled && token
-      && !['/api/auth/login', '/api/auth/refresh', '/api/auth/logout'].includes(path)) {
-    if (await refreshLocalAccess()) {
+  const authEndpoint = ['/api/auth/login', '/api/auth/refresh', '/api/auth/logout',
+    '/api/auth/review-login', '/api/auth/magic-link', '/api/auth/magic-link/verify',
+    '/api/auth/google', '/api/auth/exchange'].some((item) => path.split('?')[0] === item);
+  if (res.status === 401 && !authEndpoint && localAuthEnabled) {
+    const refresh = await refreshLocalAccessResult();
+    if (refresh.status === 'ok') {
       headers.set('Authorization', `Bearer ${getToken()}`);
       res = await fetch(getApiUrl(path), fetchOptions);
+      if (res.status === 401) notifyAuthExpired();
+    } else if (refresh.status === 'expired') {
+      notifyAuthExpired();
     }
+  } else if (res.status === 401 && !authEndpoint && managedAuthEnabled) {
+    notifyAuthExpired();
   }
 
   if (res.status === 402) {
@@ -131,12 +165,23 @@ export function apiUpload(path, body, options = {}, onProgress = null, retryAuth
         return;
       }
 
-      if (status === 401 && retryAuth && localAuthEnabled && getToken()) {
-        refreshLocalAccess().then((ok) => {
-          if (ok) apiUpload(path, body, options, onProgress, false).then(resolve, reject);
-          else reject(new ApiError(401, 'Session expired. Sign in again.', resText));
+      if (status === 401 && retryAuth && localAuthEnabled) {
+        refreshLocalAccessResult().then((refresh) => {
+          if (refresh.status === 'ok') apiUpload(path, body, options, onProgress, false).then(resolve, reject);
+          else {
+            if (refresh.status === 'expired') notifyAuthExpired();
+            reject(new ApiError(401, refresh.status === 'expired'
+              ? 'Tu sesión ha caducado. Inicia sesión nuevamente.'
+              : 'No se pudo verificar tu sesión. Comprueba la conexión e inténtalo de nuevo.', resText));
+          }
         });
         return;
+      }
+
+      if (status === 401 && !retryAuth && (localAuthEnabled || managedAuthEnabled)) {
+        notifyAuthExpired();
+      } else if (status === 401 && managedAuthEnabled) {
+        notifyAuthExpired();
       }
 
       if (status >= 200 && status < 300) {
@@ -184,8 +229,7 @@ export async function apiJson(path, options = {}) {
     let detail = '';
     try {
       const d = JSON.parse(text).detail;
-      // FastAPI details are strings here, but validation errors arrive as objects.
-      if (typeof d === 'string') detail = d;
+      if (d !== undefined) detail = d;
     } catch (_) { /* not JSON — leave detail empty and fall back to the caller's copy */ }
     throw new ApiError(res.status, detail, text);
   }

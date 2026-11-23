@@ -1,8 +1,8 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
 
 import live_api
-from live.session import write_state
+from live.session import LiveSessionManager, write_state
 
 
 class FakeManager:
@@ -60,6 +60,22 @@ def test_live_api_returns_owner_scoped_session_and_clip_urls(tmp_path, monkeypat
     assert stopped.json()["modo_parada"] == "detener_ya"
 
 
+def test_live_api_calculates_capture_elapsed_from_persisted_timestamps(monkeypatch):
+    monkeypatch.setattr(live_api.time, "time", lambda: 125.9)
+
+    active = live_api._present({"status": "reconectando", "capture_started_at": 100.0,
+                                "capture_ended_at": None})
+    finished = live_api._present({"status": "detenido", "capture_started_at": 100.0,
+                                  "capture_ended_at": 120.0})
+    never_started = live_api._present({"status": "error"})
+
+    assert active["capture_elapsed_seconds"] == 25
+    assert active["capture_ended_at"] is None
+    assert finished["capture_elapsed_seconds"] == 20
+    assert never_started["capture_started_at"] is None
+    assert never_started["capture_elapsed_seconds"] == 0
+
+
 def test_live_api_accepts_custom_clip_range_and_rejects_invalid_ranges(tmp_path, monkeypatch):
     manager = FakeManager(tmp_path)
     monkeypatch.setattr(live_api, "_manager", manager)
@@ -98,5 +114,76 @@ def test_live_api_accepts_custom_clip_range_and_rejects_invalid_ranges(tmp_path,
     assert invalid_url.status_code == 400
 
 
+def test_live_mutations_and_reads_reject_invalid_auth_before_touching_sessions(tmp_path, monkeypatch):
+    manager = FakeManager(tmp_path)
+    created = []
+    original_create = manager.create
+    manager.create = lambda *args, **kwargs: (created.append(True), original_create(*args, **kwargs))[1]
+    monkeypatch.setattr(live_api, "_manager", manager)
+    monkeypatch.setattr(live_api, "_access_check",
+                        lambda _request: _raise_unauthorized())
+    app = FastAPI()
+    app.include_router(live_api.router)
+
+    with TestClient(app) as client:
+        session_id = manager.state["id"]
+        responses = [
+            client.post("/api/live", json={"url": "https://youtube.com/live/id"}),
+            client.get("/api/live"),
+            client.get(f"/api/live/{session_id}"),
+            client.post(f"/api/live/{session_id}/stop", json={"modo": "detener_ya"}),
+            client.patch(f"/api/live/{session_id}/clips/0", json={"viral_hook_text": "x"}),
+            client.get(f"/api/live/{session_id}/download/0"),
+            client.get(f"/api/live/{session_id}/download.zip"),
+        ]
+
+    assert [response.status_code for response in responses] == [401] * len(responses)
+    assert created == []
+
+
+def test_user_cannot_access_or_stop_another_users_live_session(tmp_path, monkeypatch):
+    manager = FakeManager(tmp_path)
+    monkeypatch.setattr(live_api, "_manager", manager)
+    monkeypatch.setattr(live_api, "_owner_resolver", lambda _request: _async_value("owner-2"))
+    monkeypatch.setattr(live_api, "_access_check", lambda _request: _async_value(None))
+    app = FastAPI()
+    app.include_router(live_api.router)
+
+    with TestClient(app) as client:
+        session_id = manager.state["id"]
+        fetched = client.get(f"/api/live/{session_id}")
+        stopped = client.post(f"/api/live/{session_id}/stop", json={"modo": "detener_ya"})
+
+    assert fetched.status_code == 404
+    assert stopped.status_code == 404
+    assert manager.state["status"] == "capturando"
+
+
+def test_active_session_conflict_is_structured_and_owner_scoped(tmp_path, monkeypatch):
+    class Process:
+        def poll(self):
+            return None
+
+    manager = LiveSessionManager(tmp_path, popen=lambda *_args, **_kwargs: Process())
+    active = manager.create("https://youtube.com/live/active", user_id="owner-1")
+    monkeypatch.setattr(live_api, "_manager", manager)
+    monkeypatch.setattr(live_api, "_owner_resolver", lambda _request: _async_value("owner-1"))
+    monkeypatch.setattr(live_api, "_access_check", lambda _request: _async_value(None))
+    monkeypatch.setattr(live_api, "_validate_youtube_url", lambda _url: None)
+    app = FastAPI()
+    app.include_router(live_api.router)
+
+    with TestClient(app) as client:
+        response = client.post("/api/live", json={"url": "https://youtube.com/live/next"})
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == {"reason": "live_session_active", "status": "iniciando",
+                                          "stopping": False, "session_id": active["id"]}
+
+
 async def _async_value(value):
     return value
+
+
+async def _raise_unauthorized():
+    raise HTTPException(status_code=401, detail="Session expired")

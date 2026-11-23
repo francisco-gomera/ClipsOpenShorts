@@ -6,7 +6,8 @@
 // classic BYOK dashboard.
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { getApiUrl } from '../config';
-import { apiFetch, apiJson, getToken, setToken, clearToken, setLocalAuthEnabled, refreshLocalAccess } from '../lib/api';
+import { apiFetch, apiJson, getToken, setToken, clearToken, setLocalAuthEnabled, setManagedAuthEnabled,
+  refreshLocalAccess, AUTH_EXPIRED_EVENT } from '../lib/api';
 import { track, identify, reset as resetAnalytics } from '../lib/analytics';
 import { report as reportAttribution } from '../lib/attribution';
 import { readPendingPlan } from '../lib/pendingPlan';
@@ -40,6 +41,19 @@ export function AuthProvider({ children }) {
   const [me, setMe] = useState(null);           // /api/me payload, or null when signed out
   const [loading, setLoading] = useState(true);
   const [signingIn, setSigningIn] = useState(false);
+  const [authExpired, setAuthExpired] = useState(false);
+
+  useEffect(() => {
+    const onExpired = () => {
+      clearToken();
+      clearMediaToken();
+      setMe(null);
+      setAuthExpired(true);
+      resetAnalytics();
+    };
+    window.addEventListener(AUTH_EXPIRED_EVENT, onExpired);
+    return () => window.removeEventListener(AUTH_EXPIRED_EVENT, onExpired);
+  }, []);
 
   const refreshMe = useCallback(async () => {
     if (!getToken()) { setMe(null); return null; }
@@ -51,14 +65,17 @@ export function AuthProvider({ children }) {
       // media-token endpoint correctly rejects that forced-change session.
       if (!data?.user?.must_change_password) await ensureMediaToken(data?.user?.id);
       setMe(data);
+      setAuthExpired(false);
       // Same profileId (user uuid) the server-side events use.
       identify(data?.user, { plan: data?.plan || 'free' });
       return data;
     } catch (e) {
-      // Stale/invalid token: drop it and fall back to anonymous BYOK.
-      clearToken();
-      clearMediaToken();
-      setMe(null);
+      if (e?.status === 401) {
+        clearToken();
+        clearMediaToken();
+        setMe(null);
+        setAuthExpired(true);
+      }
       return null;
     }
   }, []);
@@ -147,6 +164,7 @@ export function AuthProvider({ children }) {
         const cfg = await (await fetch(getApiUrl('/api/config'))).json();
         localAuthRef.current = !!cfg.localAuthEnabled;
         setLocalAuthEnabled(cfg.localAuthEnabled);
+        setManagedAuthEnabled(cfg.billingEnabled);
         setConfig(cfg);
         if (cfg.billingEnabled) {
           const handled = await handleAuthHash();
@@ -213,12 +231,22 @@ export function AuthProvider({ children }) {
   }, []);
 
   const logout = useCallback(() => {
-    if (localAuthRef.current) apiFetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
-    clearToken();
-    clearMediaToken();
-    setMe(null);
-    resetAnalytics();
-  }, []);
+    const finish = async () => {
+      try {
+        if (localAuthRef.current) {
+          await apiFetch('/api/auth/logout', { method: 'POST' });
+        } else if (config.billingEnabled) {
+          await apiFetch('/api/auth/logout', { method: 'POST' });
+        }
+      } catch (_) { /* backend expiry monitor remains authoritative */ }
+      clearToken();
+      clearMediaToken();
+      setMe(null);
+      setAuthExpired(false);
+      resetAnalytics();
+    };
+    return finish();
+  }, [config.billingEnabled]);
 
   const value = {
     billingEnabled: config.billingEnabled,
@@ -234,6 +262,7 @@ export function AuthProvider({ children }) {
     entitled: !!me?.entitled,
     minutes: me?.minutes || null,
     isSignedIn: !!me?.user,
+    authExpired,
     // Managed = signed-in AND entitled (active plan or top-up credit).
     isManaged: !!(config.billingEnabled && me?.entitled),
     refreshMe,

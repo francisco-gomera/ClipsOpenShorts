@@ -146,14 +146,17 @@ def _user_payload(row) -> dict:
     }
 
 
-def _token(row) -> str:
+def _token(row, family_id: str | None = None) -> str:
     now = _now()
-    return jwt.encode({
+    claims = {
         "sub": row["id"], "username": row["username"], "role": row["role"],
         "ver": row["auth_version"],
         "exp": now + timedelta(seconds=ACCESS_TTL_SECONDS), "iat": now,
         "jti": secrets.token_urlsafe(12),
-    }, _secret(), algorithm="HS256")
+    }
+    if family_id:
+        claims["sid"] = str(family_id)
+    return jwt.encode(claims, _secret(), algorithm="HS256")
 
 
 def _cookie_secure(request: Request) -> bool:
@@ -180,6 +183,69 @@ def _issue_refresh(db, user_id: str, family_id: str | None = None) -> str:
     return raw
 
 
+def refresh_family_for_request(request: Request) -> str | None:
+    """Return the caller's valid refresh family without rotating its cookie.
+
+    The refresh cookie is intentionally scoped to /api/auth, so it is not sent
+    to /api/live. For authenticated API requests, use the signed access token's
+    family as a fallback; the normal local-auth middleware verifies that token
+    before the live auth context is resolved.
+    """
+    raw = request.cookies.get(REFRESH_COOKIE, "")
+    token_hash = hashlib.sha256(raw.encode()).hexdigest() if raw else None
+    bearer = request.headers.get("authorization", "")
+    access_token = bearer[7:].strip() if bearer.lower().startswith("bearer ") else ""
+    claims = None
+    if access_token:
+        try:
+            claims = jwt.decode(access_token, _secret(), algorithms=["HS256"])
+        except Exception:
+            claims = None
+    family_id = claims.get("sid") if claims else None
+    user_id = claims.get("sub") if claims else None
+    if not token_hash and not (family_id and user_id):
+        return None
+    with _db() as db:
+        row = None
+        if token_hash:
+            row = db.execute(
+                "SELECT t.family_id FROM local_refresh_tokens t "
+                "JOIN local_users u ON u.id=t.user_id "
+                "WHERE t.token_hash=? AND t.revoked_at IS NULL AND t.expires_at>? "
+                "AND u.is_active=1 AND (u.access_expires_at IS NULL OR u.access_expires_at>?)",
+                (token_hash, _now().isoformat(), _now().isoformat()),
+            ).fetchone()
+        if row:
+            return str(row["family_id"])
+        if family_id and user_id:
+            row = db.execute(
+                "SELECT t.family_id FROM local_refresh_tokens t "
+                "JOIN local_users u ON u.id=t.user_id "
+                "WHERE t.family_id=? AND t.user_id=? AND t.revoked_at IS NULL AND t.expires_at>? "
+                "AND u.is_active=1 AND (u.access_expires_at IS NULL OR u.access_expires_at>?) "
+                "LIMIT 1",
+                (str(family_id), str(user_id), _now().isoformat(), _now().isoformat()),
+            ).fetchone()
+    return str(row["family_id"]) if row else None
+
+
+def refresh_family_is_valid(family_id: str) -> bool | None:
+    """Check persisted auth validity; None means the auth store was unavailable."""
+    try:
+        with _db() as db:
+            row = db.execute(
+                "SELECT 1 FROM local_refresh_tokens t "
+                "JOIN local_users u ON u.id=t.user_id "
+                "WHERE t.family_id=? AND t.revoked_at IS NULL AND t.expires_at>? "
+                "AND u.is_active=1 AND (u.access_expires_at IS NULL OR u.access_expires_at>?) "
+                "LIMIT 1",
+                (str(family_id), _now().isoformat(), _now().isoformat()),
+            ).fetchone()
+        return row is not None
+    except sqlite3.Error:
+        return None
+
+
 def _revoke_all(db, user_id: str):
     db.execute("UPDATE local_refresh_tokens SET revoked_at=? WHERE user_id=? AND revoked_at IS NULL",
                (_now().isoformat(), user_id))
@@ -199,6 +265,15 @@ def _verified_user(request: Request):
         row = db.execute("SELECT * FROM local_users WHERE id=?", (user_id,)).fetchone()
         if row is None or claims.get("ver") != row["auth_version"] or not row["is_active"]:
             raise HTTPException(status_code=401, detail="Account is inactive.")
+        family_id = claims.get("sid")
+        if family_id:
+            valid_family = db.execute(
+                "SELECT 1 FROM local_refresh_tokens WHERE family_id=? AND user_id=? "
+                "AND revoked_at IS NULL AND expires_at>? LIMIT 1",
+                (str(family_id), str(user_id), _now().isoformat()),
+            ).fetchone()
+            if not valid_family:
+                raise HTTPException(status_code=401, detail="Session revoked. Sign in again.")
         expiry = row["access_expires_at"]
         if expiry and datetime.fromisoformat(expiry) <= _now():
             db.execute("UPDATE local_users SET is_active=0 WHERE id=?", (user_id,))
@@ -221,7 +296,7 @@ def local_auth_middleware_enabled(request: Request) -> bool:
         return request.method == "POST"
     if not path.startswith("/api/"):
         return False
-    if path in {"/api/config", "/api/auth/login", "/api/auth/refresh", "/api/auth/logout"}:
+    if path in {"/api/config", "/api/live/health", "/api/auth/login", "/api/auth/refresh", "/api/auth/logout"}:
         return False
     if path.startswith("/api/source/"):
         return False  # that endpoint validates its short-lived signed media URL
@@ -270,8 +345,9 @@ def login(payload: LoginRequest, request: Request, response: Response):
             _login_attempts[ip] = attempts
             raise HTTPException(status_code=401, detail="Incorrect username or password.")
         _login_attempts.pop(ip, None)
-        refresh = _issue_refresh(db, row["id"])
-        access = _token(row)
+        family_id = str(uuid.uuid4())
+        refresh = _issue_refresh(db, row["id"], family_id)
+        access = _token(row, family_id)
         user = _user_payload(row)
     _set_refresh_cookie(response, refresh, request)
     return {"access_token": access, "token_type": "bearer", "user": user}
@@ -309,7 +385,7 @@ def refresh_session(request: Request, response: Response):
         db.execute("UPDATE local_refresh_tokens SET revoked_at=?, replaced_by=? WHERE token_hash=?",
                    (_now().isoformat(), new_hash, token_hash))
         user = _user_payload(user_row)
-        access = _token(user_row)
+        access = _token(user_row, row["family_id"])
     _set_refresh_cookie(response, new_refresh, request)
     return {"access_token": access, "token_type": "bearer", "user": user}
 
@@ -317,6 +393,20 @@ def refresh_session(request: Request, response: Response):
 @router.post("/api/auth/logout")
 def logout(request: Request, response: Response):
     raw = request.cookies.get(REFRESH_COOKIE, "")
+    user = getattr(request.state, "local_user", None)
+    user_id = user.get("id") if user else None
+    if raw and not user_id:
+        with _db() as db:
+            row = db.execute("SELECT user_id FROM local_refresh_tokens WHERE token_hash=?",
+                             (hashlib.sha256(raw.encode()).hexdigest(),)).fetchone()
+        user_id = row["user_id"] if row else None
+    if user_id:
+        try:
+            import live_api
+            live_api.stop_owned_sessions(str(user_id), "logout")
+        except Exception:
+            # Revocation must still succeed if the live manager is unavailable.
+            pass
     if raw:
         with _db() as db:
             db.execute("UPDATE local_refresh_tokens SET revoked_at=? WHERE token_hash=? AND revoked_at IS NULL",
@@ -346,8 +436,9 @@ def change_password(payload: ChangePasswordRequest, request: Request, response: 
                    (new_hash, user["id"]))
         _revoke_all(db, user["id"])
         updated = db.execute("SELECT * FROM local_users WHERE id=?", (user["id"],)).fetchone()
-        refresh = _issue_refresh(db, user["id"])
-        access = _token(updated)
+        family_id = str(uuid.uuid4())
+        refresh = _issue_refresh(db, user["id"], family_id)
+        access = _token(updated, family_id)
         out_user = _user_payload(updated)
     _set_refresh_cookie(response, refresh, request)
     return {"access_token": access, "user": out_user}

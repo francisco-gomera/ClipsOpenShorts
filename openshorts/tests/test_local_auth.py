@@ -43,14 +43,16 @@ def test_bootstrap_admin_forced_password_change_and_relogin(client):
     login = client.post("/api/auth/login", json={"username": "francisco082", "password": "bootstrap-pass"})
     assert login.status_code == 200
     assert login.json()["user"]["must_change_password"] is True
-    assert client.get("/api/private").status_code == 403
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    assert client.get("/api/private", headers=headers).status_code == 403
 
     changed = client.post("/api/auth/change-password", json={
         "current_password": "bootstrap-pass", "new_password": "a-strong-new-password",
-    })
+    }, headers=headers)
     assert changed.status_code == 200
     assert changed.json()["user"]["must_change_password"] is False
-    assert client.get("/api/private").status_code == 200
+    renewed_headers = {"Authorization": f"Bearer {changed.json()['access_token']}"}
+    assert client.get("/api/private", headers=renewed_headers).status_code == 200
     assert client.post("/api/auth/login", json={
         "username": "francisco082", "password": "a-strong-new-password",
     }).status_code == 200
@@ -70,9 +72,33 @@ def test_refresh_rotation_and_reuse_revokes_token_family(client):
     assert client.post("/api/auth/refresh").status_code == 401
 
 
+def test_logout_requests_live_stop_before_revoking_and_is_idempotent(client, monkeypatch):
+    stopped = []
+    import live_api
+    monkeypatch.setattr(live_api, "stop_owned_sessions",
+                        lambda user_id, reason: stopped.append((user_id, reason)) or [])
+    login = client.post("/api/auth/login", json={"username": "francisco082", "password": "bootstrap-pass"})
+    assert login.status_code == 200
+    user_id = login.json()["user"]["id"]
+
+    first = client.post("/api/auth/logout")
+    second = client.post("/api/auth/logout")
+
+    assert first.status_code == second.status_code == 200
+    assert first.json()["ok"] and second.json()["ok"]
+    assert stopped == [(user_id, "logout")]
+    assert client.get("/api/private", headers={
+        "Authorization": f"Bearer {login.json()['access_token']}"
+    }).status_code == 401
+    assert client.post("/api/auth/refresh").status_code == 401
+
+
 def test_admin_can_create_users_and_last_admin_cannot_be_demoted(client):
     login = client.post("/api/auth/login", json={"username": "francisco082", "password": "bootstrap-pass"})
-    admin_token = login.json()["access_token"]
+    changed = client.post("/api/auth/change-password", json={
+        "current_password": "bootstrap-pass", "new_password": "a-strong-new-password",
+    }, headers={"Authorization": f"Bearer {login.json()['access_token']}"})
+    admin_token = changed.json()["access_token"]
     headers = {"Authorization": f"Bearer {admin_token}"}
     create = client.post("/api/admin/users", headers=headers, json={
         "username": "editor", "password": "a-temporary-password", "role": "user",

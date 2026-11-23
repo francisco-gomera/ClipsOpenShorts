@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field, model_validator
 from live.config import (DEFAULT_CLIP_MAX_SECONDS, DEFAULT_CLIP_MIN_SECONDS,
                          MAX_CONFIGURABLE_CLIP_SECONDS, MIN_CONFIGURABLE_CLIP_SECONDS)
 from live.resolver import LiveResolveError, _validate_youtube_url
-from live.session import LiveSessionManager, update_state
+from live.session import LiveSessionManager, SessionConflict, update_state
 
 router = APIRouter(prefix="/api/live", tags=["live"])
 _manager: LiveSessionManager | None = None
@@ -23,21 +23,28 @@ _owner_resolver = None
 _access_check = None
 _media_signer = None
 _admission_check = None
+_auth_context_resolver = None
 
 
 def configure(*, output_dir=None, owner_resolver=None, access_check=None, media_signer=None,
-              manager=None, admission_check=None):
+              manager=None, admission_check=None, auth_context_resolver=None, auth_checker=None):
     global _manager, _output_dir, _owner_resolver, _access_check, _media_signer, _admission_check
+    global _auth_context_resolver
     if output_dir is not None:
         _output_dir = Path(output_dir).resolve()
     _owner_resolver = owner_resolver
     _access_check = access_check
     _media_signer = media_signer
     _admission_check = admission_check
+    _auth_context_resolver = auth_context_resolver
+    if auth_checker is not None and _manager is not None:
+        _manager.auth_checker = auth_checker
     if manager is not None:
         _manager = manager
     elif _manager is None or _manager.output_dir != _output_dir:
-        _manager = LiveSessionManager(_output_dir)
+        _manager = LiveSessionManager(_output_dir, auth_checker=auth_checker)
+    elif auth_checker is not None:
+        _manager.auth_checker = auth_checker
 
 
 def _sessions() -> LiveSessionManager:
@@ -67,15 +74,32 @@ async def _get_owned_session(request: Request, session_id: str):
         state = None
     if not state:
         raise HTTPException(status_code=404, detail="Sesión no encontrada")
-    if state.get("user_id") is not None and str(state["user_id"]) != str(owner_id):
+    if owner_id is not None and (state.get("user_id") is None
+                                 or str(state["user_id"]) != str(owner_id)):
         raise HTTPException(status_code=404, detail="Sesión no encontrada")
     return state
 
 
 def _present(state: dict) -> dict:
     result = dict(state)
+    result.pop("auth_session_ref", None)
+    result.pop("worker_pid", None)
+    result.pop("worker_proc_start", None)
+    result.pop("auth_expires_at", None)
     result.setdefault("min_clip_seconds", DEFAULT_CLIP_MIN_SECONDS)
     result.setdefault("max_clip_seconds", DEFAULT_CLIP_MAX_SECONDS)
+    result.setdefault("capture_started_at", None)
+    result.setdefault("capture_ended_at", None)
+    result.setdefault("capture_elapsed_seconds", 0)
+    started_at = result.get("capture_started_at")
+    if started_at is not None:
+        ended_at = result.get("capture_ended_at")
+        if ended_at is None and result.get("status") in {"detenido", "error"}:
+            ended_at = result.get("ended_at")
+            if ended_at is not None:
+                result["capture_ended_at"] = ended_at
+        end = float(ended_at) if ended_at is not None else time.time()
+        result["capture_elapsed_seconds"] = max(0, int(end - float(started_at)))
     clips = []
     for item in state.get("clips", []):
         clip = dict(item)
@@ -106,7 +130,8 @@ async def list_live_sessions(request: Request):
             state = _sessions().get(directory.name)
         except FileNotFoundError:
             state = None
-        if not state or (state.get("user_id") is not None and str(state["user_id"]) != str(owner_id)):
+        if not state or (owner_id is not None and (state.get("user_id") is None
+                                                   or str(state["user_id"]) != str(owner_id))):
             continue
         sessions.append(_present(state))
     sessions.sort(key=lambda state: state.get("created_at", 0), reverse=True)
@@ -147,10 +172,21 @@ async def create_live_session(body: LiveCreateRequest, request: Request):
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     if _admission_check:
         _admission_check()
+    auth_context = await _auth_context_resolver(request) if _auth_context_resolver else None
     try:
-        state = _sessions().create(body.url, user_id=owner_id,
-                                   min_clip_seconds=body.min_clip_seconds,
-                                   max_clip_seconds=body.max_clip_seconds)
+        create_options = {"user_id": owner_id,
+                          "min_clip_seconds": body.min_clip_seconds,
+                          "max_clip_seconds": body.max_clip_seconds}
+        if auth_context is not None:
+            create_options["auth_context"] = auth_context
+        state = _sessions().create(body.url, **create_options)
+    except SessionConflict as exc:
+        same_owner = str(exc.state.get("user_id")) == str(owner_id)
+        detail = {"reason": "live_session_active", "status": exc.state.get("status"),
+                  "stopping": exc.state.get("status") in {"deteniendo", "finalizando"}}
+        if same_owner:
+            detail["session_id"] = exc.state.get("id")
+        raise HTTPException(status_code=409, detail=detail) from exc
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except Exception as exc:
@@ -171,6 +207,33 @@ async def stop_live_session(session_id: str, body: LiveStopRequest, request: Req
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return _present(state)
+
+
+@router.post("/stop-owned", status_code=202)
+async def stop_owned_live_sessions(request: Request):
+    owner_id = await _authorize_request(request)
+    return {"sessions": [_present(state) for state in stop_owned_sessions(str(owner_id), "logout")]}
+
+
+def stop_owned_sessions(owner_id: str, reason: str = "auth_expired") -> list[dict]:
+    """Request graceful cancellation for only the owner's active Live workers."""
+    stopped = []
+    manager = _sessions()
+    for directory in manager.output_dir.iterdir():
+        if not directory.is_dir():
+            continue
+        try:
+            state = manager.get(directory.name)
+        except FileNotFoundError:
+            continue
+        if (not state or str(state.get("user_id")) != str(owner_id)
+                or state.get("status") not in {"iniciando", "esperando", "capturando",
+                                               "reconectando", "deteniendo", "finalizando"}):
+            continue
+        state = manager.stop(state["id"], "detener_ya", reason=reason)
+        if state:
+            stopped.append(state)
+    return stopped
 
 
 @router.patch("/{session_id}/clips/{clip_index}")

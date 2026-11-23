@@ -421,8 +421,11 @@ function ClipSkeletonCard({ clipNumber, substage = 'rendering', percent = 0 }) {
 
 function App() {
   // Cloud auth/billing session (inert when billing is disabled).
-  const { billingEnabled, localAuthEnabled, isManaged, isSignedIn, me, plan, refreshMe, jobRetentionSeconds, localLlm, loading: authLoading } = useAuth();
+  const { billingEnabled, localAuthEnabled, isManaged, isSignedIn, me, plan, refreshMe, authExpired, jobRetentionSeconds, localLlm, loading: authLoading } = useAuth();
   const [showLogin, setShowLogin] = useState(false);
+  useEffect(() => {
+    if (billingEnabled && authExpired) setShowLogin(true);
+  }, [billingEnabled, authExpired]);
   const [showTopUp, setShowTopUp] = useState(false);
   // Free plan: "want the watermark off?" once per job, when the clips land.
   const [showWmNotice, setShowWmNotice] = useState(false);

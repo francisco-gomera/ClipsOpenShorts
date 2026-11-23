@@ -489,3 +489,13 @@ class FirstVideoGrant(Base):
     ip_hash = Column(String(64), nullable=False, index=True)
     job_id = Column(Text, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+
+class RevokedSessionToken(Base):
+    """A dashboard JWT explicitly invalidated by logout."""
+    __tablename__ = "revoked_session_tokens"
+    jti = Column(String(128), primary_key=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"),
+                     nullable=False, index=True)
+    expires_at = Column(DateTime(timezone=True), nullable=False, index=True)
+    revoked_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)

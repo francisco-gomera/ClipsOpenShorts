@@ -2955,8 +2955,59 @@ def _signed_media_url(url_path: str, base: str = "") -> str:
 
 
 async def _live_access(request: Request):
-    if BILLING_ENABLED and not await resolve_gemini(request):
-        raise gemini_missing_error()
+    if BILLING_ENABLED:
+        # Live workers belong to a dashboard session, never an API key.  A
+        # stale JWT must be reported as authentication failure (401), not as a
+        # missing managed Gemini entitlement (402).
+        await cloud.auth.get_session_user_required(request)
+
+
+async def _live_auth_context(request: Request):
+    if local_auth.enabled():
+        family = local_auth.refresh_family_for_request(request)
+        if not family:
+            raise HTTPException(status_code=401, detail="La sesión no se puede renovar. Inicia sesión nuevamente.")
+        return {"type": "local", "session_ref": family}
+    if BILLING_ENABLED:
+        auth = request.headers.get("Authorization", "")
+        token = auth[7:].strip() if auth.lower().startswith("bearer ") else ""
+        claims = cloud.auth._decode_jwt(token)
+        if not claims or not claims.get("exp"):
+            raise HTTPException(status_code=401, detail="La sesión expiró. Inicia sesión nuevamente.")
+        user = await cloud.auth.get_session_user_required(request)
+        if not managed_keys.has_active_entitlement(user):
+            raise gemini_missing_error()
+        return {"type": "cloud", "expires_at": float(claims["exp"]),
+                "session_ref": claims.get("jti") or hashlib.sha256(token.encode()).hexdigest()}
+    return None
+
+
+def _live_auth_still_valid(state: dict):
+    auth_type = state.get("auth_type")
+    if auth_type == "local":
+        ref = state.get("auth_session_ref")
+        return local_auth.refresh_family_is_valid(ref) if ref else False
+    if auth_type == "cloud":
+        expiry = state.get("auth_expires_at")
+        if not expiry or time.time() >= float(expiry):
+            return False
+        async def user_still_exists():
+            import uuid as _uuid
+            from cloud.database import session as cloud_session
+            from cloud.models import RevokedSessionToken, User
+            async with cloud_session() as session:
+                user = await session.get(User, _uuid.UUID(str(state.get("user_id"))))
+                if user is None:
+                    return False
+                if state.get("auth_session_ref") and await session.get(
+                        RevokedSessionToken, state["auth_session_ref"]):
+                    return False
+                return True
+        try:
+            return asyncio.run(user_still_exists())
+        except Exception:
+            return None
+    return True
 
 
 def _assert_live_admission():
@@ -2974,14 +3025,26 @@ def _assert_live_admission():
 import live_api as _live_api
 _live_api.configure(output_dir=OUTPUT_DIR, owner_resolver=_owner_id,
                     access_check=_live_access, media_signer=_signed_media_url,
-                    admission_check=_assert_live_admission)
+                    admission_check=_assert_live_admission,
+                    auth_context_resolver=_live_auth_context,
+                    auth_checker=_live_auth_still_valid)
 
 
 @app.middleware("http")
 async def block_other_work_during_live(request: Request, call_next):
     path = request.url.path
     changes_state = request.method in {"POST", "PUT", "PATCH", "DELETE"}
-    if (changes_state and path.startswith("/api/") and not path.startswith("/api/live")
+    auth_route = path.startswith("/api/auth/")
+    if changes_state and path.startswith("/api/") and not path.startswith("/api/live") and not auth_route:
+        try:
+            if local_auth.local_auth_middleware_enabled(request):
+                local_auth.authenticate_request(request)
+            elif BILLING_ENABLED and await _user_from_request(request) is None:
+                raise HTTPException(status_code=401, detail="Authentication required")
+        except HTTPException as exc:
+            return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail},
+                                headers=exc.headers)
+    if (changes_state and path.startswith("/api/") and not path.startswith("/api/live") and not auth_route
             and _live_api.has_active_session()):
         return JSONResponse(
             status_code=423,

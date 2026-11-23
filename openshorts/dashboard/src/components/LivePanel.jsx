@@ -3,9 +3,18 @@ import { AlertTriangle, Download, Film, Loader2, Radio, Square, X } from 'lucide
 import ResultCard from './ResultCard';
 import { apiFetch, apiJson } from '../lib/api';
 import { buildLiveCreatePayload, validateLiveDuration } from '../lib/liveDuration';
+import { captureElapsedSeconds, captureTimerStatus, formatCaptureElapsed } from '../lib/liveCaptureTimer';
+import { useAuth } from '../contexts/AuthContext';
 
 const LIVE_SESSION_KEY = 'os_live_session';
 const ACTIVE_STATES = new Set(['iniciando', 'esperando', 'capturando', 'reconectando', 'deteniendo', 'finalizando']);
+
+function storeLiveSessionId(sessionId) {
+  try {
+    if (sessionId) localStorage.setItem(LIVE_SESSION_KEY, sessionId);
+    else localStorage.removeItem(LIVE_SESSION_KEY);
+  } catch (_) { /* private mode */ }
+}
 
 async function downloadWithAuth(path, filename) {
   const response = await apiFetch(path);
@@ -22,29 +31,45 @@ async function downloadWithAuth(path, filename) {
 }
 
 export default function LivePanel({ uploadPostKey, uploadUserId, geminiApiKey, isManaged, onActiveChange }) {
+  const { billingEnabled, localAuthEnabled, isSignedIn, authExpired } = useAuth();
   const [url, setUrl] = useState('');
   const [minClipSeconds, setMinClipSeconds] = useState('30');
   const [maxClipSeconds, setMaxClipSeconds] = useState('60');
   const [sessionId, setSessionId] = useState(() => localStorage.getItem(LIVE_SESSION_KEY) || '');
   const [session, setSession] = useState(null);
+  const [captureClockNow, setCaptureClockNow] = useState(() => Date.now());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [downloadError, setDownloadError] = useState('');
   const [editing, setEditing] = useState(null);
   const [savingEdit, setSavingEdit] = useState(false);
 
+  const describeError = useCallback((err) => {
+    if (err?.status === 401) return authExpired
+      ? 'Tu sesión ha caducado. Inicia sesión nuevamente.'
+      : 'No se pudo validar tu sesión. Comprueba la conexión e inténtalo de nuevo.';
+    if (err?.status === 409 && err?.detail?.reason === 'live_session_active') {
+      return err.detail.stopping
+        ? 'La sesión LIVE anterior todavía se está deteniendo.'
+        : 'Ya hay una sesión LIVE activa. Se está cargando su estado para que puedas gestionarla.';
+    }
+    return (typeof err?.detail === 'string' && err.detail) || err?.message || 'No se pudo completar la operación LIVE.';
+  }, [authExpired]);
+
   const refresh = useCallback(async () => {
     if (!sessionId) {
       const data = await apiJson('/api/live');
-      const active = (data.sessions || []).find((item) => ACTIVE_STATES.has(item.status));
-      if (active) setSessionId(active.id);
-      else if ((data.sessions || []).length) setSession(data.sessions[0]);
+      const sessions = data.sessions || [];
+      const selected = sessions.find((item) => ACTIVE_STATES.has(item.status)) || sessions[0] || null;
+      setSession(selected);
+      setSessionId(selected?.id || '');
+      storeLiveSessionId(selected?.id || '');
       return;
     }
     const data = await apiJson(`/api/live/${encodeURIComponent(sessionId)}`);
     setSession(data);
     if (data.status === 'detenido' || data.status === 'error') {
-      try { localStorage.setItem(LIVE_SESSION_KEY, sessionId); } catch (_) { /* private mode */ }
+      storeLiveSessionId(sessionId);
     }
   }, [sessionId]);
 
@@ -54,18 +79,40 @@ export default function LivePanel({ uploadPostKey, uploadUserId, geminiApiKey, i
       try {
         if (!cancelled) await refresh();
       } catch (err) {
-        if (!cancelled && sessionId) setError(err.message || 'No se pudo consultar la sesión.');
+        if (cancelled) return;
+        if (err?.status === 404 && sessionId) {
+          // The browser may retain an old session id that is no longer
+          // accessible (for example, a session created before ownership was
+          // enforced). Drop it and reload the caller's own session list.
+          storeLiveSessionId('');
+          setSessionId('');
+          setSession(null);
+          setError('');
+        } else if (sessionId) {
+          setError(describeError(err));
+        }
       }
     };
     tick();
     const timer = window.setInterval(tick, 2500);
     return () => { cancelled = true; window.clearInterval(timer); };
-  }, [refresh, sessionId]);
+  }, [refresh, sessionId, describeError]);
+
+  useEffect(() => {
+    if (!session?.capture_started_at || session.capture_ended_at != null) return undefined;
+    setCaptureClockNow(Date.now());
+    const timer = window.setInterval(() => setCaptureClockNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [session?.capture_started_at, session?.capture_ended_at]);
 
   const active = ACTIVE_STATES.has(session?.status);
   const clips = useMemo(() => session?.clips || [], [session?.clips]);
+  const captureTime = formatCaptureElapsed(captureElapsedSeconds(session, captureClockNow));
+  const captureStatus = captureTimerStatus(session);
   const durationError = useMemo(() => validateLiveDuration(minClipSeconds, maxClipSeconds).error,
     [minClipSeconds, maxClipSeconds]);
+  const authRequired = billingEnabled || localAuthEnabled;
+  const authenticated = !authRequired || isSignedIn;
 
   useEffect(() => {
     if (session) onActiveChange?.(active);
@@ -89,10 +136,18 @@ export default function LivePanel({ uploadPostKey, uploadUserId, geminiApiKey, i
       });
       setSession(created);
       setSessionId(created.id);
-      try { localStorage.setItem(LIVE_SESSION_KEY, created.id); } catch (_) { /* private mode */ }
+      storeLiveSessionId(created.id);
       setUrl('');
     } catch (err) {
-      setError(err.message || 'No se pudo iniciar el directo.');
+      setError(describeError(err));
+      if (err?.status === 409 && err?.detail?.session_id) {
+        try {
+          const existing = await apiJson(`/api/live/${encodeURIComponent(err.detail.session_id)}`);
+          setSession(existing);
+          setSessionId(existing.id);
+          storeLiveSessionId(existing.id);
+        } catch (_) { /* never expose a conflicting session owned by someone else */ }
+      }
     } finally {
       setBusy(false);
     }
@@ -109,7 +164,7 @@ export default function LivePanel({ uploadPostKey, uploadUserId, geminiApiKey, i
       });
       setSession(next);
     } catch (err) {
-      setError(err.message || 'No se pudo detener la sesión.');
+      setError(describeError(err));
     } finally {
       setBusy(false);
     }
@@ -133,7 +188,7 @@ export default function LivePanel({ uploadPostKey, uploadUserId, geminiApiKey, i
       setSession(next);
       setEditing(null);
     } catch (err) {
-      setError(err.message || 'No se pudieron guardar los textos.');
+      setError(describeError(err));
     } finally {
       setSavingEdit(false);
     }
@@ -173,7 +228,7 @@ export default function LivePanel({ uploadPostKey, uploadUserId, geminiApiKey, i
             </label>
           </div>
           {durationError && <p role="alert" className="text-xs text-danger">{durationError}</p>}
-          <button className="btn-primary inline-flex items-center justify-center gap-2" disabled={busy || !url.trim() || !!durationError}>
+          <button className="btn-primary inline-flex items-center justify-center gap-2" disabled={busy || !authenticated || !url.trim() || !!durationError}>
             {busy ? <Loader2 size={16} className="animate-spin" /> : <Radio size={16} />}
             Iniciar
           </button>
@@ -199,7 +254,8 @@ export default function LivePanel({ uploadPostKey, uploadUserId, geminiApiKey, i
               </button>
             </div>}
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
+            <div className="rounded-input bg-primary-soft p-3"><div className="text-text-secondary">Tiempo de captura</div><div className="readout mt-1 tabular-nums">{captureTime}</div><div className="mt-1 text-[10px] text-text-secondary">{captureStatus}</div></div>
             <div className="rounded-input bg-primary-soft p-3"><div className="text-text-secondary">Segmentos</div><div className="readout mt-1">{session.segments || 0}</div></div>
             <div className="rounded-input bg-primary-soft p-3"><div className="text-text-secondary">Clips listos</div><div className="readout mt-1">{clips.length}</div></div>
             <div className="rounded-input bg-primary-soft p-3"><div className="text-text-secondary">RTF Whisper</div><div className="readout mt-1">{session.rtf == null ? '—' : Number(session.rtf).toFixed(2)}</div></div>
@@ -224,6 +280,7 @@ export default function LivePanel({ uploadPostKey, uploadUserId, geminiApiKey, i
       )}
 
       {error && <p role="alert" className="text-sm text-danger">{error}</p>}
+      {authExpired && <p role="status" className="text-sm text-primary">Tu sesión ha caducado. Inicia sesión nuevamente; el backend está deteniendo la captura asociada.</p>}
       {downloadError && <p role="alert" className="text-sm text-danger">{downloadError}</p>}
 
       {clips.length > 0 && (

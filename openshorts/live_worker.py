@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import signal
 import sys
 
 from live.session import LiveSessionRuntime
@@ -15,6 +16,15 @@ def main() -> int:
     if not all((session_id, url, output_dir, stop_file)):
         print("LIVE_WORKER_ERROR configuración incompleta", file=sys.stderr, flush=True)
         return 2
+    def request_controlled_stop(_signum, _frame):
+        try:
+            with open(stop_file, "w", encoding="utf-8") as handle:
+                handle.write("detener_ya")
+        except OSError:
+            pass
+
+    signal.signal(signal.SIGTERM, request_controlled_stop)
+    signal.signal(signal.SIGINT, request_controlled_stop)
     try:
         LiveSessionRuntime(session_id, url, output_dir, stop_file).run()
         return 0

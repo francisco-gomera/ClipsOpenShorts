@@ -23,6 +23,79 @@ _TERMINAL = {"detenido", "error"}
 _ACTIVE = {"iniciando", "esperando", "capturando", "reconectando", "deteniendo", "finalizando"}
 
 
+class SessionConflict(ValueError):
+    def __init__(self, state):
+        super().__init__("Ya existe una sesión LIVE activa")
+        self.state = state
+
+
+def _proc_start_time(pid: int) -> str | None:
+    try:
+        raw = Path(f"/proc/{pid}/stat").read_text(encoding="utf-8")
+        return raw[raw.rfind(")") + 2:].split()[19]
+    except (OSError, IndexError, ValueError):
+        return None
+
+
+def _proc_matches_worker(pid: int, session_id: str, start_time: str | None = None) -> bool:
+    try:
+        proc = Path(f"/proc/{pid}")
+        if start_time and _proc_start_time(pid) != str(start_time):
+            return False
+        cmdline = (proc / "cmdline").read_bytes().replace(b"\0", b" ").decode(errors="replace")
+        environ = (proc / "environ").read_bytes().split(b"\0")
+        return "live_worker.py" in cmdline and f"LIVE_SESSION_ID={session_id}".encode() in environ
+    except OSError:
+        return False
+
+
+def _find_worker_pid(session_id: str) -> int | None:
+    proc_root = Path("/proc")
+    if not proc_root.is_dir():
+        return None
+    for entry in proc_root.iterdir():
+        if not entry.name.isdigit():
+            continue
+        try:
+            pid = int(entry.name)
+        except ValueError:
+            continue
+        if _proc_matches_worker(pid, session_id):
+            return pid
+    return None
+
+
+def _direct_ffmpeg_children(parent_pid: int) -> list[int]:
+    children = []
+    proc_root = Path("/proc")
+    if not proc_root.is_dir():
+        return children
+    for entry in proc_root.iterdir():
+        if not entry.name.isdigit():
+            continue
+        try:
+            raw = (entry / "stat").read_text(encoding="utf-8")
+            fields = raw[raw.rfind(")") + 2:].split()
+            if int(fields[1]) != int(parent_pid):
+                continue
+            args = (entry / "cmdline").read_bytes().split(b"\0")
+            if args and Path(args[0].decode(errors="replace")).name.startswith("ffmpeg"):
+                children.append(int(entry.name))
+        except (OSError, IndexError, ValueError):
+            continue
+    return children
+
+
+def _proc_is_ffmpeg(pid: int, start_time: str | None) -> bool:
+    try:
+        if start_time and _proc_start_time(pid) != str(start_time):
+            return False
+        args = Path(f"/proc/{pid}/cmdline").read_bytes().split(b"\0")
+        return bool(args and Path(args[0].decode(errors="replace")).name.startswith("ffmpeg"))
+    except OSError:
+        return False
+
+
 @contextmanager
 def _state_file_lock(directory: Path):
     lock_path = directory / ".live_state.lock"
@@ -94,16 +167,42 @@ def read_state(directory: str | Path) -> dict | None:
         return None
 
 
+def _ensure_capture_fields(state: dict) -> bool:
+    changed = False
+    for key, value in (("capture_started_at", None), ("capture_ended_at", None),
+                       ("capture_elapsed_seconds", 0)):
+        if key not in state:
+            state[key] = value
+            changed = True
+    return changed
+
+
+def _finish_capture_fields(state: dict, ended_at: float | None = None) -> bool:
+    """Freeze persisted elapsed time at the actual end of the FFmpeg capture."""
+    _ensure_capture_fields(state)
+    started_at = state.get("capture_started_at")
+    if started_at is None:
+        return False
+    if state.get("capture_ended_at") is None:
+        state["capture_ended_at"] = float(ended_at if ended_at is not None else time.time())
+    state["capture_elapsed_seconds"] = max(
+        0, int(float(state["capture_ended_at"]) - float(started_at)))
+    return True
+
+
 class LiveSessionManager:
     """Launches one isolated live worker per session and recovers stale state."""
     def __init__(self, output_dir: str | Path, *, worker_path: str | Path | None = None,
-                 popen=subprocess.Popen):
+                 popen=subprocess.Popen, auth_checker=None, auth_check_interval: float = 5.0):
         self.output_dir = Path(output_dir).resolve()
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.worker_path = Path(worker_path or Path(__file__).resolve().parents[1] / "live_worker.py")
         self._popen = popen
+        self.auth_checker = auth_checker
+        self.auth_check_interval = max(1.0, float(auth_check_interval))
         self._processes = {}
         self._lock = threading.RLock()
+        self._create_lock = threading.Lock()
         self.recover_stale()
 
     def _directory(self, session_id: str) -> Path:
@@ -119,16 +218,114 @@ class LiveSessionManager:
             if not directory.is_dir():
                 continue
             state = read_state(directory)
-            if state and state.get("status") not in _TERMINAL:
-                state.update({"status": "detenido", "mensaje": "Sesión detenida al reiniciar el servidor",
-                              "ended_at": time.time()})
+            if not state:
+                continue
+            changed = _ensure_capture_fields(state)
+            if (state.get("status") not in _TERMINAL or (state.get("worker_pid") and
+                    _proc_matches_worker(int(state["worker_pid"]),
+                                         str(state.get("id") or directory.name),
+                                         state.get("worker_proc_start")))):
+                session_id = str(state.get("id") or directory.name)
+                pid = state.get("worker_pid")
+                if pid and not _proc_matches_worker(int(pid), session_id, state.get("worker_proc_start")):
+                    pid = None
+                if not pid:
+                    pid = _find_worker_pid(session_id)
+                alive = bool(pid and _proc_matches_worker(
+                    int(pid), session_id, state.get("worker_proc_start")))
+                if alive:
+                    state["worker_pid"] = int(pid)
+                    state["worker_proc_start"] = state.get("worker_proc_start") or _proc_start_time(int(pid))
+                    self._stop_orphan_worker(int(pid), session_id)
+                    alive = _proc_matches_worker(int(pid), session_id, state.get("worker_proc_start"))
+                if alive:
+                    state.update({"status": "deteniendo", "mensaje": "Esperando el cierre del worker anterior",
+                                  "end_reason": "server_recovery"})
+                else:
+                    ended_at = time.time()
+                    state.update({"status": "detenido", "mensaje": "Sesión recuperada al reiniciar el servidor",
+                                  "ended_at": ended_at, "end_reason": "server_recovery"})
+                    _finish_capture_fields(state, ended_at)
+                changed = True
+            if changed:
                 write_state(directory, state)
 
-    def create(self, url: str, *, user_id=None,
+    def _stop_orphan_worker(self, pid: int, session_id: str, timeout: float = 20.0):
+        if not _proc_matches_worker(pid, session_id):
+            return
+        ffmpeg_children = [(child, _proc_start_time(child)) for child in _direct_ffmpeg_children(pid)]
+        stop_file = self.output_dir / session_id / "stop.request"
+        try:
+            stop_file.write_text("detener_ya", encoding="utf-8")
+        except OSError:
+            pass
+        try:
+            if os.name == "posix" and os.getpgid(pid) == pid:
+                os.killpg(pid, signal.SIGTERM)
+            else:
+                os.kill(pid, signal.SIGTERM)
+        except (ProcessLookupError, PermissionError, OSError):
+            return
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline and _proc_matches_worker(pid, session_id):
+            time.sleep(0.25)
+        for child_pid, start_time in ffmpeg_children:
+            if not _proc_is_ffmpeg(child_pid, start_time):
+                continue
+            try:
+                if os.getpgid(child_pid) == child_pid:
+                    os.killpg(child_pid, signal.SIGINT)
+            except (ProcessLookupError, PermissionError, OSError):
+                pass
+        time.sleep(0.5)
+        for child_pid, start_time in ffmpeg_children:
+            if not _proc_is_ffmpeg(child_pid, start_time):
+                continue
+            try:
+                if os.getpgid(child_pid) == child_pid:
+                    os.killpg(child_pid, signal.SIGKILL)
+            except (ProcessLookupError, PermissionError, OSError):
+                pass
+        if _proc_matches_worker(pid, session_id):
+            # FFmpeg uses its own process group, so stop verified direct children
+            # before escalating the worker process group.
+            for child_pid in _direct_ffmpeg_children(pid):
+                try:
+                    if os.getpgid(child_pid) == child_pid:
+                        os.killpg(child_pid, signal.SIGINT)
+                except (ProcessLookupError, PermissionError, OSError):
+                    pass
+            time.sleep(0.5)
+            for child_pid in _direct_ffmpeg_children(pid):
+                try:
+                    if os.getpgid(child_pid) == child_pid:
+                        os.killpg(child_pid, signal.SIGKILL)
+                except (ProcessLookupError, PermissionError, OSError):
+                    pass
+            try:
+                if os.name == "posix" and os.getpgid(pid) == pid:
+                    os.killpg(pid, signal.SIGKILL)
+                else:
+                    os.kill(pid, signal.SIGKILL)
+            except (ProcessLookupError, PermissionError, OSError):
+                pass
+
+    def create(self, url: str, *, user_id=None, auth_context: dict | None = None,
+               min_clip_seconds: int = DEFAULT_CLIP_MIN_SECONDS,
+               max_clip_seconds: int = DEFAULT_CLIP_MAX_SECONDS) -> dict:
+        with self._create_lock:
+            return self._create_unlocked(url, user_id=user_id, auth_context=auth_context,
+                                          min_clip_seconds=min_clip_seconds,
+                                          max_clip_seconds=max_clip_seconds)
+
+    def _create_unlocked(self, url: str, *, user_id=None, auth_context: dict | None = None,
                min_clip_seconds: int = DEFAULT_CLIP_MIN_SECONDS,
                max_clip_seconds: int = DEFAULT_CLIP_MAX_SECONDS) -> dict:
         min_clip_seconds, max_clip_seconds = validate_clip_duration_range(
             min_clip_seconds, max_clip_seconds)
+        active = self.active_session()
+        if active:
+            raise SessionConflict(active)
         session_id = str(uuid.uuid4())
         directory = self._directory(session_id)
         directory.mkdir(parents=True, exist_ok=False)
@@ -137,7 +334,13 @@ class LiveSessionManager:
         state = {"id": session_id, "url": url, "status": "iniciando", "created_at": time.time(),
                  "updated_at": time.time(), "clips": [], "candidates": [], "queue": [],
                  "notices": [], "segments": 0, "rtf": None, "user_id": str(user_id) if user_id else None,
-                 "min_clip_seconds": min_clip_seconds, "max_clip_seconds": max_clip_seconds}
+                 "min_clip_seconds": min_clip_seconds, "max_clip_seconds": max_clip_seconds,
+                 "capture_started_at": None, "capture_ended_at": None,
+                 "capture_elapsed_seconds": 0,
+                 "auth_type": (auth_context or {}).get("type"),
+                 "auth_expires_at": (auth_context or {}).get("expires_at"),
+                 "auth_session_ref": (auth_context or {}).get("session_ref"),
+                 "auth_status": "valid" if auth_context else "unmanaged"}
         write_state(directory, state)
         environment = os.environ.copy()
         environment.update({"LIVE_SESSION_ID": session_id, "LIVE_URL": url,
@@ -164,7 +367,28 @@ class LiveSessionManager:
         log.close()
         with self._lock:
             self._processes[session_id] = process
+            pid = getattr(process, "pid", None)
+            if pid:
+                state["worker_pid"] = int(pid)
+                state["worker_proc_start"] = _proc_start_time(int(pid))
+                write_state(directory, state)
+        if self.auth_checker and auth_context:
+            threading.Thread(target=self._monitor_auth, args=(session_id,),
+                             name=f"live-auth-{session_id[:8]}", daemon=True).start()
         return state
+
+    def _monitor_auth(self, session_id: str):
+        while True:
+            state = self.get(session_id)
+            if not state or state.get("status") in _TERMINAL:
+                return
+            try:
+                valid = self.auth_checker(state)
+            except Exception:
+                valid = None
+            if valid is False and state.get("end_reason") != "logout":
+                self.stop(session_id, "detener_ya", reason="auth_expired")
+            time.sleep(self.auth_check_interval)
 
     def get(self, session_id: str) -> dict | None:
         directory = self._directory(session_id)
@@ -173,9 +397,24 @@ class LiveSessionManager:
             return None
         with self._lock:
             process = self._processes.get(session_id)
-        if process is not None and process.poll() is not None and state.get("status") not in _TERMINAL:
+        process_alive = process.poll() is None if process is not None else bool(
+            state.get("worker_pid") and _proc_matches_worker(
+                int(state["worker_pid"]), session_id, state.get("worker_proc_start")))
+        if process_alive and state.get("status") in _TERMINAL:
+            state.update({"status": "deteniendo",
+                          "mensaje": "Esperando la finalización real del worker"})
+            state.setdefault("end_reason", "worker_outlived_terminal_state")
+            (directory / "stop.request").write_text("detener_ya", encoding="utf-8")
+            write_state(directory, state)
+        if ((process is not None or state.get("worker_pid") is not None)
+                and not process_alive and state.get("status") not in _TERMINAL):
             state.update({"status": "error", "mensaje": "El proceso de live clipping terminó inesperadamente",
                           "ended_at": time.time()})
+            if state.get("end_reason") in {"auth_expired", "logout", "server_recovery",
+                                            "worker_outlived_terminal_state"}:
+                state["status"] = "detenido"
+                state["mensaje"] = "La captura terminó de forma controlada"
+            _finish_capture_fields(state, state.get("ended_at"))
             write_state(directory, state)
         return state
 
@@ -192,7 +431,7 @@ class LiveSessionManager:
                 return state
         return None
 
-    def stop(self, session_id: str, mode: str = "terminar_pendientes") -> dict | None:
+    def stop(self, session_id: str, mode: str = "terminar_pendientes", *, reason: str | None = None) -> dict | None:
         if mode not in ("terminar_pendientes", "detener_ya"):
             raise ValueError("Modo de parada inválido")
         directory = self._directory(session_id)
@@ -203,6 +442,10 @@ class LiveSessionManager:
             return state
         (directory / "stop.request").write_text(mode, encoding="utf-8")
         state.update({"status": "deteniendo", "modo_parada": mode, "updated_at": time.time()})
+        if reason:
+            state["end_reason"] = reason
+            if reason == "auth_expired":
+                state["auth_status"] = "expired"
         write_state(directory, state)
         return state
 
@@ -229,8 +472,10 @@ class LiveSessionRuntime:
             self.max_clip_seconds = DEFAULT_CLIP_MAX_SECONDS
         self.state.setdefault("min_clip_seconds", self.min_clip_seconds)
         self.state.setdefault("max_clip_seconds", self.max_clip_seconds)
+        _ensure_capture_fields(self.state)
         self.state.update({"status": "iniciando", "updated_at": time.time()})
         self.stop_mode = None
+        self._save()
 
     def _save(self):
         with self.state_lock:
@@ -239,7 +484,17 @@ class LiveSessionRuntime:
 
     def _status(self, status, details=None):
         with self.state_lock:
+            now = time.time()
             self.state["status"] = status
+            if status == "capturando" and self.state.get("capture_started_at") is None:
+                self.state["capture_started_at"] = now
+                self.state["capture_ended_at"] = None
+                self.state["capture_elapsed_seconds"] = 0
+            started_at = self.state.get("capture_started_at")
+            if started_at is not None:
+                ended_at = self.state.get("capture_ended_at")
+                self.state["capture_elapsed_seconds"] = max(
+                    0, int((float(ended_at) if ended_at is not None else now) - float(started_at)))
             if details:
                 if status == "reconectando":
                     self.state.setdefault("notices", []).append({"tipo": status, **details})
@@ -248,6 +503,14 @@ class LiveSessionRuntime:
                 elif details.get("title"):
                     self.state["titulo"] = details["title"]
             self._save()
+
+    def _capture_ended(self):
+        with self.state_lock:
+            if self.state.get("capture_started_at") is None:
+                return
+            if self.state.get("capture_ended_at") is None:
+                _finish_capture_fields(self.state, time.time())
+                self._save()
 
     def _notice(self, text: str, kind: str = "info"):
         with self.state_lock:
@@ -408,7 +671,8 @@ class LiveSessionRuntime:
         recorder = StreamRecorder(self.segment_dir)
         self._status("iniciando")
         recorder.supervise(self.url, resolve=resolve_live,
-                           on_state=lambda state, details: self._status(state, details))
+                           on_state=lambda state, details: self._status(state, details),
+                           on_capture_end=self._capture_ended)
         processed = set()
         buckets_since_detection = []
         next_asr_start = 0.0
@@ -515,6 +779,7 @@ class LiveSessionRuntime:
                         self._save()
         except Exception as exc:
             recorder.stop_supervisor()
+            self._capture_ended()
             self._notice(f"La sesión terminó por un error: {type(exc).__name__}", "error")
             with self.state_lock:
                 self.state.update({"status": "error", "mensaje": str(exc)[:300], "ended_at": time.time()})

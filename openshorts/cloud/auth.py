@@ -21,7 +21,8 @@ from sqlalchemy import select, func
 
 from .config import settings
 from . import config, database, metering, email_policy, scopes
-from .models import User, MagicLinkToken, UploadPostProfile, SignupAttribution, LoginCode
+from .models import (User, MagicLinkToken, UploadPostProfile, SignupAttribution, LoginCode,
+                     RevokedSessionToken)
 
 router = APIRouter()
 
@@ -52,6 +53,7 @@ def issue_jwt(user_id, email) -> str:
     payload = {
         "sub": str(user_id),
         "email": email,
+        "jti": secrets.token_urlsafe(24),
         "exp": _now() + timedelta(days=JWT_TTL_DAYS),
         "iat": _now(),
     }
@@ -143,7 +145,10 @@ async def get_current_user_optional(request: Request) -> Optional[CurrentUser]:
         user_id = uuid.UUID(payload["sub"])
     except Exception:
         return None
+    token_id = payload.get("jti") or hashlib.sha256(token.encode()).hexdigest()
     async with database.session() as session:
+        if await session.get(RevokedSessionToken, token_id):
+            return None
         return await _load_current_user(session, user_id)
 
 
@@ -167,6 +172,40 @@ async def get_session_user_required(request: Request,
             request.headers.get("X-API-Key", "")):
         raise HTTPException(status_code=403, detail=detail)
     return await get_current_user_required(request)
+
+
+@router.post("/api/auth/logout")
+async def logout(request: Request):
+    """Revoke this dashboard JWT and request controlled shutdown of its Live."""
+    auth = request.headers.get("Authorization", "")
+    token = auth[7:].strip() if auth.lower().startswith("bearer ") else ""
+    if not token:
+        return {"ok": True}
+    try:
+        claims = jwt.decode(token, settings.jwt_secret, algorithms=[JWT_ALGO],
+                            options={"verify_exp": False})
+        import uuid
+        user_id = uuid.UUID(claims["sub"])
+    except Exception:
+        # Idempotent logout: an already-invalid credential has nothing left to revoke.
+        return {"ok": True}
+    token_id = claims.get("jti") or hashlib.sha256(token.encode()).hexdigest()
+    try:
+        import live_api
+        live_api.stop_owned_sessions(str(user_id), "logout")
+    except Exception:
+        # The revocation below is also watched by the worker's server-side monitor.
+        pass
+    expires_at = datetime.fromtimestamp(float(claims["exp"]), tz=timezone.utc)
+    async with database.session() as session:
+        if await session.get(User, user_id) is not None:
+            if await session.get(RevokedSessionToken, token_id) is None:
+                session.add(RevokedSessionToken(jti=token_id, user_id=user_id,
+                                                expires_at=expires_at))
+            await session.execute(
+                RevokedSessionToken.__table__.delete().where(
+                    RevokedSessionToken.expires_at <= _now()))
+    return {"ok": True}
 
 
 # --------------------------------------------------------------------------- #
