@@ -190,6 +190,24 @@ def _finish_capture_fields(state: dict, ended_at: float | None = None) -> bool:
     return True
 
 
+def _settle_interrupted_queue(state: dict, ended_at: float) -> bool:
+    """Keep persisted clip progress truthful if its worker process disappeared."""
+    changed = False
+    for item in state.get("queue", []):
+        if item.get("status") == "renderizando":
+            item["failed_phase"] = item.get("phase")
+            item.update({"status": "error", "phase": "error",
+                         "error": "El worker terminó antes de completar esta fase",
+                         "finished_at": ended_at, "updated_at": ended_at})
+            changed = True
+        elif item.get("status") in {"en_cola", "evaluando", "detectado"}:
+            item.update({"status": "cancelado",
+                         "reason": "El worker terminó antes de procesar el clip",
+                         "finished_at": ended_at, "updated_at": ended_at})
+            changed = True
+    return changed
+
+
 class LiveSessionManager:
     """Launches one isolated live worker per session and recovers stale state."""
     def __init__(self, output_dir: str | Path, *, worker_path: str | Path | None = None,
@@ -246,7 +264,11 @@ class LiveSessionManager:
                     state.update({"status": "detenido", "mensaje": "Sesión recuperada al reiniciar el servidor",
                                   "ended_at": ended_at, "end_reason": "server_recovery"})
                     _finish_capture_fields(state, ended_at)
+                    changed = _settle_interrupted_queue(state, ended_at) or changed
                 changed = True
+            if state.get("status") in _TERMINAL:
+                changed = _settle_interrupted_queue(
+                    state, float(state.get("ended_at") or time.time())) or changed
             if changed:
                 write_state(directory, state)
 
@@ -333,7 +355,9 @@ class LiveSessionManager:
             (directory / ".owner").write_text(str(user_id), encoding="utf-8")
         state = {"id": session_id, "url": url, "status": "iniciando", "created_at": time.time(),
                  "updated_at": time.time(), "clips": [], "candidates": [], "queue": [],
-                 "notices": [], "segments": 0, "rtf": None, "user_id": str(user_id) if user_id else None,
+                 "notices": [], "segments": 0, "segments_total": 0,
+                 "rtf": None, "user_id": str(user_id) if user_id else None,
+                 "asr_status": "esperando", "render_priority_paused": False, "reconnections": 0,
                  "min_clip_seconds": min_clip_seconds, "max_clip_seconds": max_clip_seconds,
                  "capture_started_at": None, "capture_ended_at": None,
                  "capture_elapsed_seconds": 0,
@@ -415,6 +439,10 @@ class LiveSessionManager:
                 state["status"] = "detenido"
                 state["mensaje"] = "La captura terminó de forma controlada"
             _finish_capture_fields(state, state.get("ended_at"))
+            _settle_interrupted_queue(state, state["ended_at"])
+            write_state(directory, state)
+        elif state.get("status") in _TERMINAL and _settle_interrupted_queue(
+                state, float(state.get("ended_at") or time.time())):
             write_state(directory, state)
         return state
 
@@ -472,6 +500,7 @@ class LiveSessionRuntime:
             self.max_clip_seconds = DEFAULT_CLIP_MAX_SECONDS
         self.state.setdefault("min_clip_seconds", self.min_clip_seconds)
         self.state.setdefault("max_clip_seconds", self.max_clip_seconds)
+        self.state.setdefault("segments_total", 0)
         _ensure_capture_fields(self.state)
         self.state.update({"status": "iniciando", "updated_at": time.time()})
         self.stop_mode = None
@@ -485,6 +514,7 @@ class LiveSessionRuntime:
     def _status(self, status, details=None):
         with self.state_lock:
             now = time.time()
+            previous = self.state.get("status")
             self.state["status"] = status
             if status == "capturando" and self.state.get("capture_started_at") is None:
                 self.state["capture_started_at"] = now
@@ -497,11 +527,19 @@ class LiveSessionRuntime:
                     0, int((float(ended_at) if ended_at is not None else now) - float(started_at)))
             if details:
                 if status == "reconectando":
-                    self.state.setdefault("notices", []).append({"tipo": status, **details})
+                    if previous != status:
+                        self.state["reconnections"] = int(self.state.get("reconnections", 0)) + 1
+                        self._activity_locked("reconectando", "Se perdió la conexión; intentando reconectar")
                 elif status == "error" and details.get("error"):
                     self.state["mensaje"] = details["error"]
+                    if previous != status:
+                        self._activity_locked("error_captura", details["error"])
                 elif details.get("title"):
                     self.state["titulo"] = details["title"]
+            if status == "capturando" and previous != status:
+                self._activity_locked("captura_conectada", "Conexión con el directo establecida")
+            elif status == "detenido" and previous != status:
+                self._activity_locked("captura_detenida", "Captura detenida")
             self._save()
 
     def _capture_ended(self):
@@ -512,12 +550,48 @@ class LiveSessionRuntime:
                 _finish_capture_fields(self.state, time.time())
                 self._save()
 
-    def _notice(self, text: str, kind: str = "info"):
+    def _activity_locked(self, kind: str, text: str, **details):
+        notices = self.state.setdefault("notices", [])
+        notices.append({"tipo": kind, "mensaje": str(text), "at": time.time(), **details})
+        self.state["notices"] = notices[-50:]
+
+    def _notice(self, text: str, kind: str = "info", **details):
         with self.state_lock:
-            notices = self.state.setdefault("notices", [])
-            notices.append({"tipo": kind, "mensaje": str(text), "at": time.time()})
-            self.state["notices"] = notices[-50:]
+            self._activity_locked(kind, text, **details)
             self._save()
+
+    def _sync_queue(self, work_queue, *, force: bool = False):
+        states = work_queue.snapshot()["states"]
+        with self.state_lock:
+            previous = {str(item.get("id")): item for item in self.state.get("queue", [])}
+            changed = force or self.state.get("queue", []) != states
+            for item in states:
+                old = previous.get(str(item.get("id")), {})
+                if item.get("status") == "renderizando" and old.get("status") != "renderizando":
+                    number = str(item.get("id", "")).rsplit("_", 1)[-1].lstrip("0") or "1"
+                    self._activity_locked("render_iniciado", f"Comenzó el procesamiento del clip {number}",
+                                          clip_id=str(item.get("id")))
+                    changed = True
+            if changed:
+                self.state["queue"] = states
+                self._save()
+
+    def _queue_phase(self, work_queue, candidate_id: str, phase: str):
+        updated = work_queue.set_phase(candidate_id, phase)
+        with self.state_lock:
+            previous = next((item for item in self.state.get("queue", [])
+                             if str(item.get("id")) == str(candidate_id)), {})
+            states = work_queue.snapshot()["states"]
+            changed = self.state.get("queue", []) != states
+            if previous.get("phase") != phase:
+                number = str(candidate_id).rsplit("_", 1)[-1].lstrip("0") or "1"
+                self._activity_locked("fase_clip", f"Clip {number}: {phase.replace('_', ' ')}",
+                                      clip_id=str(candidate_id), phase=phase)
+                changed = True
+            if changed:
+                self.state["queue"] = states
+                self._save()
+        return updated
 
     def _stop_requested(self):
         try:
@@ -549,6 +623,8 @@ class LiveSessionRuntime:
         from .window import build_source_window
         index = len(self.state.get("clips", []))
         while True:
+            if not render_gate.wait(render_stop):
+                return
             item = work_queue.get(timeout=0.5)
             if item is None:
                 if work_queue.snapshot()["queue_size"] == 0 and work_queue._closed:
@@ -557,12 +633,8 @@ class LiveSessionRuntime:
             candidate_id = str(item.get("id"))
             window_path = None
             try:
-                if not render_gate.wait(render_stop):
-                    work_queue.complete(candidate_id, ready=False, error="render cancelado")
-                    continue
-                with self.state_lock:
-                    self.state["queue"] = work_queue.snapshot()["states"]
-                    self._save()
+                self._sync_queue(work_queue)
+                self._queue_phase(work_queue, candidate_id, "preparando_ventana")
                 window = build_source_window(buffer, item, self.work_dir)
                 window_path = Path(window["path"])
                 local_candidate = dict(item)
@@ -584,7 +656,8 @@ class LiveSessionRuntime:
                         "end": max(0.0, end - window["offset"]),
                         "text": segment.get("text", ""), "words": words})
                 result = render_candidate(window["path"], local_candidate, local_transcript,
-                                          self.output_dir, index)
+                                          self.output_dir, index,
+                                          on_phase=lambda name: self._queue_phase(work_queue, candidate_id, name))
                 index += 1
                 if not Path(result["path"]).is_file():
                     raise RuntimeError("No se encontró el archivo final del clip")
@@ -592,22 +665,22 @@ class LiveSessionRuntime:
                 clip["start"], clip["end"] = item["start"], item["end"]
                 clip["source_window_id"] = item.get("id", candidate_id)
                 clip["video_url"] = f"/videos/{self.session_id}/{clip['file']}"
+                work_queue.complete(candidate_id, ready=True)
+                self._notice(f"Clip {index + 1} terminado", "clip_completado", clip_id=candidate_id)
                 with self.state_lock:
                     self.state.setdefault("clips", []).append(clip)
                     self.state.setdefault("candidates", [])
                     self.state["queue"] = work_queue.snapshot()["states"]
                     write_state(self.output_dir, self.state)
-                work_queue.complete(candidate_id, ready=True)
                 print(f"CLIP_READY {index - 1} {clip['file']}", flush=True)
             except Exception as exc:
                 work_queue.complete(candidate_id, ready=False, error=str(exc)[:300])
-                self._notice(f"No se pudo renderizar un clip: {type(exc).__name__}", "error")
+                self._notice(f"No se pudo renderizar el clip: {type(exc).__name__}", "error",
+                             clip_id=candidate_id)
             finally:
                 if window_path:
                     window_path.unlink(missing_ok=True)
-                with self.state_lock:
-                    self.state["queue"] = work_queue.snapshot()["states"]
-                    self._save()
+                self._sync_queue(work_queue)
 
     def run(self):
         from .asr import IncrementalTranscriber
@@ -648,10 +721,20 @@ class LiveSessionRuntime:
         def judge_loop():
             while True:
                 job = judge_jobs.get()
+                candidate = None
                 try:
                     if job is judge_stop:
                         return
                     candidate, transcript_copy = job
+                    with self.state_lock:
+                        for item in self.state.setdefault("candidates", []):
+                            if str(item.get("id")) == str(candidate.get("id")):
+                                item["status"] = "evaluando"
+                                item["evaluating_started_at"] = time.time()
+                                break
+                        self._activity_locked("evaluacion_iniciada", "Evaluando el momento destacado",
+                                              clip_id=str(candidate.get("id")))
+                        self._save()
                     judged = judge_candidate(candidate, transcript_copy)
                     entries = buffer.refresh()
                     selected = select_window_segments(entries, max(0.0, candidate["start"] - 10),
@@ -659,9 +742,34 @@ class LiveSessionRuntime:
                     queue_state = work_queue.offer(judged,
                                                    segment_indices=[item.index for item in selected])
                     with self.state_lock:
-                        self.state.setdefault("queue", []).append(queue_state)
+                        candidates = self.state.setdefault("candidates", [])
+                        detected = next((item for item in candidates
+                                         if str(item.get("id")) == str(candidate.get("id"))), {})
+                        detected_at = detected.get("detected_at", time.time())
+                        replacement = {**detected, **judged, "status": queue_state["status"],
+                                       "detected_at": detected_at, "evaluated_at": time.time()}
+                        self.state["candidates"] = [
+                            replacement if str(item.get("id")) == str(candidate.get("id")) else item
+                            for item in candidates]
+                        self.state["queue"] = work_queue.snapshot()["states"]
+                        if queue_state["status"] == "en_cola":
+                            self._activity_locked("clip_en_cola", "Momento destacado añadido a la cola",
+                                                  clip_id=str(candidate.get("id")))
+                        else:
+                            self._activity_locked("clip_descartado", "Clip descartado: la cola alcanzó su límite",
+                                                  clip_id=str(candidate.get("id")),
+                                                  reason=queue_state.get("reason"))
                         self._save()
                 except Exception as exc:
+                    if candidate:
+                        with self.state_lock:
+                            for item in self.state.setdefault("candidates", []):
+                                if str(item.get("id")) == str(candidate.get("id")):
+                                    item.update({"status": "error", "error": str(exc)[:300],
+                                                 "finished_at": time.time()})
+                            self._activity_locked("error_clip", "No se pudo evaluar el momento destacado",
+                                                  clip_id=str(candidate.get("id")))
+                            self._save()
                     self._notice(f"No se pudo evaluar un candidato: {type(exc).__name__}", "error")
                 finally:
                     judge_jobs.task_done()
@@ -690,6 +798,7 @@ class LiveSessionRuntime:
                         work_queue.close()
                         self._notice("Sesión detenida inmediatamente", "info")
                         with self.state_lock:
+                            self.state["queue"] = work_queue.snapshot()["states"]
                             self.state.update({"status": "detenido", "ended_at": time.time()})
                             self._save()
                         if os.name == "posix":
@@ -714,7 +823,9 @@ class LiveSessionRuntime:
                     finally:
                         wav.unlink(missing_ok=True)
                     with self.state_lock:
-                        self.state["segments"] = len(entries)
+                        self.state["segments_total"] = int(self.state.get("segments_total") or 0) + 1
+                        if self.state.get("segments") != len(entries):
+                            self.state["segments"] = len(entries)
                         self._save()
 
                 latest = max((entry.end for entry in entries), default=0.0)
@@ -734,11 +845,34 @@ class LiveSessionRuntime:
                                 self._merge_words(transcript_words, segment.get("words", []))
                         if result.get("notice"):
                             self._notice(result["notice"], "aviso")
+                        if result.get("notice") and "detenido por carga" in result["notice"].lower():
+                            asr_status = "detenido_por_carga"
+                        elif result.get("notice"):
+                            asr_status = "degradado"
+                        else:
+                            asr_status = "activo"
+                        paused = render_gate.update_asr_rtf(result["rtf"]) if result.get("rtf") is not None else render_gate.paused
+                        if paused != self.state.get("render_priority_paused", False):
+                            work_queue.set_wait_reason("prioridad_de_captura" if paused else None)
+                            with self.state_lock:
+                                self.state["render_priority_paused"] = paused
+                                self._activity_locked(
+                                    "prioridad_captura",
+                                    "Renderizado pausado temporalmente para proteger captura y transcripción"
+                                    if paused else "Se reanudó el renderizado después de estabilizar la transcripción")
+                                self.state["queue"] = work_queue.snapshot()["states"]
+                                self._save()
                         with self.state_lock:
+                            changed = (self.state.get("rtf") != result.get("rtf")
+                                       or self.state.get("asr_status") != asr_status)
                             self.state["rtf"] = result.get("rtf")
-                            self._save()
+                            self.state["asr_status"] = asr_status
+                            if changed:
+                                self._save()
                         next_asr_start += transcriber.block_seconds - 2
                     except Exception as exc:
+                        with self.state_lock:
+                            self.state["asr_status"] = "no_disponible"
                         self._notice(f"Transcripción en vivo no disponible: {type(exc).__name__}", "aviso")
                         next_asr_start += transcriber.block_seconds - 2
                     finally:
@@ -750,14 +884,26 @@ class LiveSessionRuntime:
                     buckets_since_detection = []
                     for candidate in candidates:
                         with self.state_lock:
-                            self.state.setdefault("candidates", []).append({**candidate, "status": "evaluando"})
+                            detected_at = time.time()
+                            self.state.setdefault("candidates", []).append({**candidate, "status": "detectado",
+                                                                             "detected_at": detected_at})
+                            self._activity_locked("momento_detectado",
+                                                  f"Momento destacado detectado: {candidate.get('why') or 'señales de audio/transcripción'}",
+                                                  clip_id=str(candidate.get("id")))
                             self._save()
                         judge_jobs.put((candidate, transcript))
                 buffer.prune()
-                with self.state_lock:
-                    self.state["queue"] = work_queue.snapshot()["states"]
-                    self._save()
                 if capture_done:
+                    if render_gate.paused:
+                        render_gate.resume_for_shutdown()
+                        work_queue.set_wait_reason(None)
+                        with self.state_lock:
+                            self.state["render_priority_paused"] = False
+                            self.state["queue"] = work_queue.snapshot()["states"]
+                            self._activity_locked(
+                                "prioridad_captura",
+                                "Se liberó la pausa de render para terminar los clips pendientes")
+                            self._save()
                     break
                 time.sleep(1)
 

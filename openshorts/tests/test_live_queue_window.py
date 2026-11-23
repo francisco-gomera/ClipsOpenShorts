@@ -39,12 +39,53 @@ def test_bounded_queue_replaces_lowest_score_and_unpins():
     assert 3 not in buffer.pinned
 
 
+def test_queue_persists_wait_and_render_phase_transitions():
+    queue = LiveWorkQueue(max_queue=2)
+    queued = queue.offer({"id": "live_000001", "predicted_score": 70, "start": 12, "end": 42})
+    assert queued["status"] == "en_cola"
+    assert queued["queued_at"] <= queued["updated_at"]
+    assert queued["wait_reason"] == "esperando_capacidad"
+
+    item = queue.get(timeout=0.1)
+    assert item["id"] == "live_000001"
+    started = queue.snapshot()["states"][0]
+    assert started["status"] == "renderizando"
+    assert started["started_at"]
+    assert started["phase"] == "preparando_ventana"
+
+    queue.set_phase(item["id"], "cortando_fragmento")
+    phase_state = queue.snapshot()["states"][0]
+    unchanged = queue.set_phase(item["id"], "cortando_fragmento")
+    assert unchanged["updated_at"] == phase_state["updated_at"]
+    assert [entry["phase"] for entry in unchanged["phase_history"]] == [
+        "preparando_ventana", "cortando_fragmento"]
+    queue.complete(item["id"], ready=False, error="ffmpeg falló")
+    failed = queue.snapshot()["states"][0]
+    assert failed["status"] == "error"
+    assert failed["failed_phase"] == "cortando_fragmento"
+    assert failed["finished_at"] >= failed["started_at"]
+
+
+def test_render_gate_sets_wait_reason_for_queued_work():
+    queue = LiveWorkQueue(max_queue=2)
+    queue.offer({"id": "live_000001", "predicted_score": 50})
+    queue.set_wait_reason("prioridad_de_captura")
+    assert queue.snapshot()["states"][0]["wait_reason"] == "prioridad_de_captura"
+
+
 def test_render_gate_pauses_only_after_sustained_slow_asr():
     gate = RenderPriorityGate(threshold=0.8, samples=3)
     assert gate.update_asr_rtf(0.9) is False
     assert gate.update_asr_rtf(0.9) is False
     assert gate.update_asr_rtf(0.9) is True
     assert gate.update_asr_rtf(0.2) is False
+    assert gate.wait()
+
+
+def test_render_gate_can_release_pending_work_after_capture_ends():
+    gate = RenderPriorityGate(threshold=0.8, samples=1)
+    assert gate.update_asr_rtf(1.0) is True
+    gate.resume_for_shutdown()
     assert gate.wait()
 
 

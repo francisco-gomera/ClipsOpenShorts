@@ -76,6 +76,24 @@ def test_live_api_calculates_capture_elapsed_from_persisted_timestamps(monkeypat
     assert never_started["capture_elapsed_seconds"] == 0
 
 
+def test_live_api_preserves_progress_fields_and_defaults_for_older_sessions():
+    progress = live_api._present({
+        "status": "capturando", "asr_status": "activo", "reconnections": 2,
+        "render_priority_paused": True,
+        "queue": [{"id": "live_000001", "status": "renderizando",
+                   "phase": "cortando_fragmento", "phase_started_at": 100}],
+        "notices": [{"tipo": "render_iniciado", "mensaje": "Comenzó el render", "at": 101}],
+    })
+    legacy = live_api._present({"status": "detenido"})
+
+    assert progress["queue"][0]["phase"] == "cortando_fragmento"
+    assert progress["render_priority_paused"] is True
+    assert progress["reconnections"] == 2
+    assert progress["asr_status"] == "activo"
+    assert progress["notices"][0]["mensaje"] == "Comenzó el render"
+    assert legacy["queue"] == []
+
+
 def test_live_api_accepts_custom_clip_range_and_rejects_invalid_ranges(tmp_path, monkeypatch):
     manager = FakeManager(tmp_path)
     monkeypatch.setattr(live_api, "_manager", manager)

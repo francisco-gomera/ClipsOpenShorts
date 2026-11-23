@@ -9,6 +9,7 @@ from live.clipper import render_candidate
 
 def test_clipper_reuses_pipeline_chain_and_writes_sidecars(tmp_path, monkeypatch):
     calls = []
+    phases = []
 
     def cut(_source, target, _start, _end, _number):
         Path(target).write_bytes(b"cut")
@@ -48,7 +49,7 @@ def test_clipper_reuses_pipeline_chain_and_writes_sidecars(tmp_path, monkeypatch
     result = render_candidate("window.ts", {"id": "live_1", "start": 2, "end": 32,
         "predicted_score": 80, "viral_hook_text": "Hook"},
         {"text": "Hola", "language": "es", "segments": []}, tmp_path,
-        0, dependencies=deps)
+        0, dependencies=deps, on_phase=phases.append)
 
     assert calls == ["render", "caption_plan", "hook", "caption"]
     assert Path(result["path"]).exists()
@@ -58,9 +59,13 @@ def test_clipper_reuses_pipeline_chain_and_writes_sidecars(tmp_path, monkeypatch
     assert result["clip"]["file"].startswith("subtitled_")
     assert result["clip"]["rendered_duration_seconds"] == 30.0
     assert not list(tmp_path.glob("*.cut.mp4"))
+    assert phases == ["cortando_fragmento", "adaptando_vertical", "analizando_encuadre",
+                      "generando_subtitulos", "generando_hook_y_subtitulos",
+                      "generando_subtitulos", "verificando_archivo", "generando_srt", "finalizado"]
 
 
 def test_clipper_rejects_rendered_duration_outside_session_bounds(tmp_path):
+    phases = []
     def render(_source, target, *_args, **_kwargs):
         Path(target).write_bytes(b"video")
         return True
@@ -80,7 +85,9 @@ def test_clipper_rejects_rendered_duration_outside_session_bounds(tmp_path):
         render_candidate("window.ts", {"id": "live_short", "start": 0, "end": 30,
                          "min_clip_seconds": 30, "max_clip_seconds": 60},
                         {"text": "", "language": "", "segments": []}, tmp_path, 0,
-                        dependencies=deps)
+                        dependencies=deps, on_phase=phases.append)
+    assert phases[-1] == "verificando_archivo"
+    assert "generando_srt" not in phases
 
 
 @pytest.mark.skipif(not shutil.which("ffmpeg") or not shutil.which("ffprobe"),

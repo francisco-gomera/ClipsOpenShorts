@@ -93,6 +93,25 @@ def test_manager_marks_interrupted_sessions_stopped_on_restart(tmp_path):
     assert "reiniciar" in read_state(directory)["mensaje"]
 
 
+def test_recovery_marks_inflight_render_as_error_and_pending_render_as_cancelled(tmp_path):
+    output = tmp_path / "output"
+    session_id = "11111111-2222-4333-8444-555555555555"
+    directory = output / session_id
+    write_state(directory, {"id": session_id, "status": "capturando", "clips": [],
+                           "queue": [
+                               {"id": "live_000001", "status": "renderizando",
+                                "phase": "cortando_fragmento"},
+                               {"id": "live_000002", "status": "en_cola"},
+                           ]})
+
+    LiveSessionManager(output, popen=lambda *_args, **_kwargs: FakeProcess())
+    recovered = read_state(directory)
+
+    assert recovered["queue"][0]["status"] == "error"
+    assert recovered["queue"][0]["failed_phase"] == "cortando_fragmento"
+    assert recovered["queue"][1]["status"] == "cancelado"
+
+
 def test_active_lock_is_kept_until_worker_process_exits(tmp_path):
     manager = LiveSessionManager(tmp_path / "output", popen=lambda *_args, **_kwargs: FakeProcess())
     first = manager.create("https://youtube.com/live/one")
