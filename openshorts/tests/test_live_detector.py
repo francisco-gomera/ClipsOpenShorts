@@ -1,3 +1,5 @@
+import pytest
+
 from live.detector import LiveDetector
 from live.judge import judge_candidate
 from live.signals import AudioPeakDetector
@@ -23,6 +25,42 @@ def test_detector_fuses_audio_and_keyword_and_applies_cooldown():
     assert 25 <= candidate["end"] - candidate["start"] <= 60
     assert candidate["start"] >= 0
     assert detector.detect([], transcript, latest_time=80) == []
+
+
+@pytest.mark.parametrize("minimum,maximum", [(10, 30), (30, 60), (60, 120), (120, 240)])
+def test_detector_builds_configured_windows_around_highlights(monkeypatch, minimum, maximum):
+    import live.detector as detector_module
+
+    monkeypatch.setattr(detector_module, "_keyword_hits", lambda *_args: [{
+        "start": 15.0, "end": 16.0, "phrase": "clipea esto", "score": 1.0, "explicit": True,
+    }])
+    detector = LiveDetector(cooldown_seconds=0, min_seconds=minimum, max_seconds=maximum,
+                            audio_detector=AudioPeakDetector(warmup_seconds=0))
+    candidate = detector.detect([], {"language": "es", "segments": []}, latest_time=300)[0]
+
+    duration = candidate["end"] - candidate["start"]
+    assert minimum <= duration <= maximum
+    assert candidate["start"] <= 15 <= candidate["end"]
+    assert candidate["min_clip_seconds"] == minimum
+    assert candidate["max_clip_seconds"] == maximum
+
+
+def test_detector_waits_for_minimum_material_or_reports_pending_discard(monkeypatch):
+    import live.detector as detector_module
+
+    monkeypatch.setattr(detector_module, "_keyword_hits", lambda *_args: [{
+        "start": 5.0, "end": 6.0, "phrase": "clipea esto", "score": 1.0, "explicit": True,
+    }])
+    detector = LiveDetector(cooldown_seconds=0, min_seconds=30, max_seconds=60,
+                            audio_detector=AudioPeakDetector(warmup_seconds=0))
+
+    assert detector.detect([], {"segments": []}, latest_time=10) == []
+    assert detector.discard_pending() == 1
+
+    detector.detect([], {"segments": []}, latest_time=10)
+    candidates = detector.detect([], {"segments": []}, latest_time=30)
+    assert len(candidates) == 1
+    assert candidates[0]["end"] - candidates[0]["start"] == 30
 
 
 def test_judge_falls_back_to_transcript_templates():

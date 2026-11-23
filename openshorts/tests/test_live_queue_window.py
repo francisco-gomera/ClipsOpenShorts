@@ -1,4 +1,7 @@
 import subprocess
+from pathlib import Path
+
+import pytest
 
 from live.buffer import Segment
 from live.queue import LiveWorkQueue, RenderPriorityGate
@@ -66,3 +69,35 @@ def test_window_selects_required_segments_and_translates_words(tmp_path):
     assert result["end"] == 40
     assert result["segment_indices"] == [0, 1, 2, 3, 4, 5]
     assert result["path"].endswith("clip1_window.ts")
+
+
+@pytest.mark.parametrize("minimum,maximum", [(10, 30), (30, 60), (60, 120), (120, 240)])
+def test_source_window_accepts_each_configured_duration_range(tmp_path, minimum, maximum):
+    class LongBuffer(FakeBuffer):
+        def __init__(self):
+            self.pinned = set()
+            self.segments = [Segment(i, f"long_{i:06d}.ts", i * 10.0, 10.0)
+                             for i in range(30)]
+
+    start = 100.0
+    candidate = {"id": f"range_{minimum}", "start": start, "end": start + minimum,
+                 "min_clip_seconds": minimum, "max_clip_seconds": maximum}
+
+    result = build_source_window(LongBuffer(), candidate, tmp_path,
+                                 runner=lambda command, **_kwargs: Path(command[-1]).write_bytes(b"window"))
+
+    assert result["end"] - result["start"] == minimum
+    assert result["segment_indices"]
+
+
+def test_source_window_rejects_candidate_outside_retained_buffer(tmp_path):
+    class TruncatedBuffer(FakeBuffer):
+        def __init__(self):
+            self.pinned = set()
+            self.segments = [Segment(i, f"late_{i:06d}.ts", 20 + i * 10.0, 10.0)
+                             for i in range(5)]
+
+    with pytest.raises(ValueError, match="No hay suficiente material"):
+        build_source_window(TruncatedBuffer(), {"id": "too_early", "start": 5, "end": 35,
+                                                "min_clip_seconds": 30, "max_clip_seconds": 60},
+                           tmp_path)

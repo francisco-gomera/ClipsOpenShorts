@@ -27,9 +27,47 @@ def test_manager_launches_isolated_worker_and_records_owner(tmp_path):
     assert launched["start_new_session"] is True
     assert launched["env"]["LIVE_SESSION_ID"] == state["id"]
     assert launched["env"]["CLIP_WORKERS"] == "1"
+    assert launched["env"]["LIVE_CLIP_MIN"] == "30"
+    assert launched["env"]["LIVE_CLIP_MAX"] == "60"
+    assert read_state(session_dir)["min_clip_seconds"] == 30
+    assert read_state(session_dir)["max_clip_seconds"] == 60
     assert manager.get(state["id"])["id"] == state["id"]
     assert manager.stop(state["id"], "detener_ya")["status"] == "deteniendo"
     assert (session_dir / "stop.request").read_text() == "detener_ya"
+
+
+def test_sessions_keep_independent_clip_ranges_in_state_and_worker_environment(tmp_path):
+    launched = []
+
+    def fake_popen(command, **kwargs):
+        launched.append(kwargs["env"])
+        return FakeProcess()
+
+    manager = LiveSessionManager(tmp_path / "output", worker_path=tmp_path / "worker.py",
+                                 popen=fake_popen)
+    first = manager.create("https://youtube.com/live/one", min_clip_seconds=30,
+                           max_clip_seconds=60)
+    second = manager.create("https://youtube.com/live/two", min_clip_seconds=90,
+                            max_clip_seconds=120)
+
+    assert (first["min_clip_seconds"], first["max_clip_seconds"]) == (30, 60)
+    assert (second["min_clip_seconds"], second["max_clip_seconds"]) == (90, 120)
+    assert (launched[0]["LIVE_CLIP_MIN"], launched[0]["LIVE_CLIP_MAX"]) == ("30", "60")
+    assert (launched[1]["LIVE_CLIP_MIN"], launched[1]["LIVE_CLIP_MAX"]) == ("90", "120")
+    assert read_state(tmp_path / "output" / first["id"])["max_clip_seconds"] == 60
+    assert read_state(tmp_path / "output" / second["id"])["max_clip_seconds"] == 120
+
+
+@pytest.mark.parametrize("minimum,maximum", [(9, 30), (30, 241), (61, 60), (30.5, 60)])
+def test_manager_rejects_invalid_clip_ranges_before_launch(tmp_path, minimum, maximum):
+    launches = []
+    manager = LiveSessionManager(tmp_path / "output", popen=lambda *_args, **_kwargs: launches.append(True))
+
+    with pytest.raises(ValueError):
+        manager.create("https://youtube.com/live/example", min_clip_seconds=minimum,
+                       max_clip_seconds=maximum)
+
+    assert launches == []
 
 
 def test_manager_marks_interrupted_sessions_stopped_on_restart(tmp_path):

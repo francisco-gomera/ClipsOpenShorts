@@ -2,12 +2,31 @@
 from __future__ import annotations
 
 import contextlib
+import json
 import os
 import re
 import subprocess
 from pathlib import Path
 
-from .config import REFRAME
+from .config import (DEFAULT_CLIP_MAX_SECONDS, DEFAULT_CLIP_MIN_SECONDS, REFRAME,
+                     validate_clip_duration_range)
+
+
+def _probe_output_duration(path: str) -> tuple[float, float]:
+    result = subprocess.run(
+        ["ffprobe", "-v", "error", "-select_streams", "v:0",
+         "-show_entries", "stream=avg_frame_rate:format=duration", "-of", "json", path],
+        check=True, capture_output=True, text=True, timeout=15)
+    info = json.loads(result.stdout)
+    duration = float(info["format"]["duration"])
+    frame_rate = (info.get("streams") or [{}])[0].get("avg_frame_rate", "0/0")
+    try:
+        numerator, denominator = frame_rate.split("/", 1)
+        fps = float(numerator) / float(denominator)
+        tolerance = 1.0 / fps if fps > 0 else 0.05
+    except (ValueError, ZeroDivisionError, AttributeError):
+        tolerance = 0.05
+    return duration, tolerance
 
 
 @contextlib.contextmanager
@@ -67,6 +86,12 @@ def render_candidate(window_path: str, candidate: dict, transcript: dict,
     temporary = output_dir / f".{basename}.cut.mp4"
     final = output_dir / basename
     start, end = float(candidate["start"]), float(candidate["end"])
+    minimum, maximum = validate_clip_duration_range(
+        candidate.get("min_clip_seconds", DEFAULT_CLIP_MIN_SECONDS),
+        candidate.get("max_clip_seconds", DEFAULT_CLIP_MAX_SECONDS))
+    requested_duration = end - start
+    if requested_duration < minimum - 0.01 or requested_duration > maximum + 0.01:
+        raise ValueError("El candidato no respeta la duración configurada para la sesión")
     clip = dict(candidate)
     clip["source_window_id"] = str(candidate.get("id", f"live_{index + 1}"))
 
@@ -101,11 +126,17 @@ def render_candidate(window_path: str, candidate: dict, transcript: dict,
                                                       split_ranges=split_ranges, mark=False)
             if captioned:
                 deliver = captioned
+            duration, tolerance = deps.get("probe_duration", _probe_output_duration)(deliver)
+            if duration < minimum - tolerance or duration > maximum + tolerance:
+                raise RuntimeError(
+                    f"El clip renderizado dura {duration:.3f}s y queda fuera del rango "
+                    f"{minimum}–{maximum}s (tolerancia {tolerance:.3f}s)")
             srt_path = output_dir / f"live_clip_{index + 1}_{clip_id}.srt"
             deps["generate_srt"](transcript, start, end, str(srt_path))
             clip.update({"file": os.path.basename(deliver), "canonical_file": basename,
                          "srt_file": srt_path.name if srt_path.exists() else None,
-                         "start": start, "end": end})
+                         "start": start, "end": end,
+                         "rendered_duration_seconds": round(float(duration), 3)})
             return {"clip": clip, "path": deliver, "canonical_path": str(final),
                     "srt_path": str(srt_path) if srt_path.exists() else None,
                     "layout_ranges": layouts}

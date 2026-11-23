@@ -9,8 +9,10 @@ from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
+from live.config import (DEFAULT_CLIP_MAX_SECONDS, DEFAULT_CLIP_MIN_SECONDS,
+                         MAX_CONFIGURABLE_CLIP_SECONDS, MIN_CONFIGURABLE_CLIP_SECONDS)
 from live.resolver import LiveResolveError, _validate_youtube_url
 from live.session import LiveSessionManager, update_state
 
@@ -72,6 +74,8 @@ async def _get_owned_session(request: Request, session_id: str):
 
 def _present(state: dict) -> dict:
     result = dict(state)
+    result.setdefault("min_clip_seconds", DEFAULT_CLIP_MIN_SECONDS)
+    result.setdefault("max_clip_seconds", DEFAULT_CLIP_MAX_SECONDS)
     clips = []
     for item in state.get("clips", []):
         clip = dict(item)
@@ -111,6 +115,16 @@ async def list_live_sessions(request: Request):
 
 class LiveCreateRequest(BaseModel):
     url: str
+    min_clip_seconds: int = Field(default=DEFAULT_CLIP_MIN_SECONDS,
+                                  ge=MIN_CONFIGURABLE_CLIP_SECONDS, le=MAX_CONFIGURABLE_CLIP_SECONDS)
+    max_clip_seconds: int = Field(default=DEFAULT_CLIP_MAX_SECONDS,
+                                  ge=MIN_CONFIGURABLE_CLIP_SECONDS, le=MAX_CONFIGURABLE_CLIP_SECONDS)
+
+    @model_validator(mode="after")
+    def validate_clip_range(self):
+        if self.min_clip_seconds > self.max_clip_seconds:
+            raise ValueError("La duración mínima no puede superar a la máxima.")
+        return self
 
 
 class LiveStopRequest(BaseModel):
@@ -134,7 +148,11 @@ async def create_live_session(body: LiveCreateRequest, request: Request):
     if _admission_check:
         _admission_check()
     try:
-        state = _sessions().create(body.url, user_id=owner_id)
+        state = _sessions().create(body.url, user_id=owner_id,
+                                   min_clip_seconds=body.min_clip_seconds,
+                                   max_clip_seconds=body.max_clip_seconds)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=500, detail="No se pudo iniciar live clipping") from exc
     return _present(state)

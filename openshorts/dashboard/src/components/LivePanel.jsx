@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, Download, Film, Loader2, Radio, Square, X } from 'lucide-react';
 import ResultCard from './ResultCard';
 import { apiFetch, apiJson } from '../lib/api';
+import { buildLiveCreatePayload, validateLiveDuration } from '../lib/liveDuration';
 
 const LIVE_SESSION_KEY = 'os_live_session';
 const ACTIVE_STATES = new Set(['iniciando', 'esperando', 'capturando', 'reconectando', 'deteniendo', 'finalizando']);
@@ -22,6 +23,8 @@ async function downloadWithAuth(path, filename) {
 
 export default function LivePanel({ uploadPostKey, uploadUserId, geminiApiKey, isManaged, onActiveChange }) {
   const [url, setUrl] = useState('');
+  const [minClipSeconds, setMinClipSeconds] = useState('30');
+  const [maxClipSeconds, setMaxClipSeconds] = useState('60');
   const [sessionId, setSessionId] = useState(() => localStorage.getItem(LIVE_SESSION_KEY) || '');
   const [session, setSession] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -61,6 +64,8 @@ export default function LivePanel({ uploadPostKey, uploadUserId, geminiApiKey, i
 
   const active = ACTIVE_STATES.has(session?.status);
   const clips = useMemo(() => session?.clips || [], [session?.clips]);
+  const durationError = useMemo(() => validateLiveDuration(minClipSeconds, maxClipSeconds).error,
+    [minClipSeconds, maxClipSeconds]);
 
   useEffect(() => {
     if (session) onActiveChange?.(active);
@@ -68,12 +73,19 @@ export default function LivePanel({ uploadPostKey, uploadUserId, geminiApiKey, i
 
   const start = async (event) => {
     event.preventDefault();
+    let payload;
+    try {
+      payload = buildLiveCreatePayload(url, minClipSeconds, maxClipSeconds);
+    } catch (err) {
+      setError(err.message);
+      return;
+    }
     setBusy(true);
     setError('');
     try {
       const created = await apiJson('/api/live', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: url.trim() }),
+        body: JSON.stringify(payload),
       });
       setSession(created);
       setSessionId(created.id);
@@ -146,12 +158,25 @@ export default function LivePanel({ uploadPostKey, uploadUserId, geminiApiKey, i
           <div className="flex flex-col sm:flex-row gap-3">
             <input id="live-url" type="url" required value={url} onChange={(event) => setUrl(event.target.value)}
               placeholder="https://www.youtube.com/live/..." className="input-field flex-1 min-w-0" />
-            <button className="btn-primary inline-flex items-center justify-center gap-2" disabled={busy || !url.trim()}>
-              {busy ? <Loader2 size={16} className="animate-spin" /> : <Radio size={16} />}
-              Iniciar
-            </button>
           </div>
           <p className="text-xs text-text-secondary">El procesamiento usa la CPU y conserva un buffer temporal de los últimos 20 minutos.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label htmlFor="live-min-clip" className="block text-sm text-text-primary">Duración mínima del clip
+              <div className="relative mt-1"><input id="live-min-clip" type="number" min="10" max="240" step="1"
+                value={minClipSeconds} onChange={(event) => setMinClipSeconds(event.target.value)}
+                className="input-field w-full pr-16" /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-text-secondary">segundos</span></div>
+            </label>
+            <label htmlFor="live-max-clip" className="block text-sm text-text-primary">Duración máxima del clip
+              <div className="relative mt-1"><input id="live-max-clip" type="number" min="10" max="240" step="1"
+                value={maxClipSeconds} onChange={(event) => setMaxClipSeconds(event.target.value)}
+                className="input-field w-full pr-16" /><span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-text-secondary">segundos</span></div>
+            </label>
+          </div>
+          {durationError && <p role="alert" className="text-xs text-danger">{durationError}</p>}
+          <button className="btn-primary inline-flex items-center justify-center gap-2" disabled={busy || !url.trim() || !!durationError}>
+            {busy ? <Loader2 size={16} className="animate-spin" /> : <Radio size={16} />}
+            Iniciar
+          </button>
         </form>
       )}
 
@@ -180,6 +205,7 @@ export default function LivePanel({ uploadPostKey, uploadUserId, geminiApiKey, i
             <div className="rounded-input bg-primary-soft p-3"><div className="text-text-secondary">RTF Whisper</div><div className="readout mt-1">{session.rtf == null ? '—' : Number(session.rtf).toFixed(2)}</div></div>
             <div className="rounded-input bg-primary-soft p-3"><div className="text-text-secondary">En cola</div><div className="readout mt-1">{(session.queue || []).filter((item) => item.status === 'en_cola').length}</div></div>
           </div>
+          <p className="text-xs text-text-secondary">Duración configurada: {session.min_clip_seconds ?? 30}–{session.max_clip_seconds ?? 60} segundos</p>
           {session.mensaje && <p className="text-sm text-text-secondary">{session.mensaje}</p>}
           {!!session.notices?.length && <div className="space-y-2" aria-live="polite">
             {session.notices.slice(-5).map((notice, index) => (

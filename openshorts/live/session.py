@@ -14,6 +14,9 @@ import uuid
 from contextlib import contextmanager
 from pathlib import Path
 
+from .config import (DEFAULT_CLIP_MAX_SECONDS, DEFAULT_CLIP_MIN_SECONDS,
+                     validate_clip_duration_range)
+
 
 _SESSION_ID = re.compile(r"^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$", re.I)
 _TERMINAL = {"detenido", "error"}
@@ -121,7 +124,11 @@ class LiveSessionManager:
                               "ended_at": time.time()})
                 write_state(directory, state)
 
-    def create(self, url: str, *, user_id=None) -> dict:
+    def create(self, url: str, *, user_id=None,
+               min_clip_seconds: int = DEFAULT_CLIP_MIN_SECONDS,
+               max_clip_seconds: int = DEFAULT_CLIP_MAX_SECONDS) -> dict:
+        min_clip_seconds, max_clip_seconds = validate_clip_duration_range(
+            min_clip_seconds, max_clip_seconds)
         session_id = str(uuid.uuid4())
         directory = self._directory(session_id)
         directory.mkdir(parents=True, exist_ok=False)
@@ -129,12 +136,15 @@ class LiveSessionManager:
             (directory / ".owner").write_text(str(user_id), encoding="utf-8")
         state = {"id": session_id, "url": url, "status": "iniciando", "created_at": time.time(),
                  "updated_at": time.time(), "clips": [], "candidates": [], "queue": [],
-                 "notices": [], "segments": 0, "rtf": None, "user_id": str(user_id) if user_id else None}
+                 "notices": [], "segments": 0, "rtf": None, "user_id": str(user_id) if user_id else None,
+                 "min_clip_seconds": min_clip_seconds, "max_clip_seconds": max_clip_seconds}
         write_state(directory, state)
         environment = os.environ.copy()
         environment.update({"LIVE_SESSION_ID": session_id, "LIVE_URL": url,
                             "LIVE_OUTPUT_DIR": str(directory),
                             "LIVE_STOP_FILE": str(directory / "stop.request"),
+                            "LIVE_CLIP_MIN": str(min_clip_seconds),
+                            "LIVE_CLIP_MAX": str(max_clip_seconds),
                             "AUTO_HOOK": "1", "AUTO_CAPTIONS": "1",
                             "CLIP_WORKERS": "1", "WATERMARK": "0",
                             "WHISPER_MODEL": os.environ.get("LIVE_WHISPER_MODEL", "small"),
@@ -210,6 +220,15 @@ class LiveSessionRuntime:
             "id": session_id, "url": url, "clips": [], "candidates": [], "notices": [],
             "segments": 0, "rtf": None,
         }
+        try:
+            self.min_clip_seconds, self.max_clip_seconds = validate_clip_duration_range(
+                self.state.get("min_clip_seconds", DEFAULT_CLIP_MIN_SECONDS),
+                self.state.get("max_clip_seconds", DEFAULT_CLIP_MAX_SECONDS))
+        except ValueError:
+            self.min_clip_seconds = DEFAULT_CLIP_MIN_SECONDS
+            self.max_clip_seconds = DEFAULT_CLIP_MAX_SECONDS
+        self.state.setdefault("min_clip_seconds", self.min_clip_seconds)
+        self.state.setdefault("max_clip_seconds", self.max_clip_seconds)
         self.state.update({"status": "iniciando", "updated_at": time.time()})
         self.stop_mode = None
 
@@ -345,7 +364,8 @@ class LiveSessionRuntime:
         work_queue = LiveWorkQueue(buffer=buffer)
         render_gate = RenderPriorityGate()
         render_stop = threading.Event()
-        detector = LiveDetector()
+        detector = LiveDetector(min_seconds=self.min_clip_seconds,
+                                max_seconds=self.max_clip_seconds)
         transcriber = IncrementalTranscriber()
         transcript_words = {}
         language = ""
@@ -477,6 +497,11 @@ class LiveSessionRuntime:
                     break
                 time.sleep(1)
 
+            pending_highlights = detector.discard_pending()
+            if pending_highlights:
+                self._notice(
+                    f"Se descartaron {pending_highlights} momentos porque no había suficiente material "
+                    f"para generar clips de al menos {self.min_clip_seconds} segundos.", "aviso")
             if self.stop_mode != "detener_ya":
                 judge_jobs.join()
                 judge_jobs.put(judge_stop)
