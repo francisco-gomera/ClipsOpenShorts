@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Activity, AlertTriangle, Check, Circle, Clock3, Cpu, Download, Film, Loader2,
-  Radio, Square, Wifi, WifiOff, X,
+  Eye, EyeOff, Radio, Square, Wifi, WifiOff, X,
 } from 'lucide-react';
 import ResultCard from './ResultCard';
+import YouTubeLivePreview from './YouTubeLivePreview';
 import { apiFetch, apiJson } from '../lib/api';
 import { buildLiveCreatePayload, validateLiveDuration } from '../lib/liveDuration';
 import { captureElapsedSeconds, formatCaptureElapsed } from '../lib/liveCaptureTimer';
@@ -139,6 +140,7 @@ export default function LivePanel({ uploadPostKey, uploadUserId, geminiApiKey, i
   const [downloadError, setDownloadError] = useState('');
   const [editing, setEditing] = useState(null);
   const [savingEdit, setSavingEdit] = useState(false);
+  const [previewVisible, setPreviewVisible] = useState(false);
   const sessionRef = useRef(session);
   const refreshRef = useRef(null);
   const describeErrorRef = useRef(null);
@@ -400,6 +402,16 @@ export default function LivePanel({ uploadPostKey, uploadUserId, geminiApiKey, i
           La conexión con el directo se interrumpió. El sistema está intentando reconectar y el cronómetro conserva el tiempo acumulado.
         </p>}
       </section>
+
+      {session.url && <section className="space-y-3" aria-label="Vista previa del directo">
+        <button type="button" onClick={() => setPreviewVisible((visible) => !visible)}
+          aria-expanded={previewVisible}
+          className="btn-ghost inline-flex items-center gap-2 text-xs">
+          {previewVisible ? <EyeOff size={14} /> : <Eye size={14} />}
+          {previewVisible ? 'Ocultar vista previa' : 'Mostrar vista previa'}
+        </button>
+        {previewVisible && <YouTubeLivePreview key={sessionId || session.id} url={session.url} />}
+      </section>}
 
       <section aria-label="Estadísticas de la sesión" className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
         <Metric label="Segmentos capturados" value={session.segments_total ?? session.segments ?? 0} />
