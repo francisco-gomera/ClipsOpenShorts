@@ -1,5 +1,6 @@
 services:
   backend:
+    image: openshorts-backend:local
     build: .
     container_name: openshorts-backend
     environment:
@@ -13,7 +14,21 @@ services:
       - /app/__pycache__
       - ./output:/app/output
       - local_auth_data:/app/data
+    depends_on:
+      auth-data-init:
+        condition: service_completed_successfully
     restart: unless-stopped
+
+  # Named Docker volumes start owned by root. Prepare the auth database volume
+  # for the non-root appuser before the backend opens SQLite.
+  auth-data-init:
+    image: openshorts-backend:local
+    user: "0:0"
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["chown -R appuser:appuser /app/data"]
+    volumes:
+      - local_auth_data:/app/data
+    restart: "no"
 
   frontend:
     build:
