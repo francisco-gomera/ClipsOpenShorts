@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import itertools
 import re
+from bisect import bisect_left, bisect_right
 
 from clip_selection import dedupe_overlapping, snap_clip_to_words
 
@@ -21,16 +22,22 @@ def _keyword_hits(segments: list[dict], language: str) -> list[dict]:
     lang = (language or "").split("-")[0].lower()
     phrases = REACTION_WORDS.get(lang, set()) | REACTION_WORDS["es"] | REACTION_WORDS["en"]
     token_phrases = [(phrase, _tokens(phrase)) for phrase in phrases]
+    by_first = {}
+    for phrase, phrase_tokens in token_phrases:
+        if phrase_tokens:
+            by_first.setdefault(phrase_tokens[0], []).append((phrase, phrase_tokens))
     hits = []
     for segment in segments:
         words = segment.get("words") or []
+        first_tokens = []
+        for word in words:
+            parts = _tokens(word.get("word", ""))
+            first_tokens.append(parts[0] if parts else "")
         for index in range(len(words)):
-            for phrase, phrase_tokens in token_phrases:
+            for phrase, phrase_tokens in by_first.get(first_tokens[index], ()):
                 if not phrase_tokens or index + len(phrase_tokens) > len(words):
                     continue
-                found = [_tokens(word.get("word", "")) for word in words[index:index + len(phrase_tokens)]]
-                found = [part[0] if part else "" for part in found]
-                if found == phrase_tokens:
+                if first_tokens[index:index + len(phrase_tokens)] == phrase_tokens:
                     start = float(words[index]["start"])
                     end = float(words[index + len(phrase_tokens) - 1]["end"])
                     hits.append({"start": start, "end": end, "phrase": phrase,
@@ -57,27 +64,48 @@ class LiveDetector:
         self._recent: list[dict] = []
         self._last_start: float | None = None
         self._pending: list[dict] = []
+        self._keyword_scanned_until = 0.0
+        self._keyword_hits_seen: set[tuple[str, float]] = set()
 
     def detect(self, buckets: list[dict], transcript: dict, *, latest_time: float | None = None) -> list[dict]:
         peaks = self.audio_detector.add(buckets)
-        segments = transcript.get("segments", []) if isinstance(transcript, dict) else []
-        language = transcript.get("language", "") if isinstance(transcript, dict) else ""
+        latest_time = float(latest_time if latest_time is not None else max(
+            [p["end"] for p in peaks] + [0.0]))
+        rolling = hasattr(transcript, "window") and hasattr(transcript, "segments")
+        if rolling:
+            scan_start = max(0.0, self._keyword_scanned_until - 1.0)
+            segments = transcript.segments(scan_start, latest_time)
+            language = transcript.language
+        else:
+            segments = transcript.get("segments", []) if isinstance(transcript, dict) else []
+            language = transcript.get("language", "") if isinstance(transcript, dict) else ""
         keywords = _keyword_hits(segments, language)
-        words = [{"w": word.get("word", ""), "s": float(word["start"]), "e": float(word["end"])}
-                 for segment in segments for word in segment.get("words", [])]
+        if rolling:
+            keywords = [hit for hit in keywords
+                        if (hit["phrase"], round(hit["start"], 1)) not in self._keyword_hits_seen]
+            for hit in keywords:
+                self._keyword_hits_seen.add((hit["phrase"], round(hit["start"], 1)))
+            self._keyword_scanned_until = max(self._keyword_scanned_until, latest_time)
+            self._keyword_hits_seen = {key for key in self._keyword_hits_seen
+                                       if key[1] >= latest_time - 2.0}
+            words = []
+        else:
+            words = [{"w": word.get("word", ""), "s": float(word["start"]), "e": float(word["end"])}
+                     for segment in segments for word in segment.get("words", [])]
         events = [(peak["start"], "audio", peak) for peak in peaks]
         events += [(hit["start"], "keyword", hit) for hit in keywords]
         events.sort(key=lambda item: item[0])
-        latest_time = float(latest_time if latest_time is not None else
-                            max([p["end"] for p in peaks] + [w["e"] for w in words] + [0.0]))
         candidates = []
         consumed = set()
         possible = list(self._pending)
         self._pending = []
+        event_points = [event[0] for event in events]
         for i, (at, kind, payload) in enumerate(events):
             if i in consumed:
                 continue
-            nearby = [(j, k, p) for j, (point, k, p) in enumerate(events)
+            left = bisect_left(event_points, at - KEYWORD_WINDOW_SECONDS)
+            right = bisect_right(event_points, at + KEYWORD_WINDOW_SECONDS)
+            nearby = [(j, k, p) for j, (point, k, p) in enumerate(events[left:right], start=left)
                       if j != i and abs(point - at) <= KEYWORD_WINDOW_SECONDS]
             audio = payload if kind == "audio" else next((p for _, k, p in nearby if k == "audio"), None)
             keyword = payload if kind == "keyword" else next((p for _, k, p in nearby if k == "keyword"), None)
@@ -114,8 +142,14 @@ class LiveDetector:
             end = start + duration
             if self._last_start is not None and start - self._last_start < self.cooldown_seconds:
                 continue
-            if words:
-                start, end = snap_clip_to_words(start, end, words, latest_time,
+            if rolling:
+                candidate_words = transcript.window(max(0.0, start - 5.0), end + 5.0)
+                snap_words = [{"w": word.get("word", ""), "s": float(word["start"]),
+                               "e": float(word["end"])} for word in candidate_words]
+            else:
+                snap_words = words
+            if snap_words:
+                start, end = snap_clip_to_words(start, end, snap_words, latest_time,
                                                 min_duration=self.min_seconds,
                                                 max_duration=self.max_seconds)
             if (end - start < self.min_seconds - 0.01

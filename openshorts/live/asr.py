@@ -58,17 +58,20 @@ class IncrementalTranscriber:
                 "language": getattr(info, "language", "") or "", "segments": out}
 
     @staticmethod
-    def _dedupe_words(words: list[dict]) -> list[dict]:
+    def _dedupe_words(words: list[dict], *, overlap_start: float | None = None) -> list[dict]:
         result = []
-        seen = set()
         for word in sorted(words, key=lambda item: (item["start"], item["end"])):
             key = re.sub(r"\W+", "", word["word"].lower())
             if not key:
                 continue
-            duplicate = (key, round(word["start"], 1))
-            if duplicate in seen:
+            duplicate = any(re.sub(r"\W+", "", old["word"].lower()) == key
+                            and (round(float(old["start"]), 1) == round(float(word["start"]), 1)
+                                 or (overlap_start is not None
+                                     and float(old["start"]) >= overlap_start
+                                     and abs(float(old["start"]) - float(word["start"])) <= 0.45))
+                            for old in result)
+            if duplicate:
                 continue
-            seen.add(duplicate)
             result.append(word)
         return result
 
@@ -103,13 +106,16 @@ class IncrementalTranscriber:
             for word in segment.get("words", []):
                 current_words.append({**word, "start": float(word["start"]) + offset,
                                       "end": float(word["end"]) + offset})
-        combined = self._dedupe_words(self._previous_words + current_words)
-        self._previous_words = combined
+        overlap_start = offset - self.overlap_seconds - 1.0
+        previous = [word for word in self._previous_words if float(word["end"]) >= overlap_start]
+        combined = self._dedupe_words(previous + current_words, overlap_start=overlap_start)
+        self._previous_words = [word for word in combined if float(word["end"]) >= overlap_start]
         # Reconstruct segment text and word timestamps in absolute session time.
         segments = []
         for segment in transcript.get("segments", []):
             start, end = float(segment["start"]) + offset, float(segment["end"]) + offset
-            words = [word for word in combined if word["start"] >= start - 0.05 and word["end"] <= end + 0.05]
+            words = [word for word in combined
+                     if word["end"] >= start - 0.05 and word["start"] <= end + 0.05]
             segments.append({"start": start, "end": end, "text": segment.get("text", ""), "words": words})
         return {"text": transcript.get("text", ""), "language": self.language,
                 "segments": segments, "rtf": self.rtf, "audio_duration": duration,

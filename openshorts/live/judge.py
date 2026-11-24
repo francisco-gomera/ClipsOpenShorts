@@ -32,9 +32,65 @@ def _detail_schema():
 
 
 def _transcript_context(transcript: dict, start: float, end: float, margin: float = 15.0) -> str:
-    return " ".join(str(item.get("text") or "") for item in transcript.get("segments", [])
-                    if float(item.get("end", 0)) >= start - margin
-                    and float(item.get("start", 0)) <= end + margin).strip()
+    selected = [item for item in transcript.get("segments", [])
+                if float(item.get("end", 0)) >= start - margin
+                and float(item.get("start", 0)) <= end + margin]
+    timed_words = [word for item in selected for word in item.get("words", [])
+                   if float(word.get("end", 0)) >= start - margin
+                   and float(word.get("start", 0)) <= end + margin]
+    if timed_words:
+        tokens = [str(word.get("word") or "") for word in timed_words]
+        text = "".join(tokens).strip()
+        if len(text) <= 6000:
+            return text
+        center = (start + end) / 2
+        anchor = min(range(len(timed_words)),
+                     key=lambda i: abs((float(timed_words[i]["start"])
+                                        + float(timed_words[i]["end"])) / 2 - center))
+        left = right = anchor
+        length = len(tokens[anchor])
+        while length < 6000 and (left > 0 or right + 1 < len(tokens)):
+            if left > 0:
+                left -= 1
+                length += len(tokens[left]) + 1
+            if length >= 6000:
+                break
+            if right + 1 < len(tokens):
+                right += 1
+                length += len(tokens[right]) + 1
+        return "".join(tokens[left:right + 1]).strip()
+    text = " ".join(str(item.get("text") or "") for item in selected).strip()
+    if len(text) <= 6000:
+        return text
+    center = (start + end) / 2
+    # Keep the candidate in the middle if a long transcript segment exceeds the prompt budget.
+    words = " ".join(str(item.get("text") or "") for item in selected).split()
+    if not words:
+        return ""
+    anchor_time = center
+    weighted = []
+    for item in selected:
+        segment_words = str(item.get("text") or "").split()
+        if segment_words:
+            weighted.extend((float(item.get("start", 0)), token) for token in segment_words)
+    anchor = min(range(len(weighted)), key=lambda i: abs(weighted[i][0] - anchor_time)) if weighted else 0
+    left = right = anchor
+    parts = [weighted[anchor][1]] if weighted else []
+    length = len(parts[0]) if parts else 0
+    while weighted and length < 6000 and (left > 0 or right + 1 < len(weighted)):
+        if left > 0:
+            left -= 1
+            token = weighted[left][1]
+            parts.insert(0, token)
+            length += len(token) + 1
+        if length >= 6000:
+            break
+        if right + 1 < len(weighted):
+            right += 1
+            token = weighted[right][1]
+            parts.append(token)
+            length += len(token) + 1
+    return " ".join(parts)
 
 
 def _fallback(candidate: dict, text: str) -> dict:

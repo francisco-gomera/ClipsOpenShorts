@@ -3,6 +3,8 @@ import wave
 from live.asr import IncrementalTranscriber, block_starts
 from live.audio import aggregate_buckets, rms_db_buckets
 from live.signals import AudioPeakDetector, keyword_events, robust_z_score
+from live.transcript import RollingTranscript
+from live.judge import _fallback, _transcript_context
 
 
 def _wav(path, amplitude=10000, seconds=6):
@@ -62,6 +64,55 @@ def test_incremental_transcription_offsets_and_deduplicates_overlap():
     offset = transcriber.transcribe_block("c.wav", session_start=10, audio_duration=2)
     assert offset["segments"][0]["start"] == 10
     assert offset["segments"][0]["words"][0]["start"] == 10
+
+
+def test_asr_overlap_deduplicates_timestamp_drift_within_overlap():
+    calls = iter([
+        {"text": " hola", "language": "es", "segments": [{"start": 28, "end": 29,
+         "text": " hola", "words": [{"word": " hola", "start": 28.1, "end": 28.5}]}]},
+        {"text": " hola", "language": "es", "segments": [{"start": 0.3, "end": 1,
+         "text": " hola", "words": [{"word": " hola", "start": 0.3, "end": 0.7}]}]},
+    ])
+    transcriber = IncrementalTranscriber(transcribe=lambda _path: next(calls), block_seconds=30,
+                                         overlap_seconds=2)
+    transcriber.transcribe_block("a.wav", session_start=0, audio_duration=30)
+    second = transcriber.transcribe_block("b.wav", session_start=28, audio_duration=30)
+
+    assert len(second["segments"][0]["words"]) == 1
+    assert second["segments"][0]["words"][0]["start"] == 28.1
+    assert len(transcriber._previous_words) <= 3
+
+
+def test_rolling_transcript_groups_segments_and_keeps_pinned_windows():
+    transcript = RollingTranscript()
+    transcript.add_words([
+        {"word": " Hola", "start": 100, "end": 100.3},
+        {"word": " mundo", "start": 100.4, "end": 100.8},
+        {"word": " luego", "start": 103, "end": 103.3},
+    ])
+    transcript.pin("clip", 99, 101)
+    removed = transcript.prune(102)
+
+    assert removed == 0
+    assert [part["text"] for part in transcript.segments(99, 104)] == ["Hola mundo", "luego"]
+    transcript.unpin("clip")
+    assert transcript.prune(102) == 2
+
+
+def test_judge_context_uses_candidate_time_in_long_stream():
+    transcript = {"segments": [
+        {"start": 0, "end": 100, "text": "inicio del directo " * 100,
+         "words": [{"word": "inicio", "start": 0, "end": 1}]},
+        {"start": 2290, "end": 2320, "text": "candidato importante palabra",
+         "words": [{"word": "candidato", "start": 2300, "end": 2301},
+                   {"word": " importante", "start": 2301, "end": 2302}]},
+    ]}
+    context = _transcript_context(transcript, 2300, 2310)
+    fallback = _fallback({"id": "live_1", "start": 2300, "end": 2310}, context)
+
+    assert "candidato importante" in context
+    assert not context.startswith("inicio del directo")
+    assert fallback["viral_hook_text"].startswith("candidato importante")
 
 
 def test_live_asr_block_schedule_has_two_second_overlap():

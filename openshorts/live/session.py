@@ -599,26 +599,8 @@ class LiveSessionRuntime:
         except OSError:
             return None
 
-    @staticmethod
-    def _merge_words(transcript_words, new_words):
-        import re
-        for word in new_words:
-            norm = re.sub(r"\W+", "", str(word.get("word", "")).lower())
-            key = (norm, round(float(word.get("start", 0)), 1))
-            if norm and key not in transcript_words:
-                transcript_words[key] = dict(word)
-
-    @staticmethod
-    def _transcript(words_by_key, language):
-        words = sorted(words_by_key.values(), key=lambda item: (item["start"], item["end"]))
-        text = "".join(str(item.get("word", "")) for item in words).strip()
-        segments = []
-        if words:
-            segments.append({"start": words[0]["start"], "end": words[-1]["end"],
-                             "text": text, "words": words})
-        return {"text": text, "language": language or "", "segments": segments}
-
-    def _render_worker(self, work_queue, buffer, render_gate, render_stop, transcript_getter):
+    def _render_worker(self, work_queue, buffer, render_gate, render_stop, transcript_store,
+                       transcript_lock):
         from .clipper import render_candidate
         from .window import build_source_window
         index = len(self.state.get("clips", []))
@@ -640,7 +622,9 @@ class LiveSessionRuntime:
                 local_candidate = dict(item)
                 local_candidate["start"] = window["start"]
                 local_candidate["end"] = window["end"]
-                transcript = transcript_getter()
+                with transcript_lock:
+                    transcript = transcript_store.snapshot(
+                        window["offset"], window["offset"] + window["actual_duration"])
                 local_transcript = {"text": "", "language": transcript.get("language", ""), "segments": []}
                 for segment in transcript.get("segments", []):
                     start, end = float(segment["start"]), float(segment["end"])
@@ -680,18 +664,21 @@ class LiveSessionRuntime:
             finally:
                 if window_path:
                     window_path.unlink(missing_ok=True)
+                with transcript_lock:
+                    transcript_store.unpin(candidate_id)
                 self._sync_queue(work_queue)
 
     def run(self):
         from .asr import IncrementalTranscriber
         from .audio import aggregate_buckets, extract_wav, extract_wav_window, rms_db_buckets
         from .buffer import SegmentBuffer
-        from .config import BUFFER_MINUTES
+        from .config import BUFFER_MINUTES, TRANSCRIPT_KEEP_SECONDS
         from .detector import LiveDetector
         from .judge import judge_candidate
         from .queue import LiveWorkQueue, RenderPriorityGate
         from .recorder import StreamRecorder
         from .resolver import resolve_live
+        from .transcript import RollingTranscript
         from .window import select_window_segments
 
         self.segment_dir.mkdir(parents=True, exist_ok=True)
@@ -703,16 +690,12 @@ class LiveSessionRuntime:
         detector = LiveDetector(min_seconds=self.min_clip_seconds,
                                 max_seconds=self.max_clip_seconds)
         transcriber = IncrementalTranscriber()
-        transcript_words = {}
-        language = ""
+        transcript_store = RollingTranscript()
         transcript_lock = threading.Lock()
 
-        def transcript_snapshot():
-            with transcript_lock:
-                return self._transcript(transcript_words, language)
-
         renderer = threading.Thread(target=self._render_worker,
-                                    args=(work_queue, buffer, render_gate, render_stop, transcript_snapshot),
+                                    args=(work_queue, buffer, render_gate, render_stop,
+                                          transcript_store, transcript_lock),
                                     name="live-render", daemon=True)
         renderer.start()
         judge_jobs = __import__("queue").Queue()
@@ -742,6 +725,13 @@ class LiveSessionRuntime:
                                                       candidate["end"] + 10)
                     queue_state = work_queue.offer(judged,
                                                    segment_indices=[item.index for item in selected])
+                    queue_snapshot = work_queue.snapshot()
+                    with transcript_lock:
+                        for record in queue_snapshot["states"]:
+                            if record.get("status") not in {"en_cola", "renderizando"}:
+                                transcript_store.unpin(record.get("id"))
+                        if queue_state.get("status") != "en_cola":
+                            transcript_store.unpin(candidate["id"])
                     with self.state_lock:
                         candidates = self.state.setdefault("candidates", [])
                         detected = next((item for item in candidates
@@ -763,6 +753,8 @@ class LiveSessionRuntime:
                         self._save()
                 except Exception as exc:
                     if candidate:
+                        with transcript_lock:
+                            transcript_store.unpin(candidate["id"])
                         with self.state_lock:
                             for item in self.state.setdefault("candidates", []):
                                 if str(item.get("id")) == str(candidate.get("id")):
@@ -840,10 +832,10 @@ class LiveSessionRuntime:
                                            start=local_start, duration=transcriber.block_seconds)
                         result = transcriber.transcribe_block(wav, session_start=next_asr_start,
                                                               audio_duration=transcriber.block_seconds)
-                        language = result.get("language") or language
+                        transcript_store.language = result.get("language") or transcript_store.language
                         with transcript_lock:
                             for segment in result.get("segments", []):
-                                self._merge_words(transcript_words, segment.get("words", []))
+                                transcript_store.add_words(segment.get("words", []))
                         if result.get("notice"):
                             self._notice(result["notice"], "aviso")
                         if result.get("notice") and "detenido por carga" in result["notice"].lower():
@@ -880,8 +872,7 @@ class LiveSessionRuntime:
                         wav.unlink(missing_ok=True)
 
                 if buckets_since_detection:
-                    transcript = transcript_snapshot()
-                    candidates = detector.detect(buckets_since_detection, transcript, latest_time=latest)
+                    candidates = detector.detect(buckets_since_detection, transcript_store, latest_time=latest)
                     buckets_since_detection = []
                     for candidate in candidates:
                         with self.state_lock:
@@ -892,8 +883,18 @@ class LiveSessionRuntime:
                                                   f"Momento destacado detectado: {candidate.get('why') or 'señales de audio/transcripción'}",
                                                   clip_id=str(candidate.get("id")))
                             self._save()
-                        judge_jobs.put((candidate, transcript))
+                        with transcript_lock:
+                            transcript_store.pin(candidate["id"], max(0.0, candidate["start"] - 20),
+                                                 candidate["end"] + 20)
+                            candidate_transcript = transcript_store.snapshot(
+                                max(0.0, candidate["start"] - 20), candidate["end"] + 20)
+                        judge_jobs.put((candidate, candidate_transcript))
                 buffer.prune()
+                first_retained = next((entry.start for entry in entries if entry.path.exists()), None)
+                keep_from = (first_retained if first_retained is not None
+                             else latest - TRANSCRIPT_KEEP_SECONDS) - 15
+                with transcript_lock:
+                    transcript_store.prune(keep_from)
                 if capture_done:
                     if render_gate.paused:
                         render_gate.resume_for_shutdown()

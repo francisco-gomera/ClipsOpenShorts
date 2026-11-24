@@ -3,6 +3,7 @@ import pytest
 from live.detector import LiveDetector
 from live.judge import judge_candidate
 from live.signals import AudioPeakDetector
+from live.transcript import RollingTranscript
 
 
 def test_detector_fuses_audio_and_keyword_and_applies_cooldown():
@@ -25,6 +26,28 @@ def test_detector_fuses_audio_and_keyword_and_applies_cooldown():
     assert 25 <= candidate["end"] - candidate["start"] <= 60
     assert candidate["start"] >= 0
     assert detector.detect([], transcript, latest_time=80) == []
+
+
+def test_rolling_detector_matches_full_transcript_for_one_hour():
+    class FixedPeaks:
+        def add(self, _buckets):
+            return [{"start": 1800.0, "end": 1801.0, "z": 5.0}]
+
+    words = [{"word": " palabra", "start": float(index), "end": float(index) + 0.2}
+             for index in range(3600)]
+    words[1800] = {"word": " clipea", "start": 1800.0, "end": 1800.3}
+    words[1801] = {"word": " esto", "start": 1800.4, "end": 1800.7}
+    rolling = RollingTranscript()
+    rolling.language = "es"
+    rolling.add_words(words)
+    full = {"language": "es", "segments": rolling.segments(0, 3600)}
+    expected = LiveDetector(cooldown_seconds=0, min_seconds=30, max_seconds=60,
+                            audio_detector=FixedPeaks()).detect([], full, latest_time=3600)
+    actual = LiveDetector(cooldown_seconds=0, min_seconds=30, max_seconds=60,
+                          audio_detector=FixedPeaks()).detect([], rolling, latest_time=3600)
+
+    assert [(item["id"], item["start"], item["end"]) for item in actual] == [
+        (item["id"], item["start"], item["end"]) for item in expected]
 
 
 @pytest.mark.parametrize("minimum,maximum", [(10, 30), (30, 60), (60, 120), (120, 240)])
