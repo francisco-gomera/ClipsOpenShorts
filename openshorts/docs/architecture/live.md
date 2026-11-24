@@ -149,8 +149,36 @@ once it is available.
 
 ## Remaining live acceptance checks
 
-The synthetic tests validate component contracts but do not replace the plan's
-real 15-minute YouTube session, ffprobe A/V checks, orphan-process check, CPU
-RTF/render timing, or end-to-end dashboard/browser run. Those measurements are
-blocked by the unavailable local Docker daemon and are recorded as pending in
+The synthetic tests validate component contracts but do not replace a real
+YouTube session, ffprobe A/V checks, orphan-process check, CPU RTF/render timing,
+or end-to-end dashboard/browser run. Those measurements remain pending in
 `docs/baseline-live.md`.
+
+## Retention and bounded state
+
+- `RollingTranscript` stores timestamped words and groups them into short
+  segments by pause. The detector scans newly available time plus a one-second
+  overlap; judge and renderer receive only the candidate's time window.
+  Candidate transcript windows stay pinned while judging or rendering.
+- `LIVE_TRANSCRIPT_KEEP_SECONDS` defaults to the segment buffer retention plus
+  120 seconds. A pinned candidate may extend retention until it finishes.
+- `SegmentBuffer` reads newly appended complete CSV rows, retains absolute
+  session offsets as media files are pruned, and rereads a CSV after truncation.
+  `segments` counts retained files; `segments_total` counts the full capture.
+- `LIVE_HISTORY_CANDIDATES` and `LIVE_HISTORY_QUEUE` default to 50 terminal
+  records. Active candidates and renders remain in state. Cumulative `stats`
+  preserve detection, discard, error and completed-render totals. Finished
+  clips and their metadata remain deliverables and are not pruned by these
+  history limits.
+- State JSON is compact and writes are rate-limited to one per second except at
+  transitions. `live_metadata.json` is updated only when clips change.
+  `GET /api/live` returns a summary without candidate/queue arrays or signed
+  media URLs; `GET /api/live/{id}` returns the selected session detail.
+- If Whisper disables itself because CPU load is high, it emits one notice and
+  releases the render gate because there is no transcription work left to
+  protect. Audio-only detection continues; the configured queue limit remains.
+- Live exclusivity is intentional: while capture is active, the rest of the app
+  stays disabled through `liveExclusive`, the admission middleware and
+  `_assert_live_admission`.
+- The optional browser preview is independent of server capture. YouTube
+  chooses its preview quality; the iframe does not request a resolution.

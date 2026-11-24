@@ -13,7 +13,7 @@ export default function YouTubeLivePreview({ url, status }) {
     <section className="rounded-input border border-border bg-primary-soft/40 p-3 sm:p-4 space-y-3" aria-label="Vista previa del directo">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2 text-sm font-medium text-text-primary">
-          <Radio size={16} className="text-danger" />
+          <Radio size={16} className={liveStatus.tone === 'active' ? 'text-error' : 'text-text-secondary'} />
           <span>Vista previa de YouTube LIVE</span>
           <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] uppercase tracking-wide ${liveStatus.tone === 'active' ? 'bg-error/15 text-error' : 'bg-surface text-text-secondary'}`}>
             <span className={`h-1.5 w-1.5 rounded-full ${liveStatus.tone === 'active' ? 'animate-pulse bg-error' : 'bg-text-secondary'}`} />
