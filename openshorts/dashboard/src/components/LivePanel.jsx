@@ -434,7 +434,7 @@ export default function LivePanel({ uploadPostKey, uploadUserId, geminiApiKey, i
         {session.render_priority_paused && <p role="status" className="rounded-input border border-warning/30 bg-warning/5 p-3 text-sm text-warning">
           El inicio de nuevos renders está en pausa para dar prioridad a la captura y transcripción. Los clips pendientes continuarán cuando el RTF de Whisper vuelva a estar dentro del umbral.
         </p>}
-        <div className="grid gap-2 text-xs sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-2 text-xs sm:grid-cols-2 lg:grid-cols-3">
           <div className="rounded-input bg-primary-soft p-3"><span className="text-text-secondary">Whisper</span>
             <div className="mt-1 font-medium text-text-primary">{session.rtf == null ? 'Sin medición' : `${Number(session.rtf).toFixed(2)} RTF`}</div>
             <div className="mt-1 text-text-secondary">{{ esperando: 'Esperando audio', activo: 'Activo', degradado: 'Reducido por carga', detenido_por_carga: 'Pausado por carga', no_disponible: 'No disponible' }[session.asr_status] || 'Estado heredado / desconocido'}</div>
@@ -447,6 +447,14 @@ export default function LivePanel({ uploadPostKey, uploadUserId, geminiApiKey, i
           </div>
           <div className="rounded-input bg-primary-soft p-3"><span className="text-text-secondary">Avisos recientes</span>
             <div className="mt-1 font-medium text-text-primary">{(session.notices || []).filter((item) => ['aviso', 'error', 'error_captura'].includes(item.tipo)).length}</div>
+          </div>
+          <div className="rounded-input bg-primary-soft p-3"><span className="text-text-secondary">Señales analizadas</span>
+            <div className="mt-1 font-medium text-text-primary">{session.stats?.picos_audio ?? 0} picos · {session.stats?.palabras_clave ?? 0} palabras clave</div>
+            <div className="mt-1 text-text-secondary">{session.stats?.bloques_asr_fallidos ?? 0} bloques ASR fallidos</div>
+          </div>
+          <div className="rounded-input bg-primary-soft p-3"><span className="text-text-secondary">Worker de render</span>
+            <div className="mt-1 font-medium text-text-primary">{session.render_worker_status === 'error' ? 'Detenido por errores' : 'Disponible'}</div>
+            <div className="mt-1 text-text-secondary">{Object.values(session.stats?.rechazos || {}).reduce((sum, count) => sum + Number(count || 0), 0)} señales rechazadas</div>
           </div>
         </div>
       </section>

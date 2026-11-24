@@ -532,7 +532,9 @@ class LiveSessionRuntime:
         self.state.setdefault("max_clip_seconds", self.max_clip_seconds)
         self.state.setdefault("segments_total", 0)
         self.state.setdefault("stats", {"detectados": 0, "descartados": 0,
-                                         "errores": 0, "renderizados": 0})
+                                         "errores": 0, "renderizados": 0,
+                                         "picos_audio": 0, "palabras_clave": 0,
+                                         "rechazos": {}})
         _ensure_capture_fields(self.state)
         self.state.update({"status": "iniciando", "updated_at": time.time()})
         self.stop_mode = None
@@ -646,6 +648,27 @@ class LiveSessionRuntime:
 
     def _render_worker(self, work_queue, buffer, render_gate, render_stop, transcript_store,
                        transcript_lock):
+        attempts = 0
+        while True:
+            try:
+                self._render_worker_loop(work_queue, buffer, render_gate, render_stop,
+                                         transcript_store, transcript_lock)
+                return
+            except Exception as exc:
+                attempts += 1
+                self._notice(f"El worker de render tuvo un fallo: {type(exc).__name__}", "error",
+                             render_worker_restart=attempts)
+                if attempts >= 3:
+                    with self.state_lock:
+                        self.state["render_worker_status"] = "error"
+                        stats = self.state.setdefault("stats", {})
+                        stats["errores"] = int(stats.get("errores", 0)) + 1
+                        self._save(force=True)
+                    return
+                time.sleep(0.5 * attempts)
+
+    def _render_worker_loop(self, work_queue, buffer, render_gate, render_stop, transcript_store,
+                            transcript_lock):
         from .clipper import render_candidate
         from .window import build_source_window
         index = len(self.state.get("clips", []))
@@ -934,6 +957,8 @@ class LiveSessionRuntime:
                     except Exception as exc:
                         with self.state_lock:
                             self.state["asr_status"] = "no_disponible"
+                            stats = self.state.setdefault("stats", {})
+                            stats["bloques_asr_fallidos"] = int(stats.get("bloques_asr_fallidos", 0)) + 1
                         self._notice(f"Transcripción en vivo no disponible: {type(exc).__name__}", "aviso")
                         next_asr_start += transcriber.block_seconds - 2
                     finally:
@@ -942,6 +967,18 @@ class LiveSessionRuntime:
                 if buckets_since_detection:
                     candidates = detector.detect(buckets_since_detection, transcript_store, latest_time=latest)
                     buckets_since_detection = []
+                    metrics = detector.last_metrics
+                    with self.state_lock:
+                        stats = self.state.setdefault("stats", {})
+                        for key, source in (("picos_audio", "audio_peaks"),
+                                            ("palabras_clave", "keyword_hits")):
+                            stats[key] = int(stats.get(key, 0)) + int(metrics.get(source, 0))
+                        rejects = stats.setdefault("rechazos", {})
+                        for key in ("rejected_weak_signal", "rejected_cooldown",
+                                    "rejected_bounds", "rejected_overlap"):
+                            rejects[key] = int(rejects.get(key, 0)) + int(metrics.get(key, 0))
+                        stats["pendientes"] = int(metrics.get("pending", 0))
+                        self._save()
                     for candidate in candidates:
                         with self.state_lock:
                             detected_at = time.time()
