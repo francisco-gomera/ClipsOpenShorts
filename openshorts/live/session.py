@@ -720,7 +720,7 @@ class LiveSessionRuntime:
                         self._save()
                     judged = judge_candidate(candidate, transcript_copy)
                     judged["id"] = candidate["id"]
-                    entries = buffer.refresh()
+                    entries = buffer.retained()
                     selected = select_window_segments(entries, max(0.0, candidate["start"] - 10),
                                                       candidate["end"] + 10)
                     queue_state = work_queue.offer(judged,
@@ -889,7 +889,7 @@ class LiveSessionRuntime:
                             candidate_transcript = transcript_store.snapshot(
                                 max(0.0, candidate["start"] - 20), candidate["end"] + 20)
                         judge_jobs.put((candidate, candidate_transcript))
-                buffer.prune()
+                buffer.prune(entries)
                 first_retained = next((entry.start for entry in entries if entry.path.exists()), None)
                 keep_from = (first_retained if first_retained is not None
                              else latest - TRANSCRIPT_KEEP_SECONDS) - 15

@@ -150,3 +150,61 @@ def test_buffer_reads_csv_and_retains_pinned_segments(tmp_path):
     assert buffer.prune(now=time.time()) == [first]
     assert not first.exists()
     assert second.exists()
+
+
+def test_buffer_incrementally_reads_complete_rows_and_preserves_offsets(tmp_path):
+    paths = [tmp_path / f"seg_{index:06d}.ts" for index in range(4)]
+    for path in paths:
+        path.write_bytes(b"x")
+    csv_path = tmp_path / "segments_000000.csv"
+    csv_path.write_text("seg_000000.ts,0,10\nseg_000001.ts,10,20\nseg_000002.ts,20,30",
+                        encoding="utf-8")
+    buffer = SegmentBuffer(tmp_path)
+
+    first = buffer.refresh()
+    assert [(item.index, item.start) for item in first] == [(0, 0), (1, 10)]
+    with csv_path.open("a", encoding="utf-8") as file:
+        file.write("\n")
+    second = buffer.refresh()
+    assert [(item.index, item.start) for item in second] == [(0, 0), (1, 10), (2, 20)]
+    assert buffer.refresh() == second
+
+    next_csv = tmp_path / "segments_000003.csv"
+    next_csv.write_text("seg_000003.ts,0,10\n", encoding="utf-8")
+    combined = buffer.refresh()
+    assert [(item.index, item.start) for item in combined][-1] == (3, 30)
+    assert buffer.latest_end == 40
+
+
+def test_buffer_truncated_csv_reloads_without_moving_timeline_backwards(tmp_path):
+    for index in range(3):
+        (tmp_path / f"seg_{index:06d}.ts").write_bytes(b"x")
+    csv_path = tmp_path / "segments_000000.csv"
+    csv_path.write_text("seg_000000.ts,0,10\nseg_000001.ts,10,20\n", encoding="utf-8")
+    buffer = SegmentBuffer(tmp_path)
+    assert [item.start for item in buffer.refresh()] == [0, 10]
+
+    csv_path.write_text("seg_000002.ts,0,10\n", encoding="utf-8")
+    refreshed = buffer.refresh()
+
+    assert [(item.index, item.start) for item in refreshed] == [(2, 20)]
+    assert buffer.latest_end == 30
+
+
+def test_buffer_pruning_keeps_absolute_offsets_and_stops_at_fresh_segment(tmp_path):
+    paths = [tmp_path / f"seg_{index:06d}.ts" for index in range(3)]
+    for path in paths:
+        path.write_bytes(b"x")
+    csv_path = tmp_path / "segments.csv"
+    csv_path.write_text("".join(f"seg_{index:06d}.ts,{index * 10},{(index + 1) * 10}\n"
+                                 for index in range(3)), encoding="utf-8")
+    old = time.time() - 100
+    os.utime(paths[0], (old, old))
+    os.utime(paths[1], (old, old))
+    buffer = SegmentBuffer(tmp_path, retention_seconds=10)
+    entries = buffer.refresh()
+    removed = buffer.prune(entries, now=time.time())
+
+    assert removed == paths[:2]
+    assert [(item.index, item.start) for item in buffer.retained()] == [(2, 20)]
+    assert buffer.first_start == 20

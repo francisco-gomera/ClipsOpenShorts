@@ -45,7 +45,8 @@ def build_source_window(buffer, candidate: dict, directory: str | Path, *,
     clip_duration = clip_end - clip_start
     if clip_duration < minimum - 0.01 or clip_duration > maximum + 0.01:
         raise ValueError("El candidato no respeta la duración configurada para la sesión")
-    selected = select_window_segments(buffer.refresh(), desired_start, desired_end)
+    entries = buffer.retained() if hasattr(buffer, "retained") else buffer.refresh()
+    selected = select_window_segments(entries, desired_start, desired_end)
     offset = selected[0].start
     actual_end = selected[-1].end
     if clip_start < offset - 0.01 or clip_end > actual_end + 0.01:
