@@ -416,7 +416,7 @@ export default function LivePanel({ uploadPostKey, uploadUserId, geminiApiKey, i
           {previewVisible ? <EyeOff size={14} /> : <Eye size={14} />}
           {previewVisible ? 'Ocultar vista previa' : 'Mostrar vista previa'}
         </button>
-        {previewVisible && <YouTubeLivePreview key={sessionId || session.id} url={session.url} />}
+        {previewVisible && <YouTubeLivePreview key={sessionId || session.id} url={session.url} status={session.status} />}
       </section>}
 
       <section aria-label="Estadísticas de la sesión" className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
