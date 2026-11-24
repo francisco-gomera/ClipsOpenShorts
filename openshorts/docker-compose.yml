@@ -1,7 +1,10 @@
 services:
   backend:
     image: openshorts-backend:local
-    build: .
+    build:
+      context: .
+      args:
+        INSTALL_BILLING: "0"
     container_name: openshorts-backend
     environment:
       LOCAL_AUTH_ENABLED: ${LOCAL_AUTH_ENABLED:-true}

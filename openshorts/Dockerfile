@@ -22,10 +22,16 @@ RUN if [ "$GPU" != "1" ]; then \
       pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu \
         torch==2.11.0 torchvision==0.26.0; \
     fi
-RUN pip install --no-cache-dir -r requirements.txt
-# Cloud (paid mode) deps: installed always so one image serves both modes; they
-# are only imported when BILLING_ENABLED is set. Harmless/unused in self-host.
-RUN pip install --no-cache-dir -r requirements-billing.txt
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install -r requirements.txt
+# Cloud (paid mode) dependencies are only needed by the managed cloud image.
+ARG INSTALL_BILLING=0
+RUN --mount=type=cache,target=/root/.cache/pip \
+    if [ "$INSTALL_BILLING" = "1" ]; then \
+      pip install -r requirements-billing.txt; \
+    else \
+      echo "Skipping requirements-billing.txt for self-hosted image"; \
+    fi
 
 # GPU build (--build-arg GPU=1): user-space CUDA libs only — the NVIDIA
 # container runtime injects the driver. cuBLAS 12 + cuDNN 9 for CTranslate2
