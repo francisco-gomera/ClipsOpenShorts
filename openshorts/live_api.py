@@ -91,6 +91,9 @@ def _present(state: dict) -> dict:
     result.setdefault("capture_started_at", None)
     result.setdefault("capture_ended_at", None)
     result.setdefault("capture_elapsed_seconds", 0)
+    result.setdefault("stats", {"detectados": len(state.get("candidates", [])),
+                                 "descartados": 0, "errores": 0,
+                                 "renderizados": len(state.get("clips", []))})
     started_at = result.get("capture_started_at")
     if started_at is not None:
         ended_at = result.get("capture_ended_at")
@@ -114,6 +117,20 @@ def _present(state: dict) -> dict:
     return result
 
 
+def _present_summary(state: dict) -> dict:
+    """Small list payload; callers fetch the full, bounded state by id."""
+    summary = {key: state.get(key) for key in (
+        "id", "status", "created_at", "titulo", "mensaje", "segments", "segments_total",
+        "stats", "capture_started_at", "capture_ended_at", "capture_elapsed_seconds",
+        "reconnections", "asr_status", "render_priority_paused",
+    )}
+    summary["stats"] = state.get("stats") or {
+        "detectados": len(state.get("candidates", [])), "descartados": 0,
+        "errores": 0, "renderizados": len(state.get("clips", []))}
+    summary["segments_total"] = state.get("segments_total", state.get("segments", 0))
+    return summary | {"clips_count": len(state.get("clips", []))}
+
+
 @router.get("/health")
 async def live_health():
     return {"status": "ok", "fase": "L6"}
@@ -133,7 +150,7 @@ async def list_live_sessions(request: Request):
         if not state or (owner_id is not None and (state.get("user_id") is None
                                                    or str(state["user_id"]) != str(owner_id))):
             continue
-        sessions.append(_present(state))
+        sessions.append(_present_summary(state))
     sessions.sort(key=lambda state: state.get("created_at", 0), reverse=True)
     return {"sessions": sessions}
 

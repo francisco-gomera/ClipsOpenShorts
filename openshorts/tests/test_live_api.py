@@ -45,6 +45,7 @@ def test_live_api_returns_owner_scoped_session_and_clip_urls(tmp_path, monkeypat
 
     with TestClient(app) as client:
         created = client.post("/api/live", json={"url": "https://youtube.com/live/id"})
+        listed = client.get("/api/live")
         fetched = client.get("/api/live/" + manager.state["id"])
         updated = client.patch("/api/live/" + manager.state["id"] + "/clips/0",
                                json={"viral_hook_text": "Gancho editado"})
@@ -54,10 +55,30 @@ def test_live_api_returns_owner_scoped_session_and_clip_urls(tmp_path, monkeypat
     assert created.json()["user_id"] == "owner-1"
     assert created.json()["min_clip_seconds"] == 30
     assert created.json()["max_clip_seconds"] == 60
+    summary = listed.json()["sessions"][0]
+    assert summary["id"] == manager.state["id"]
+    assert summary["clips_count"] == 1
+    assert "queue" not in summary and "candidates" not in summary and "clips" not in summary
+    assert "url" not in summary and "video_url" not in str(summary)
     assert fetched.json()["clips"][0]["video_url"].endswith("?sig=ok")
     assert updated.json()["clips"][0]["viral_hook_text"] == "Gancho editado"
     assert (tmp_path / manager.state["id"] / "live_metadata.json").is_file()
     assert stopped.json()["modo_parada"] == "detener_ya"
+
+
+def test_live_state_is_compact_and_metadata_is_not_rewritten_when_clips_unchanged(tmp_path):
+    state = {"id": "session", "clips": [{"file": "clip.mp4", "viral_hook_text": "Hook"}],
+             "queue": [], "candidates": []}
+    directory = tmp_path / "session"
+    write_state(directory, state)
+    state_file = directory / "live_state.json"
+    metadata_file = directory / "live_metadata.json"
+    metadata_before = metadata_file.read_bytes()
+    state["rtf"] = 0.5
+    write_state(directory, state)
+
+    assert b": " not in state_file.read_bytes()
+    assert metadata_file.read_bytes() == metadata_before
 
 
 def test_live_api_calculates_capture_elapsed_from_persisted_timestamps(monkeypatch):

@@ -15,7 +15,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 from .config import (DEFAULT_CLIP_MAX_SECONDS, DEFAULT_CLIP_MIN_SECONDS,
-                     validate_clip_duration_range)
+                     LIVE_HISTORY_CANDIDATES, validate_clip_duration_range)
 
 
 _SESSION_ID = re.compile(r"^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$", re.I)
@@ -121,14 +121,31 @@ def _state_file_lock(directory: Path):
 def _write_state_unlocked(directory: Path, state: dict) -> None:
     target = directory / "live_state.json"
     temporary = target.with_suffix(".tmp")
-    temporary.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
+    temporary.write_text(json.dumps(state, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     os.replace(temporary, target)
     if state.get("clips"):
         metadata = directory / "live_metadata.json"
+        payload = {"shorts": state["clips"]}
+        serialized = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+        try:
+            if json.loads(metadata.read_text(encoding="utf-8")) == payload:
+                return
+        except (OSError, ValueError):
+            pass
         temporary_metadata = metadata.with_suffix(".tmp")
-        temporary_metadata.write_text(json.dumps({"shorts": state["clips"]},
-                                                 ensure_ascii=False, indent=2), encoding="utf-8")
+        temporary_metadata.write_text(serialized, encoding="utf-8")
         os.replace(temporary_metadata, metadata)
+
+
+_CANDIDATE_ACTIVE = {"detectado", "evaluando", "en_cola", "renderizando"}
+
+
+def _trim_candidate_history(state: dict) -> None:
+    candidates = state.get("candidates", [])
+    terminal = [item for item in candidates if item.get("status") not in _CANDIDATE_ACTIVE]
+    keep_ids = {id(item) for item in terminal[-LIVE_HISTORY_CANDIDATES:]}
+    state["candidates"] = [item for item in candidates
+                           if item.get("status") in _CANDIDATE_ACTIVE or id(item) in keep_ids]
 
 
 def write_state(directory: str | Path, state: dict) -> None:
@@ -487,6 +504,7 @@ class LiveSessionRuntime:
         self.segment_dir = self.output_dir / "segments"
         self.work_dir = self.output_dir / ".live_work"
         self.state_lock = threading.RLock()
+        self._last_saved_at = 0.0
         self.state = read_state(self.output_dir) or {
             "id": session_id, "url": url, "clips": [], "candidates": [], "notices": [],
             "segments": 0, "rtf": None,
@@ -501,15 +519,22 @@ class LiveSessionRuntime:
         self.state.setdefault("min_clip_seconds", self.min_clip_seconds)
         self.state.setdefault("max_clip_seconds", self.max_clip_seconds)
         self.state.setdefault("segments_total", 0)
+        self.state.setdefault("stats", {"detectados": 0, "descartados": 0,
+                                         "errores": 0, "renderizados": 0})
         _ensure_capture_fields(self.state)
         self.state.update({"status": "iniciando", "updated_at": time.time()})
         self.stop_mode = None
         self._save()
 
-    def _save(self):
+    def _save(self, *, force: bool = False):
         with self.state_lock:
-            self.state["updated_at"] = time.time()
+            now = time.time()
+            if not force and now - self._last_saved_at < 1.0:
+                return False
+            self.state["updated_at"] = now
             write_state(self.output_dir, self.state)
+            self._last_saved_at = now
+            return True
 
     def _status(self, status, details=None):
         with self.state_lock:
@@ -540,7 +565,7 @@ class LiveSessionRuntime:
                 self._activity_locked("captura_conectada", "Conexión con el directo establecida")
             elif status == "detenido" and previous != status:
                 self._activity_locked("captura_detenida", "Captura detenida")
-            self._save()
+            self._save(force=True)
 
     def _capture_ended(self):
         with self.state_lock:
@@ -548,7 +573,7 @@ class LiveSessionRuntime:
                 return
             if self.state.get("capture_ended_at") is None:
                 _finish_capture_fields(self.state, time.time())
-                self._save()
+                self._save(force=True)
 
     def _activity_locked(self, kind: str, text: str, **details):
         notices = self.state.setdefault("notices", [])
@@ -558,7 +583,7 @@ class LiveSessionRuntime:
     def _notice(self, text: str, kind: str = "info", **details):
         with self.state_lock:
             self._activity_locked(kind, text, **details)
-            self._save()
+            self._save(force=True)
 
     def _sync_queue(self, work_queue, *, force: bool = False):
         states = work_queue.snapshot()["states"]
@@ -574,7 +599,15 @@ class LiveSessionRuntime:
                     changed = True
             if changed:
                 self.state["queue"] = states
-                self._save()
+                by_id = {str(item.get("id")): item for item in states}
+                for candidate in self.state.get("candidates", []):
+                    queue_item = by_id.get(str(candidate.get("id")))
+                    if queue_item:
+                        candidate["status"] = queue_item.get("status", candidate.get("status"))
+                        if queue_item.get("finished_at"):
+                            candidate["finished_at"] = queue_item["finished_at"]
+                _trim_candidate_history(self.state)
+                self._save(force=True)
 
     def _queue_phase(self, work_queue, candidate_id: str, phase: str):
         updated = work_queue.set_phase(candidate_id, phase)
@@ -590,7 +623,7 @@ class LiveSessionRuntime:
                 changed = True
             if changed:
                 self.state["queue"] = states
-                self._save()
+                self._save(force=True)
         return updated
 
     def _stop_requested(self):
@@ -653,12 +686,19 @@ class LiveSessionRuntime:
                 self._notice(f"Clip {index + 1} terminado", "clip_completado", clip_id=candidate_id)
                 with self.state_lock:
                     self.state.setdefault("clips", []).append(clip)
+                    self.state.setdefault("stats", {}).setdefault("renderizados", 0)
+                    self.state["stats"]["renderizados"] += 1
                     self.state.setdefault("candidates", [])
                     self.state["queue"] = work_queue.snapshot()["states"]
+                    _trim_candidate_history(self.state)
                     write_state(self.output_dir, self.state)
                 print(f"CLIP_READY {index - 1} {clip['file']}", flush=True)
             except Exception as exc:
                 work_queue.complete(candidate_id, ready=False, error=str(exc)[:300])
+                with self.state_lock:
+                    stats = self.state.setdefault("stats", {})
+                    stats["errores"] = int(stats.get("errores", 0)) + 1
+                    _trim_candidate_history(self.state)
                 self._notice(f"No se pudo renderizar el clip: {type(exc).__name__}", "error",
                              clip_id=candidate_id)
             finally:
@@ -717,15 +757,21 @@ class LiveSessionRuntime:
                                 break
                         self._activity_locked("evaluacion_iniciada", "Evaluando el momento destacado",
                                               clip_id=str(candidate.get("id")))
-                        self._save()
+                        self._save(force=True)
                     judged = judge_candidate(candidate, transcript_copy)
                     judged["id"] = candidate["id"]
                     entries = buffer.retained()
                     selected = select_window_segments(entries, max(0.0, candidate["start"] - 10),
                                                       candidate["end"] + 10)
+                    previous_queue = {str(item.get("id")): item.get("status")
+                                      for item in work_queue.snapshot()["states"]}
                     queue_state = work_queue.offer(judged,
                                                    segment_indices=[item.index for item in selected])
                     queue_snapshot = work_queue.snapshot()
+                    new_discards = sum(
+                        1 for item in queue_snapshot["states"]
+                        if item.get("status") == "descartado_por_saturacion"
+                        and previous_queue.get(str(item.get("id"))) != "descartado_por_saturacion")
                     with transcript_lock:
                         for record in queue_snapshot["states"]:
                             if record.get("status") not in {"en_cola", "renderizando"}:
@@ -742,6 +788,9 @@ class LiveSessionRuntime:
                         self.state["candidates"] = [
                             replacement if str(item.get("id")) == str(candidate.get("id")) else item
                             for item in candidates]
+                        stats = self.state.setdefault("stats", {})
+                        stats["descartados"] = int(stats.get("descartados", 0)) + new_discards
+                        _trim_candidate_history(self.state)
                         self.state["queue"] = work_queue.snapshot()["states"]
                         if queue_state["status"] == "en_cola":
                             self._activity_locked("clip_en_cola", "Momento destacado añadido a la cola",
@@ -750,19 +799,22 @@ class LiveSessionRuntime:
                             self._activity_locked("clip_descartado", "Clip descartado: la cola alcanzó su límite",
                                                   clip_id=str(candidate.get("id")),
                                                   reason=queue_state.get("reason"))
-                        self._save()
+                        self._save(force=True)
                 except Exception as exc:
                     if candidate:
                         with transcript_lock:
                             transcript_store.unpin(candidate["id"])
                         with self.state_lock:
+                            stats = self.state.setdefault("stats", {})
+                            stats["errores"] = int(stats.get("errores", 0)) + 1
                             for item in self.state.setdefault("candidates", []):
                                 if str(item.get("id")) == str(candidate.get("id")):
                                     item.update({"status": "error", "error": str(exc)[:300],
                                                  "finished_at": time.time()})
+                            _trim_candidate_history(self.state)
                             self._activity_locked("error_clip", "No se pudo evaluar el momento destacado",
                                                   clip_id=str(candidate.get("id")))
-                            self._save()
+                            self._save(force=True)
                     self._notice(f"No se pudo evaluar un candidato: {type(exc).__name__}", "error")
                 finally:
                     judge_jobs.task_done()
@@ -793,7 +845,7 @@ class LiveSessionRuntime:
                         with self.state_lock:
                             self.state["queue"] = work_queue.snapshot()["states"]
                             self.state.update({"status": "detenido", "ended_at": time.time()})
-                            self._save()
+                            self._save(force=True)
                         if os.name == "posix":
                             time.sleep(0.2)
                             os.killpg(os.getpgrp(), signal.SIGTERM)
@@ -877,6 +929,8 @@ class LiveSessionRuntime:
                     for candidate in candidates:
                         with self.state_lock:
                             detected_at = time.time()
+                            stats = self.state.setdefault("stats", {})
+                            stats["detectados"] = int(stats.get("detectados", 0)) + 1
                             self.state.setdefault("candidates", []).append({**candidate, "status": "detectado",
                                                                              "detected_at": detected_at})
                             self._activity_locked("momento_detectado",
@@ -931,7 +985,7 @@ class LiveSessionRuntime:
             self._notice(f"La sesión terminó por un error: {type(exc).__name__}", "error")
             with self.state_lock:
                 self.state.update({"status": "error", "mensaje": str(exc)[:300], "ended_at": time.time()})
-                self._save()
+                self._save(force=True)
             try:
                 work_queue.close()
             except Exception:

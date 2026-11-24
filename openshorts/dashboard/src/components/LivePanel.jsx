@@ -164,11 +164,17 @@ export default function LivePanel({ uploadPostKey, uploadUserId, geminiApiKey, i
       const data = await apiJson('/api/live');
       const sessions = data.sessions || [];
       const selected = sessions.find((item) => ACTIVE_STATES.has(item.status)) || sessions[0] || null;
-      sessionRef.current = selected;
-      setSession(selected);
-      setSessionId(selected?.id || '');
-      storeLiveSessionId(selected?.id || '');
-      return selected;
+      if (!selected) {
+        sessionRef.current = null;
+        setSession(null);
+        return null;
+      }
+      setSessionId(selected.id);
+      storeLiveSessionId(selected.id);
+      const detail = await apiJson(`/api/live/${encodeURIComponent(selected.id)}`);
+      sessionRef.current = detail;
+      setSession(detail);
+      return detail;
     }
     const data = await apiJson(`/api/live/${encodeURIComponent(sessionId)}`);
     sessionRef.current = data;
@@ -321,7 +327,7 @@ export default function LivePanel({ uploadPostKey, uploadUserId, geminiApiKey, i
         : ['deteniendo', 'finalizando'].includes(liveStatus) ? 'Cerrando captura'
           : liveStatus === 'iniciando' ? 'Preparando conexión'
         : TERMINAL_STATES.has(liveStatus) ? 'Desconectado' : 'Conexión pendiente';
-  const momentsDetected = candidates.length;
+  const momentsDetected = session?.stats?.detectados ?? candidates.length;
 
   return <section className="space-y-5" aria-labelledby="live-heading">
     <header className="flex items-start gap-3">

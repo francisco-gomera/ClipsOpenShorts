@@ -61,6 +61,23 @@ def test_judged_candidates_keep_distinct_queue_ids():
     assert {item["id"] for item in snapshot["states"]} == {item["id"] for item in candidates}
 
 
+def test_queue_keeps_all_active_and_only_recent_terminal_history():
+    queue = LiveWorkQueue(max_queue=1)
+    for index in range(500):
+        item_id = f"live_{index:06d}"
+        queue.offer({"id": item_id, "predicted_score": 50})
+        queue.get(timeout=0.1)
+        queue.complete(item_id)
+    active_id = "live_active"
+    queue.offer({"id": active_id, "predicted_score": 50})
+
+    states = queue.snapshot()["states"]
+    assert len(states) == 51
+    assert any(item["id"] == active_id and item["status"] == "en_cola" for item in states)
+    assert "live_000000" not in {item["id"] for item in states}
+    assert "live_000499" in {item["id"] for item in states}
+
+
 def test_queue_persists_wait_and_render_phase_transitions():
     queue = LiveWorkQueue(max_queue=2)
     queued = queue.offer({"id": "live_000001", "predicted_score": 70, "start": 12, "end": 42})

@@ -5,7 +5,7 @@ import threading
 import time
 from collections import deque
 
-from .config import MAX_QUEUE
+from .config import LIVE_HISTORY_QUEUE, MAX_QUEUE
 
 
 class LiveWorkQueue:
@@ -18,6 +18,14 @@ class LiveWorkQueue:
         self._closed = False
         self._active_id: str | None = None
         self._wait_reason: str | None = None
+
+    def _trim_states(self):
+        active = {"detectado", "evaluando", "en_cola", "renderizando"}
+        terminal = [(key, value) for key, value in self._states.items()
+                    if value.get("status") not in active]
+        keep = {key for key, _ in terminal[-LIVE_HISTORY_QUEUE:]}
+        self._states = {key: value for key, value in self._states.items()
+                        if value.get("status") in active or key in keep}
 
     def _set_state(self, candidate, state, **extra):
         now = time.time()
@@ -38,6 +46,7 @@ class LiveWorkQueue:
         elif state in {"completado", "error", "cancelado", "descartado_por_saturacion"}:
             record.setdefault("finished_at", now)
         self._states[str(candidate.get("id"))] = record
+        self._trim_states()
         return record
 
     def offer(self, candidate: dict, *, segment_indices=()) -> dict:
@@ -114,6 +123,7 @@ class LiveWorkQueue:
                        "phase_started_at": started_at or now, "phase_history": history,
                        "updated_at": now, "wait_reason": None}
             self._states[key] = updated
+            self._trim_states()
             return dict(updated)
 
     def set_wait_reason(self, reason: str | None):
@@ -137,6 +147,7 @@ class LiveWorkQueue:
             if error:
                 record["error"] = error
             self._states[str(candidate_id)] = record
+            self._trim_states()
             if self._active_id == str(candidate_id):
                 self._active_id = None
             self._update_wait_reasons()

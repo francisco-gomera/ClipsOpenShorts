@@ -8,6 +8,7 @@ import time
 import pytest
 
 from live.session import (LiveSessionManager, SessionConflict, _proc_start_time,
+                          _trim_candidate_history,
                           read_state, update_state, write_state)
 
 
@@ -17,6 +18,19 @@ class FakeProcess:
 
     def poll(self):
         return self.returncode
+
+
+def test_candidate_history_keeps_active_items_and_latest_terminal_items():
+    state = {"candidates": [{"id": str(index), "status": "completado"}
+                             for index in range(500)]
+             + [{"id": "active", "status": "evaluando"}]}
+    _trim_candidate_history(state)
+
+    assert len(state["candidates"]) == 51
+    ids = {item["id"] for item in state["candidates"]}
+    assert "active" in ids
+    assert "0" not in ids
+    assert "499" in ids
 
 
 def test_manager_launches_isolated_worker_and_records_owner(tmp_path):
