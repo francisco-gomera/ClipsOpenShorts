@@ -25,6 +25,6 @@ export function getYouTubeVideoId(value) {
 
 export function buildYouTubeEmbedUrl(videoId) {
   return VIDEO_ID.test(String(videoId || ''))
-    ? `https://www.youtube.com/embed/${videoId}?vq=medium&playsinline=1&rel=0`
+    ? `https://www.youtube.com/embed/${videoId}?playsinline=1&rel=0`
     : null;
 }

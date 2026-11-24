@@ -15,7 +15,7 @@ export default function YouTubeLivePreview({ url }) {
           <span>Vista previa de YouTube LIVE</span>
           <span className="rounded-full bg-danger/15 px-2 py-0.5 text-[10px] uppercase tracking-wide text-danger">En directo</span>
         </div>
-        <span className="text-xs text-text-secondary">Calidad solicitada: 360p · YouTube puede elegir otra</span>
+        <span className="text-xs text-text-secondary">La calidad de la vista previa la decide YouTube</span>
       </div>
 
       {embedUrl ? (
