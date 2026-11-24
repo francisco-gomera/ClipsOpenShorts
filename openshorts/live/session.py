@@ -736,6 +736,7 @@ class LiveSessionRuntime:
                                               clip_id=str(candidate.get("id")))
                         self._save()
                     judged = judge_candidate(candidate, transcript_copy)
+                    judged["id"] = candidate["id"]
                     entries = buffer.refresh()
                     selected = select_window_segments(entries, max(0.0, candidate["start"] - 10),
                                                       candidate["end"] + 10)

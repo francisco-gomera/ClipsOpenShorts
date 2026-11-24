@@ -48,7 +48,8 @@ def test_clipper_reuses_pipeline_chain_and_writes_sidecars(tmp_path, monkeypatch
             "probe_duration": lambda _path: (30.0, 1 / 30)}
     result = render_candidate("window.ts", {"id": "live_1", "start": 2, "end": 32,
         "predicted_score": 80, "viral_hook_text": "Hook"},
-        {"text": "Hola", "language": "es", "segments": []}, tmp_path,
+        {"text": "Hola", "language": "es", "segments": [{"start": 2, "end": 32,
+          "text": "Hola", "words": [{"word": "Hola", "start": 2, "end": 2.5}]}]}, tmp_path,
         0, dependencies=deps, on_phase=phases.append)
 
     assert calls == ["render", "caption_plan", "hook", "caption"]

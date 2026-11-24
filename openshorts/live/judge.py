@@ -43,6 +43,7 @@ def _fallback(candidate: dict, text: str) -> dict:
     title = hook[:90] or "Momento destacado del directo"
     return {
         "start": float(candidate["start"]), "end": float(candidate["end"]),
+        "id": str(candidate.get("id", "live")),
         "source_window_id": str(candidate.get("id", "live")),
         "min_clip_seconds": int(candidate.get("min_clip_seconds", 30)),
         "max_clip_seconds": int(candidate.get("max_clip_seconds", 60)),
@@ -126,6 +127,7 @@ Transcripción con contexto:{no_think}
         parsed["start"] = fallback["start"]
         parsed["end"] = fallback["end"]
         parsed["source_window_id"] = fallback["source_window_id"]
+        parsed["id"] = fallback["id"]
         parsed["min_clip_seconds"] = fallback["min_clip_seconds"]
         parsed["max_clip_seconds"] = fallback["max_clip_seconds"]
         parsed.setdefault("why", fallback["why"])

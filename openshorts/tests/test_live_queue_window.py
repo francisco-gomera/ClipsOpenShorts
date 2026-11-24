@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 from live.buffer import Segment
+from live.judge import judge_candidate
 from live.queue import LiveWorkQueue, RenderPriorityGate
 from live.window import build_source_window, select_window_segments, translate_words_to_window
 
@@ -37,6 +38,27 @@ def test_bounded_queue_replaces_lowest_score_and_unpins():
     assert selected["id"] == "c"
     queue.complete("c")
     assert 3 not in buffer.pinned
+
+
+def test_judged_candidates_keep_distinct_queue_ids():
+    def unavailable(*_args, **_kwargs):
+        raise RuntimeError("LLM no disponible")
+
+    queue = LiveWorkQueue(max_queue=3)
+    transcript = {"text": "Hola mundo", "language": "es", "segments": []}
+    candidates = [
+        {"id": "live_000101", "start": 100, "end": 130, "signals": [], "why": "uno"},
+        {"id": "live_000102", "start": 140, "end": 170, "signals": [], "why": "dos"},
+    ]
+
+    for candidate in candidates:
+        judged = judge_candidate(candidate, transcript, generate=unavailable)
+        assert judged["id"] == candidate["id"]
+        queue.offer(judged)
+
+    snapshot = queue.snapshot()
+    assert snapshot["queue_size"] == 2
+    assert {item["id"] for item in snapshot["states"]} == {item["id"] for item in candidates}
 
 
 def test_queue_persists_wait_and_render_phase_transitions():

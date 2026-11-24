@@ -71,8 +71,13 @@ class StreamRecorder:
         """Continue segment numbering after a failed capture process."""
         self.stop()
         from .buffer import SegmentBuffer
-        entries = SegmentBuffer(self.directory).refresh()
-        self.next_number = max((e.index for e in entries), default=-1) + 1
+        indices = [entry.index for entry in SegmentBuffer(self.directory).refresh()]
+        for pattern in ("seg_*.ts", "segments_*.csv"):
+            for path in self.directory.glob(pattern):
+                suffix = path.stem.rsplit("_", 1)[-1]
+                if suffix.isdigit():
+                    indices.append(int(suffix))
+        self.next_number = max(indices, default=-1) + 1
         return self.start(video_url, audio_url)
 
     def supervise(self, url: str, *, resolve, on_state=None, on_capture_end=None,
@@ -92,6 +97,7 @@ class StreamRecorder:
 
         def loop():
             delay = max(0.1, retry_min)
+            started_once = False
             try:
                 while not self._stop_event.is_set():
                     try:
@@ -107,7 +113,11 @@ class StreamRecorder:
                             continue
                         if state != "en_vivo":
                             raise RuntimeError("El resolver devolvió un estado desconocido")
-                        self.start(info["video_url"], info.get("audio_url"))
+                        if started_once:
+                            self.restart(info["video_url"], info.get("audio_url"))
+                        else:
+                            self.start(info["video_url"], info.get("audio_url"))
+                            started_once = True
                         report("capturando", title=info.get("title"), id=info.get("id"))
                         delay = max(0.1, retry_min)
                         while not self._stop_event.wait(0.5):

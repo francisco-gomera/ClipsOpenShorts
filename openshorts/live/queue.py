@@ -31,6 +31,9 @@ class LiveWorkQueue:
             record.setdefault("started_at", now)
             record.setdefault("phase", "preparando_ventana")
             record.setdefault("phase_started_at", now)
+            if not record.get("phase_history"):
+                record["phase_history"] = [{"phase": record["phase"],
+                                            "started_at": record["phase_started_at"]}]
             record["wait_reason"] = None
         elif state in {"completado", "error", "cancelado", "descartado_por_saturacion"}:
             record.setdefault("finished_at", now)

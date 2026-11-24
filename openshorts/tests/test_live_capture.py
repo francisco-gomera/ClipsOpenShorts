@@ -91,6 +91,43 @@ def test_recorder_command_supports_split_audio_and_resume_number(tmp_path):
     assert "-segment_list_type" in command
 
 
+def test_supervisor_reconnects_with_new_segment_and_csv_numbers(tmp_path):
+    launches = []
+    recorder = StreamRecorder(tmp_path)
+
+    class ExitedProcess:
+        pid = -1
+
+        def poll(self):
+            return 1
+
+    def popen(command, **_kwargs):
+        launches.append(command)
+        if len(launches) == 1:
+            (tmp_path / "seg_000000.ts").write_bytes(b"segment")
+            (tmp_path / "segments_000000.csv").write_text(
+                "seg_000000.ts,0.000000,10.000000\n", encoding="utf-8")
+        elif len(launches) == 2:
+            recorder._stop_event.set()
+        return ExitedProcess()
+
+    recorder._popen = popen
+    thread = recorder.supervise(
+        "https://youtube.com/live/example",
+        resolve=lambda _url: {"state": "en_vivo", "video_url": "https://cdn.example/live"},
+        retry_min=0.1,
+        retry_max=0.1,
+    )
+    thread.join(timeout=3)
+
+    assert not thread.is_alive()
+    assert len(launches) == 2
+    numbers = [command[command.index("-segment_start_number") + 1] for command in launches]
+    csv_paths = [command[command.index("-segment_list") + 1] for command in launches]
+    assert numbers == ["0", "1"]
+    assert csv_paths[0] != csv_paths[1]
+
+
 def test_buffer_reads_csv_and_retains_pinned_segments(tmp_path):
     first = tmp_path / "seg_000004.ts"
     second = tmp_path / "seg_000005.ts"
