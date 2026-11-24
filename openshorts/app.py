@@ -6930,6 +6930,10 @@ class SocialPostRequest(BaseModel):
     # Optional overrides if frontend wants to edit them
     title: Optional[str] = None
     description: Optional[str] = None
+    tiktok_description: Optional[str] = None
+    instagram_description: Optional[str] = None
+    youtube_title: Optional[str] = None
+    youtube_description: Optional[str] = None
     scheduled_date: Optional[str] = None # ISO-8601 string
     timezone: Optional[str] = "UTC"
 
@@ -6943,6 +6947,38 @@ def _post_video_blocking(url, headers, data, file_path, filename, timeout):
         files = {"video": (filename, f.read(), "video/mp4")}
     with httpx.Client(timeout=timeout) as client:
         return client.post(url, headers=headers, data=data, files=files)
+
+
+def _social_metadata_for_clip(req, clip):
+    """Resolve platform copy; specific request/clip fields outrank legacy copy."""
+    legacy = req.description
+    return {
+        "tiktok_description": req.tiktok_description or clip.get("video_description_for_tiktok") or legacy or "Check this out!",
+        "instagram_description": req.instagram_description or clip.get("video_description_for_instagram") or legacy or "Check this out!",
+        "youtube_title": req.youtube_title or clip.get("video_title_for_youtube_short") or req.title or "Viral Short",
+        "youtube_description": req.youtube_description or clip.get("video_description_for_youtube_short") or legacy or "Check this out!",
+    }
+
+
+def _build_social_upload_payload(req, clip, post_user):
+    metadata = _social_metadata_for_clip(req, clip)
+    payload = {"user": post_user, "title": req.title or clip.get("title", "Viral Short"),
+               "platform[]": req.platforms, "async_upload": "true"}
+    if req.scheduled_date:
+        payload["scheduled_date"] = req.scheduled_date
+        if req.timezone:
+            payload["timezone"] = req.timezone
+    if "tiktok" in req.platforms:
+        payload["tiktok_title"] = metadata["tiktok_description"]
+        payload["post_mode"] = TIKTOK_POST_MODE
+    if "instagram" in req.platforms:
+        payload["instagram_title"] = metadata["instagram_description"]
+        payload["media_type"] = "REELS"
+    if "youtube" in req.platforms:
+        payload["youtube_title"] = youtube_title(metadata["youtube_title"])
+        payload["youtube_description"] = metadata["youtube_description"]
+        payload["privacyStatus"] = "public"
+    return payload
 
 
 # YouTube refuses a title over 100 characters; the Gemini title is not bounded.
@@ -7060,43 +7096,12 @@ async def post_to_socials(req: SocialPostRequest, request: Request):
 
         # Construct parameters for Upload-Post API
         # Fallbacks
-        final_title = req.title or clip.get('title', 'Viral Short')
-        final_description = req.description or clip.get('video_description_for_instagram') or clip.get('video_description_for_tiktok') or "Check this out!"
-        
         # Prepare form data
         url = "https://api.upload-post.com/api/upload"
         headers = {
             "Authorization": f"Apikey {upload_key}"
         }
-
-        # Prepare data as dict (httpx handles lists for multiple values)
-        data_payload = {
-            "user": post_user,
-            "title": final_title,
-            "platform[]": req.platforms, # Pass list directly
-            "async_upload": "true"  # Enable async upload
-        }
-
-        # Add scheduling if present
-        if req.scheduled_date:
-            data_payload["scheduled_date"] = req.scheduled_date
-            if req.timezone:
-                data_payload["timezone"] = req.timezone
-        
-        # Add Platform specifics
-        if "tiktok" in req.platforms:
-             data_payload["tiktok_title"] = final_description
-             data_payload["post_mode"] = TIKTOK_POST_MODE
-             
-        if "instagram" in req.platforms:
-             data_payload["instagram_title"] = final_description
-             data_payload["media_type"] = "REELS"
-
-        if "youtube" in req.platforms:
-             yt_title = req.title or clip.get('video_title_for_youtube_short', final_title)
-             data_payload["youtube_title"] = youtube_title(yt_title)
-             data_payload["youtube_description"] = final_description
-             data_payload["privacyStatus"] = "public"
+        data_payload = _build_social_upload_payload(req, clip, post_user)
 
         # The upload is a blocking multipart POST of the whole clip (tens of
         # seconds for TikTok+YouTube). Run inline, it froze the event loop:

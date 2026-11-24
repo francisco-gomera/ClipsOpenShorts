@@ -499,6 +499,7 @@ export default function LivePanel({ uploadPostKey, uploadUserId, geminiApiKey, i
                 video_title_for_youtube_short: clip.video_title_for_youtube_short || '',
                 video_description_for_tiktok: clip.video_description_for_tiktok || '',
                 video_description_for_instagram: clip.video_description_for_instagram || '',
+                video_description_for_youtube_short: clip.video_description_for_youtube_short || '',
                 viral_hook_text: clip.viral_hook_text || '',
               } })} />
             <button onClick={() => download(`/api/live/${sessionId}/download/${index}`, `clip_${index + 1}.mp4`)}
@@ -519,6 +520,7 @@ export default function LivePanel({ uploadPostKey, uploadUserId, geminiApiKey, i
         {[
           ['video_title_for_youtube_short', 'Título'], ['viral_hook_text', 'Hook'],
           ['video_description_for_tiktok', 'Descripción TikTok'], ['video_description_for_instagram', 'Descripción Instagram'],
+          ['video_description_for_youtube_short', 'Descripción YouTube Shorts'],
         ].map(([key, label]) => <label key={key} className="block space-y-1 text-xs text-text-secondary">{label}
           <textarea rows={key.includes('description') ? 3 : 2} value={editing.values[key]}
             onChange={(event) => setEditing((current) => ({ ...current, values: { ...current.values, [key]: event.target.value } }))}

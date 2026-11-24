@@ -12,6 +12,7 @@ import WatermarkModal, { watermarkNoticeDismissed } from './WatermarkModal';
 import TikTokDraftNotice from './TikTokDraftNotice';
 import { useAuth } from '../contexts/AuthContext';
 import { renderInBrowser } from '../lib/renderInBrowser';
+import { buildSocialPostMetadata, metadataDraftFromClip } from '../lib/socialMetadata';
 
 const QUIET_BTN = 'group flex flex-col items-center justify-center gap-1 py-2.5 sm:py-2 px-1 rounded-input border border-border hover:bg-paper3 text-[11px] lowercase text-text-secondary whitespace-nowrap transition-colors disabled:opacity-45 disabled:cursor-not-allowed';
 
@@ -216,7 +217,9 @@ export default function ResultCard({ clip, index, jobId, durable, uploadPostKey,
         youtube: true
     });
     const [postTitle, setPostTitle] = useState("");
-    const [postDescription, setPostDescription] = useState("");
+    const [tiktokDescription, setTiktokDescription] = useState("");
+    const [instagramDescription, setInstagramDescription] = useState("");
+    const [youtubeDescription, setYoutubeDescription] = useState("");
     const [isScheduling, setIsScheduling] = useState(false);
     const [scheduleDate, setScheduleDate] = useState("");
 
@@ -299,8 +302,11 @@ export default function ResultCard({ clip, index, jobId, durable, uploadPostKey,
     // Initialize/Reset form when modal opens
     useEffect(() => {
         if (showModal) {
-            setPostTitle(clip.video_title_for_youtube_short || "Viral Short");
-            setPostDescription(clip.video_description_for_instagram || clip.video_description_for_tiktok || "");
+            const draft = metadataDraftFromClip(clip);
+            setPostTitle(draft.youtubeTitle);
+            setTiktokDescription(draft.tiktokDescription);
+            setInstagramDescription(draft.instagramDescription);
+            setYoutubeDescription(draft.youtubeDescription);
             setIsScheduling(false);
             setScheduleDate("");
             setPostResult(null);
@@ -725,8 +731,8 @@ export default function ResultCard({ clip, index, jobId, durable, uploadPostKey,
                 api_key: uploadPostKey,
                 user_id: uploadUserId,
                 platforms: selectedPlatforms,
-                title: postTitle,
-                description: postDescription
+                ...buildSocialPostMetadata({ youtubeTitle: postTitle, tiktokDescription,
+                    instagramDescription, youtubeDescription })
             };
 
             if (isScheduling && scheduleDate) {
@@ -1148,14 +1154,23 @@ export default function ResultCard({ clip, index, jobId, durable, uploadPostKey,
                     </div>
 
                     <div>
-                        <label className="eyebrow block mb-1.5">CAPTION</label>
+                        <label className="eyebrow block mb-1.5">TIKTOK DESCRIPTION</label>
                         <textarea
-                            value={postDescription}
-                            onChange={(e) => setPostDescription(e.target.value)}
+                            value={tiktokDescription}
+                            onChange={(e) => setTiktokDescription(e.target.value)}
                             rows={4}
                             className="input-field resize-none"
-                            placeholder="write a caption for your post…"
+                            placeholder="write a TikTok description…"
                         />
+                    </div>
+
+                    <div>
+                        <label className="eyebrow block mb-1.5">INSTAGRAM DESCRIPTION</label>
+                        <textarea value={instagramDescription} onChange={(e) => setInstagramDescription(e.target.value)} rows={3} className="input-field resize-none" />
+                    </div>
+                    <div>
+                        <label className="eyebrow block mb-1.5">YOUTUBE SHORTS DESCRIPTION</label>
+                        <textarea value={youtubeDescription} onChange={(e) => setYoutubeDescription(e.target.value)} rows={3} className="input-field resize-none" />
                     </div>
 
                     {/* Scheduling */}

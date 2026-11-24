@@ -148,6 +148,14 @@ def _trim_candidate_history(state: dict) -> None:
                            if item.get("status") in _CANDIDATE_ACTIVE or id(item) in keep_ids]
 
 
+def _clip_identity(clip: dict):
+    for key in ("id", "source_window_id", "file"):
+        value = clip.get(key)
+        if value not in (None, ""):
+            return key, str(value)
+    return None
+
+
 def write_state(directory: str | Path, state: dict) -> None:
     directory = Path(directory)
     directory.mkdir(parents=True, exist_ok=True)
@@ -157,13 +165,17 @@ def write_state(directory: str | Path, state: dict) -> None:
             existing_clips = existing.get("clips", [])
             clips = state.get("clips", [])
             editable = ("video_title_for_youtube_short", "video_description_for_tiktok",
-                        "video_description_for_instagram", "viral_hook_text")
+                        "video_description_for_instagram", "video_description_for_youtube_short",
+                        "viral_hook_text")
+            indexed = {_clip_identity(clip): clip for clip in clips if _clip_identity(clip)}
             for index, old_clip in enumerate(existing_clips):
-                if index < len(clips) and old_clip.get("metadata_edited_at"):
+                identity = _clip_identity(old_clip)
+                current = indexed.get(identity) if identity else (clips[index] if index < len(clips) else None)
+                if current is not None and old_clip.get("metadata_edited_at"):
                     for key in editable:
-                        if key in old_clip:
-                            clips[index][key] = old_clip[key]
-                    clips[index]["metadata_edited_at"] = old_clip["metadata_edited_at"]
+                        if key in old_clip and old_clip[key] not in (None, ""):
+                            current[key] = old_clip[key]
+                    current["metadata_edited_at"] = old_clip["metadata_edited_at"]
         _write_state_unlocked(directory, state)
 
 

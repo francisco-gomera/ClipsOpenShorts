@@ -115,6 +115,25 @@ def test_judge_context_uses_candidate_time_in_long_stream():
     assert fallback["viral_hook_text"].startswith("candidato importante")
 
 
+def test_judge_contexts_are_independent_and_sparse_context_expands_locally():
+    transcript = {"segments": [{"start": 0, "end": 5000, "text": "sesion completa",
+        "words": ([{"word": f" inicio{i}", "start": i, "end": i + 0.2}
+                   for i in range(20)] +
+                  [{"word": f" tarde{i}", "start": 4900 + i, "end": 4900 + i + 0.2}
+                   for i in range(20)])}]}
+    early = _transcript_context(transcript, 3, 4)
+    late = _transcript_context(transcript, 4903, 4904)
+
+    assert "inicio" in early and "tarde" not in early
+    assert "tarde" in late and "inicio" not in late
+
+
+def test_judge_context_does_not_use_unsegmented_session_wide_text():
+    transcript = {"segments": [{"start": 0, "end": 5000,
+                                 "text": "texto de toda la transmision"}]}
+    assert _transcript_context(transcript, 4900, 4910) == ""
+
+
 def test_live_asr_block_schedule_has_two_second_overlap():
     assert list(block_starts(61, block_seconds=30, overlap_seconds=2)) == [0, 28, 56]
 

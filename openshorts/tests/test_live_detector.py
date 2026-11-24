@@ -96,6 +96,26 @@ def test_judge_falls_back_to_transcript_templates():
     assert result["source_window_id"] == "live_1"
     assert result["viral_hook_text"]
     assert result["predicted_score"] == 80
+    assert result["metadata_source"] == "fallback"
+    assert result["metadata_generated_at"]
+    assert "TypeError" in result["metadata_error"]
+    assert result["video_description_for_youtube_short"]
+
+
+def test_fallback_without_local_transcript_is_neutral_and_does_not_invent():
+    candidate = {"id": "live_empty", "start": 900, "end": 930,
+                 "why": "Persona famosa hace anuncio"}
+    result = judge_candidate(candidate, {"segments": []}, generate=lambda *_a, **_kw: (_ for _ in ()).throw(
+        RuntimeError("Gemini rate limit 429")))
+
+    assert result["viral_hook_text"] == "Momento destacado del directo"
+    assert result["video_title_for_youtube_short"] == "Momento destacado del directo"
+    assert "Persona famosa" not in str(result)
+    assert result["metadata_source"] == "fallback"
+    assert "429" in result["metadata_error"]
+    assert result["metadata_context_start"] == 885
+    assert result["metadata_context_end"] == 945
+    assert result["video_description_for_tiktok"] != result["video_description_for_instagram"]
 
 
 def test_judge_fuses_llm_score_with_signals():
@@ -116,3 +136,33 @@ def test_judge_fuses_llm_score_with_signals():
     assert result["end"] == 35
     assert result["source_window_id"] == "live_2"
     assert result["predicted_score"] == 72
+
+
+def test_judge_prompt_uses_clip_context_and_recovers_missing_metadata_field():
+    candidate = {"id": "live_late", "start": 4900, "end": 4930, "signals": [],
+                 "why": "Pico de audio"}
+    transcript = {"segments": [{"start": 4900, "end": 4910,
+        "text": "La final se decide ahora", "words": [
+            {"word": "La", "start": 4900, "end": 4900.2},
+            {"word": " final", "start": 4900.3, "end": 4900.6},
+            {"word": " decide", "start": 4901, "end": 4901.4},
+            {"word": " ahora", "start": 4901.5, "end": 4902},
+        ]}]}
+    seen = {}
+
+    def fake_generate(prompt, _schema, model=None):
+        seen["prompt"] = prompt
+        return ({"predicted_score": 80, "video_description_for_tiktok": "TikTok propio",
+                 "video_description_for_instagram": "Instagram propio",
+                 "video_title_for_youtube_short": "La final se decide",
+                 "viral_hook_text": "Se decide ahora"}, None)
+
+    result = judge_candidate(candidate, transcript, generate=fake_generate)
+
+    assert "La final decide ahora" in seen["prompt"]
+    assert "4900.000" in seen["prompt"] and "live_late" in seen["prompt"]
+    clip_text = seen["prompt"].split("<transcripcion_clip>\n", 1)[1].split("\n</transcripcion_clip>", 1)[0]
+    assert "inicio del directo" not in clip_text
+    assert result["video_description_for_tiktok"] == "TikTok propio"
+    assert result["video_description_for_instagram"] == "Instagram propio"
+    assert result["video_description_for_youtube_short"].strip()

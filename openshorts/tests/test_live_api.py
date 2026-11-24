@@ -9,7 +9,9 @@ class FakeManager:
     def __init__(self, tmp_path):
         self.output_dir = tmp_path
         self.state = {"id": "11111111-2222-4333-8444-555555555555", "status": "capturando", "user_id": "owner-1",
-                      "clips": [{"file": "live.mp4", "video_url": "/videos/11111111-2222-4333-8444-555555555555/live.mp4"}],
+                      "clips": [{"file": "live.mp4", "video_url": "/videos/11111111-2222-4333-8444-555555555555/live.mp4",
+                                 "video_description_for_youtube_short": "Descripción original de YouTube",
+                                 "video_description_for_tiktok": "Descripción TikTok"}],
                       "queue": []}
         write_state(self._directory(self.state["id"]), self.state)
 
@@ -48,7 +50,7 @@ def test_live_api_returns_owner_scoped_session_and_clip_urls(tmp_path, monkeypat
         listed = client.get("/api/live")
         fetched = client.get("/api/live/" + manager.state["id"])
         updated = client.patch("/api/live/" + manager.state["id"] + "/clips/0",
-                               json={"viral_hook_text": "Gancho editado"})
+                               json={"video_description_for_youtube_short": "YouTube editado"})
         stopped = client.post("/api/live/" + manager.state["id"] + "/stop", json={"modo": "detener_ya"})
 
     assert created.status_code == 202
@@ -61,7 +63,9 @@ def test_live_api_returns_owner_scoped_session_and_clip_urls(tmp_path, monkeypat
     assert "queue" not in summary and "candidates" not in summary and "clips" not in summary
     assert "url" not in summary and "video_url" not in str(summary)
     assert fetched.json()["clips"][0]["video_url"].endswith("?sig=ok")
-    assert updated.json()["clips"][0]["viral_hook_text"] == "Gancho editado"
+    updated_clip = updated.json()["clips"][0]
+    assert updated_clip["video_description_for_youtube_short"] == "YouTube editado"
+    assert updated_clip["video_description_for_tiktok"] == "Descripción TikTok"
     assert (tmp_path / manager.state["id"] / "live_metadata.json").is_file()
     assert stopped.json()["modo_parada"] == "detener_ya"
 

@@ -330,6 +330,10 @@ TOOLS = [
                 },
                 "title": {"type": "string"},
                 "description": {"type": "string"},
+                "tiktok_description": {"type": "string"},
+                "instagram_description": {"type": "string"},
+                "youtube_title": {"type": "string"},
+                "youtube_description": {"type": "string"},
                 "scheduled_date": {"type": "string", "description": "ISO-8601; omit to post now."},
                 "timezone": {"type": "string"},
             },
@@ -580,7 +584,8 @@ async def _tool_recut_clip(client, args):
 async def _tool_publish_clip(client, args):
     body = {"job_id": args["job_id"], "clip_index": args["clip_index"],
             "platforms": args["platforms"]}
-    for k in ("title", "description", "scheduled_date", "timezone"):
+    for k in ("title", "description", "tiktok_description", "instagram_description",
+              "youtube_title", "youtube_description", "scheduled_date", "timezone"):
         if args.get(k) is not None:
             body[k] = args[k]
     resp = await _job_call(client, "POST", "/api/social/post", args["job_id"], json=body)

@@ -175,6 +175,7 @@ class LiveStopRequest(BaseModel):
 
 class LiveClipUpdate(BaseModel):
     video_title_for_youtube_short: str | None = Field(default=None, max_length=120)
+    video_description_for_youtube_short: str | None = Field(default=None, max_length=5000)
     video_description_for_tiktok: str | None = Field(default=None, max_length=2200)
     video_description_for_instagram: str | None = Field(default=None, max_length=2200)
     viral_hook_text: str | None = Field(default=None, max_length=300)
@@ -313,6 +314,7 @@ async def download_live_zip(session_id: str, request: Request):
                     str(clip.get("viral_hook_text") or ""),
                     str(clip.get("video_description_for_tiktok") or ""),
                     str(clip.get("video_description_for_instagram") or ""),
+                    str(clip.get("video_description_for_youtube_short") or ""),
                     str(clip.get("why") or ""),
                 ]).strip() + "\n"
                 bundle.writestr(f"clip_{index}_descripciones.txt", description)

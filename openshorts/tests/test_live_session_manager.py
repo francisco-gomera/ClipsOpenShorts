@@ -216,10 +216,13 @@ def test_manager_rejects_path_like_session_ids(tmp_path):
 def test_worker_state_writes_preserve_user_metadata_edits(tmp_path):
     directory = tmp_path / "live"
     initial = {"id": "x", "clips": [{"video_title_for_youtube_short": "Original",
+                                        "video_description_for_youtube_short": "YT original",
+                                        "video_description_for_tiktok": "TikTok original",
                                         "viral_hook_text": "Hook"}]}
     write_state(directory, initial)
     update_state(directory, lambda state: state["clips"][0].update(
-        viral_hook_text="Editado", metadata_edited_at=123))
+        viral_hook_text="Editado", video_description_for_youtube_short="YT editado",
+        metadata_edited_at=123))
     stale = {"id": "x", "status": "capturando", "clips": [
         {"video_title_for_youtube_short": "Original", "viral_hook_text": "Hook"}]}
 
@@ -227,4 +230,56 @@ def test_worker_state_writes_preserve_user_metadata_edits(tmp_path):
 
     saved = read_state(directory)
     assert saved["clips"][0]["viral_hook_text"] == "Editado"
+    assert saved["clips"][0]["video_description_for_youtube_short"] == "YT editado"
+    assert saved["clips"][0]["video_description_for_tiktok"] == "TikTok original"
     assert saved["status"] == "capturando"
+
+
+def test_worker_state_preserves_metadata_by_clip_identity_after_reordering(tmp_path):
+    directory = tmp_path / "live"
+    write_state(directory, {"id": "x", "clips": [
+        {"source_window_id": "candidate-a", "file": "a.mp4", "video_title_for_youtube_short": "A"},
+        {"source_window_id": "candidate-b", "file": "b.mp4", "video_title_for_youtube_short": "B"},
+    ]})
+    update_state(directory, lambda state: state["clips"][0].update(
+        video_description_for_youtube_short="Descripción editada A", metadata_edited_at=10))
+
+    write_state(directory, {"id": "x", "status": "capturando", "clips": [
+        {"source_window_id": "candidate-b", "file": "b.mp4", "video_title_for_youtube_short": "B nuevo"},
+        {"source_window_id": "candidate-a", "file": "a.mp4", "video_title_for_youtube_short": "A nuevo"},
+    ]})
+
+    clips = read_state(directory)["clips"]
+    by_id = {clip["source_window_id"]: clip for clip in clips}
+    assert by_id["candidate-a"]["video_description_for_youtube_short"] == "Descripción editada A"
+    assert "video_description_for_youtube_short" not in by_id["candidate-b"]
+    assert by_id["candidate-a"]["video_title_for_youtube_short"] == "A"
+
+
+def test_concurrent_partial_metadata_edits_stay_on_their_own_clips(tmp_path):
+    directory = tmp_path / "live"
+    write_state(directory, {"id": "x", "clips": [
+        {"source_window_id": "candidate-a", "video_description_for_tiktok": "A TikTok"},
+        {"source_window_id": "candidate-b", "video_description_for_tiktok": "B TikTok"},
+    ]})
+    barrier = threading.Barrier(2)
+
+    def edit(index, key, value):
+        barrier.wait()
+        def apply(state):
+            state["clips"][index][key] = value
+            state["clips"][index]["metadata_edited_at"] = time.time()
+        update_state(directory, apply)
+
+    first = threading.Thread(target=edit, args=(0, "video_description_for_instagram", "A IG"))
+    second = threading.Thread(target=edit, args=(1, "video_description_for_youtube_short", "B YT"))
+    first.start(); second.start()
+    first.join(timeout=5); second.join(timeout=5)
+
+    clips = read_state(directory)["clips"]
+    assert clips[0]["video_description_for_instagram"] == "A IG"
+    assert clips[0]["video_description_for_tiktok"] == "A TikTok"
+    assert "video_description_for_youtube_short" not in clips[0]
+    assert clips[1]["video_description_for_youtube_short"] == "B YT"
+    assert clips[1]["video_description_for_tiktok"] == "B TikTok"
+    assert "video_description_for_instagram" not in clips[1]

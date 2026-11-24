@@ -141,6 +141,10 @@ export default function ScheduleWeekModal({ isOpen, onClose, clips, jobId, uploa
                 platforms: selectedPlatforms,
                 title: clip.video_title_for_youtube_short || 'Viral Short',
                 description: clip.video_description_for_instagram || clip.video_description_for_tiktok || '',
+                tiktok_description: clip.video_description_for_tiktok || '',
+                instagram_description: clip.video_description_for_instagram || '',
+                youtube_title: clip.video_title_for_youtube_short || 'Viral Short',
+                youtube_description: clip.video_description_for_youtube_short || '',
                 scheduled_date: scheduledDate,
                 timezone
             };

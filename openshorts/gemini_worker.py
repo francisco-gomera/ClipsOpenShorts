@@ -46,6 +46,7 @@ class DetailClipModel(BaseModel):
     # the dashboard. Defaulted so a small local model that skips it does not
     # fail schema validation and lose the clip.
     why: str = ""
+    video_description_for_youtube_short: str = ""
 
 
 class DetailResponse(BaseModel):
@@ -63,6 +64,7 @@ class VisualClipModel(BaseModel):
     video_description_for_instagram: str
     video_title_for_youtube_short: str
     viral_hook_text: str
+    video_description_for_youtube_short: str = ""
 
 
 class VisualResponse(BaseModel):
