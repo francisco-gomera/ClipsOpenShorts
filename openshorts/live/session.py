@@ -890,13 +890,17 @@ class LiveSessionRuntime:
                                 transcript_store.add_words(segment.get("words", []))
                         if result.get("notice"):
                             self._notice(result["notice"], "aviso")
-                        if result.get("notice") and "detenido por carga" in result["notice"].lower():
+                        if not transcriber._asr_enabled:
                             asr_status = "detenido_por_carga"
                         elif result.get("notice"):
                             asr_status = "degradado"
                         else:
                             asr_status = "activo"
-                        paused = render_gate.update_asr_rtf(result["rtf"]) if result.get("rtf") is not None else render_gate.paused
+                        if not transcriber._asr_enabled:
+                            paused = render_gate.release_for_asr_disabled()
+                        else:
+                            paused = (render_gate.update_asr_rtf(result["rtf"])
+                                      if result.get("rtf") is not None else render_gate.paused)
                         if paused != self.state.get("render_priority_paused", False):
                             work_queue.set_wait_reason("prioridad_de_captura" if paused else None)
                             with self.state_lock:

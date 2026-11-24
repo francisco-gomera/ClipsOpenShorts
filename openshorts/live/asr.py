@@ -78,9 +78,9 @@ class IncrementalTranscriber:
     def transcribe_block(self, wav_path, *, session_start: float, audio_duration: float | None = None) -> dict:
         duration = float(audio_duration or self.block_seconds)
         if not self._asr_enabled:
-            return {"text": "", "language": self.language, "segments": [], "rtf": self.rtf,
+            return {"text": "", "language": self.language, "segments": [], "rtf": None,
                     "audio_duration": duration, "elapsed_seconds": 0.0,
-                    "notice": "ASR detenido por carga; se mantienen las señales de audio"}
+                    "notice": None}
         started = time.monotonic()
         transcript = self._run_model(wav_path)
         elapsed = time.monotonic() - started

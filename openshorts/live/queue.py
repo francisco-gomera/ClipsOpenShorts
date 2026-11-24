@@ -206,3 +206,11 @@ class RenderPriorityGate:
         with self._condition:
             self.paused = False
             self._condition.notify_all()
+
+    def release_for_asr_disabled(self) -> bool:
+        """Resume renders when Whisper stopped and no transcription work remains to protect."""
+        with self._condition:
+            self._rtfs.clear()
+            self.paused = False
+            self._condition.notify_all()
+            return False

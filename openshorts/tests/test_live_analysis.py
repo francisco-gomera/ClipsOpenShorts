@@ -117,3 +117,42 @@ def test_judge_context_uses_candidate_time_in_long_stream():
 
 def test_live_asr_block_schedule_has_two_second_overlap():
     assert list(block_starts(61, block_seconds=30, overlap_seconds=2)) == [0, 28, 56]
+
+
+def test_disabling_asr_releases_render_gate_and_emits_notice_once(monkeypatch):
+    import live.asr as asr_module
+    from live.queue import RenderPriorityGate
+
+    clock = [0.0]
+    monkeypatch.setattr(asr_module.time, "monotonic",
+                        lambda: (clock.__setitem__(0, clock[0] + 25.0) or clock[0]))
+    transcriber = IncrementalTranscriber(model="small", transcribe=lambda _path: {
+        "text": "", "language": "es", "segments": []})
+    results = [transcriber.transcribe_block("fake.wav", session_start=index * 28,
+                                            audio_duration=30) for index in range(6)]
+    disabled = transcriber.transcribe_block("fake.wav", session_start=168, audio_duration=30)
+    disabled_again = transcriber.transcribe_block("fake.wav", session_start=196, audio_duration=30)
+    gate = RenderPriorityGate(samples=3)
+    gate.update_asr_rtf(results[3]["rtf"])
+    gate.update_asr_rtf(results[4]["rtf"])
+    assert gate.update_asr_rtf(results[5]["rtf"]) is True
+    assert gate.release_for_asr_disabled() is False
+
+    assert results[2]["notice"] == "transcripción degradada a base por carga"
+    assert results[5]["notice"] == "ASR detenido por carga; se mantienen las señales de audio"
+    assert disabled["rtf"] is None
+    assert disabled["notice"] is None
+    assert disabled_again["notice"] is None
+    assert gate.paused is False
+
+
+def test_live_load_benchmark_shows_disabled_asr_does_not_strand_queue():
+    from scripts.benchmark.benchmark_live_load import simulate
+
+    before = simulate(hours=4, release_when_asr_disabled=False)
+    after = simulate(hours=4, release_when_asr_disabled=True)
+
+    assert before["rendered"] == 0
+    assert before["discarded"] == 93
+    assert after["rendered"] == 96
+    assert after["discarded"] == 0
