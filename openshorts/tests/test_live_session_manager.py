@@ -59,6 +59,44 @@ def test_manager_launches_isolated_worker_and_records_owner(tmp_path):
     assert (session_dir / "stop.request").read_text() == "detener_ya"
 
 
+def test_manager_persists_block_mode_configuration_without_changing_default(tmp_path):
+    launched = []
+    manager = LiveSessionManager(tmp_path / "output", worker_path=tmp_path / "worker.py",
+                                 popen=lambda command, **kwargs: launched.append(kwargs) or FakeProcess())
+    state = manager.create("https://youtube.com/live/example", mode="blocks", block_minutes=30,
+                           pipeline_api_key="pipeline-secret")
+
+    assert state["mode"] == "blocks"
+    assert state["block_minutes"] == 30
+    assert launched[0]["env"]["LIVE_MODE"] == "blocks"
+    assert launched[0]["env"]["LIVE_BLOCK_MINUTES"] == "30"
+    assert launched[0]["env"]["GEMINI_API_KEY"] == "pipeline-secret"
+    assert "pipeline_api_key" not in state
+    assert "pipeline-secret" not in (tmp_path / "output" / state["id"] / "live_state.json").read_text()
+
+
+def test_manager_can_resume_saved_blocks_in_a_separate_worker(tmp_path):
+    launches = []
+
+    def fake_popen(command, **kwargs):
+        launches.append((command, kwargs))
+        return FakeProcess()
+
+    manager = LiveSessionManager(tmp_path / "output", worker_path=tmp_path / "worker.py",
+                                 popen=fake_popen)
+    state = manager.create("https://youtube.com/live/example", mode="blocks")
+    manager._processes[state["id"]].returncode = 0
+
+    resumed = manager.resume_blocks(state["id"], pipeline_api_key="ephemeral-key")
+
+    assert resumed["status"] == "finalizando"
+    assert launches[-1][1]["start_new_session"] is True
+    assert launches[-1][1]["env"]["LIVE_RESUME_BLOCKS"] == "1"
+    assert launches[-1][1]["env"]["GEMINI_API_KEY"] == "ephemeral-key"
+    assert "ephemeral-key" not in (tmp_path / "output" / state["id"] / "live_state.json").read_text()
+    assert read_state(tmp_path / "output" / state["id"])["blocks_summary"]["pendientes"] == 0
+
+
 def test_sessions_keep_independent_clip_ranges_in_state_and_worker_environment(tmp_path):
     launched = []
 

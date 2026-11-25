@@ -12,7 +12,9 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field, model_validator
 
 from live.config import (DEFAULT_CLIP_MAX_SECONDS, DEFAULT_CLIP_MIN_SECONDS,
-                         MAX_CONFIGURABLE_CLIP_SECONDS, MIN_CONFIGURABLE_CLIP_SECONDS)
+                         MAX_CONFIGURABLE_CLIP_SECONDS, MIN_CONFIGURABLE_CLIP_SECONDS,
+                         BLOCK_MINUTES)
+from live.blocks import BlockManager
 from live.resolver import LiveResolveError, _validate_youtube_url
 from live.session import LiveSessionManager, SessionConflict, update_state
 
@@ -24,12 +26,16 @@ _access_check = None
 _media_signer = None
 _admission_check = None
 _auth_context_resolver = None
+_pipeline_key_resolver = None
+_BLOCK_ACTIVE_SESSION_STATES = {"iniciando", "esperando", "capturando", "reconectando",
+                               "deteniendo", "finalizando", "detenido_por_disco"}
 
 
 def configure(*, output_dir=None, owner_resolver=None, access_check=None, media_signer=None,
-              manager=None, admission_check=None, auth_context_resolver=None, auth_checker=None):
+              manager=None, admission_check=None, auth_context_resolver=None, auth_checker=None,
+              pipeline_key_resolver=None):
     global _manager, _output_dir, _owner_resolver, _access_check, _media_signer, _admission_check
-    global _auth_context_resolver
+    global _auth_context_resolver, _pipeline_key_resolver
     if output_dir is not None:
         _output_dir = Path(output_dir).resolve()
     _owner_resolver = owner_resolver
@@ -37,6 +43,7 @@ def configure(*, output_dir=None, owner_resolver=None, access_check=None, media_
     _media_signer = media_signer
     _admission_check = admission_check
     _auth_context_resolver = auth_context_resolver
+    _pipeline_key_resolver = pipeline_key_resolver
     if auth_checker is not None and _manager is not None:
         _manager.auth_checker = auth_checker
     if manager is not None:
@@ -122,7 +129,8 @@ def _present_summary(state: dict) -> dict:
     summary = {key: state.get(key) for key in (
         "id", "status", "created_at", "titulo", "mensaje", "segments", "segments_total",
         "stats", "capture_started_at", "capture_ended_at", "capture_elapsed_seconds",
-        "reconnections", "asr_status", "render_priority_paused",
+        "reconnections", "asr_status", "render_priority_paused", "mode", "block_minutes",
+        "blocks_summary",
     )}
     summary["stats"] = state.get("stats") or {
         "detectados": len(state.get("candidates", [])), "descartados": 0,
@@ -161,11 +169,17 @@ class LiveCreateRequest(BaseModel):
                                   ge=MIN_CONFIGURABLE_CLIP_SECONDS, le=MAX_CONFIGURABLE_CLIP_SECONDS)
     max_clip_seconds: int = Field(default=DEFAULT_CLIP_MAX_SECONDS,
                                   ge=MIN_CONFIGURABLE_CLIP_SECONDS, le=MAX_CONFIGURABLE_CLIP_SECONDS)
+    mode: str = "reactive"
+    block_minutes: int = BLOCK_MINUTES
 
     @model_validator(mode="after")
     def validate_clip_range(self):
         if self.min_clip_seconds > self.max_clip_seconds:
             raise ValueError("La duración mínima no puede superar a la máxima.")
+        if self.mode not in {"reactive", "blocks"}:
+            raise ValueError("El modo LIVE no es válido")
+        if self.block_minutes not in {20, 30, 40, 60}:
+            raise ValueError("La duración del bloque debe ser 20, 30, 40 o 60 minutos")
         return self
 
 
@@ -194,7 +208,14 @@ async def create_live_session(body: LiveCreateRequest, request: Request):
     try:
         create_options = {"user_id": owner_id,
                           "min_clip_seconds": body.min_clip_seconds,
-                          "max_clip_seconds": body.max_clip_seconds}
+                          "max_clip_seconds": body.max_clip_seconds,
+                          }
+        if body.mode != "reactive" or body.block_minutes != BLOCK_MINUTES:
+            create_options.update({"mode": body.mode, "block_minutes": body.block_minutes})
+        if body.mode == "blocks" and _pipeline_key_resolver:
+            pipeline_api_key = _pipeline_key_resolver()
+            if pipeline_api_key:
+                create_options["pipeline_api_key"] = pipeline_api_key
         if auth_context is not None:
             create_options["auth_context"] = auth_context
         state = _sessions().create(body.url, **create_options)
@@ -215,6 +236,67 @@ async def create_live_session(body: LiveCreateRequest, request: Request):
 @router.get("/{session_id}")
 async def get_live_session(session_id: str, request: Request):
     return _present(await _get_owned_session(request, session_id))
+
+
+@router.get("/{session_id}/blocks")
+async def get_live_blocks(session_id: str, request: Request, offset: int = 0, limit: int = 50):
+    state = await _get_owned_session(request, session_id)
+    if state.get("mode") != "blocks":
+        raise HTTPException(status_code=404, detail="La sesión no usa el modo por bloques")
+    if offset < 0 or not 1 <= limit <= 100:
+        raise HTTPException(status_code=422, detail="Paginación inválida")
+    manager = BlockManager(_sessions()._directory(session_id),
+                           block_minutes=state.get("block_minutes", BLOCK_MINUTES),
+                           recover=state.get("status") not in _BLOCK_ACTIVE_SESSION_STATES)
+    return {"blocks": manager.blocks(offset=offset, limit=limit),
+            "summary": manager.summary(), "offset": offset, "limit": limit}
+
+
+@router.post("/{session_id}/blocks/{block_id}/retry", status_code=202)
+async def retry_live_block(session_id: str, block_id: str, request: Request):
+    state = await _get_owned_session(request, session_id)
+    if state.get("mode") != "blocks":
+        raise HTTPException(status_code=404, detail="La sesión no usa el modo por bloques")
+    active = state.get("status") in _BLOCK_ACTIVE_SESSION_STATES
+    manager = BlockManager(_sessions()._directory(session_id),
+                           block_minutes=state.get("block_minutes", BLOCK_MINUTES), recover=not active)
+    try:
+        block = manager.get(block_id)
+        if block.get("phase") == "error":
+            block = manager.retry(block_id)
+        elif active or block.get("phase") not in {"cerrado", "en_cola"}:
+            raise ValueError("Este bloque todavía no se puede reintentar")
+        if not active:
+            key = _pipeline_key_resolver() if _pipeline_key_resolver else None
+            _sessions().resume_blocks(session_id, pipeline_api_key=key)
+        return block
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Bloque no encontrado") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+@router.post("/{session_id}/blocks/{block_id}/omit", status_code=202)
+async def omit_live_block(session_id: str, block_id: str, request: Request):
+    state = await _get_owned_session(request, session_id)
+    if state.get("mode") != "blocks":
+        raise HTTPException(status_code=404, detail="La sesión no usa el modo por bloques")
+    active = state.get("status") in _BLOCK_ACTIVE_SESSION_STATES
+    manager = BlockManager(_sessions()._directory(session_id),
+                           block_minutes=state.get("block_minutes", BLOCK_MINUTES), recover=not active)
+    try:
+        block = manager.omit(block_id)
+        directory = _sessions()._directory(session_id)
+        update_state(directory, lambda live_state: live_state.update(
+            blocks_summary=manager.summary()))
+        if not active and manager.summary()["pendientes"]:
+            key = _pipeline_key_resolver() if _pipeline_key_resolver else None
+            _sessions().resume_blocks(session_id, pipeline_api_key=key)
+        return block
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Bloque no encontrado") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
 @router.post("/{session_id}/stop", status_code=202)

@@ -3027,6 +3027,7 @@ _live_api.configure(output_dir=OUTPUT_DIR, owner_resolver=_owner_id,
                     access_check=_live_access, media_signer=_signed_media_url,
                     admission_check=_assert_live_admission,
                     auth_context_resolver=_live_auth_context,
+                    pipeline_key_resolver=(managed_keys.gemini_key if BILLING_ENABLED else None),
                     auth_checker=_live_auth_still_valid)
 
 

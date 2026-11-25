@@ -5,6 +5,7 @@ export const LIVE_STATUS_LABELS = {
   reconectando: 'Reconectando',
   deteniendo: 'Deteniendo',
   finalizando: 'Finalizando clips pendientes',
+  detenido_por_disco: 'Captura detenida por espacio en disco',
   detenido: 'Detenido',
   error: 'Error',
 };

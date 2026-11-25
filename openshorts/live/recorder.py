@@ -81,7 +81,7 @@ class StreamRecorder:
         return self.start(video_url, audio_url)
 
     def supervise(self, url: str, *, resolve, on_state=None, on_capture_end=None,
-                  retry_min: float = 2.0, retry_max: float = 30.0, sleep=time.sleep):
+                  on_run_start=None, retry_min: float = 2.0, retry_max: float = 30.0, sleep=time.sleep):
         """Run capture with re-resolution and bounded backoff after disconnects.
 
         `resolve(url)` must return a resolver result. Upcoming streams are
@@ -118,6 +118,8 @@ class StreamRecorder:
                         else:
                             self.start(info["video_url"], info.get("audio_url"))
                             started_once = True
+                        if on_run_start:
+                            on_run_start(self.next_number, time.monotonic())
                         report("capturando", title=info.get("title"), id=info.get("id"))
                         delay = max(0.1, retry_min)
                         while not self._stop_event.wait(0.5):

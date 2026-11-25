@@ -8,6 +8,7 @@ import YouTubeLivePreview from './YouTubeLivePreview';
 import { apiFetch, apiJson } from '../lib/api';
 import { buildLiveCreatePayload, validateLiveDuration } from '../lib/liveDuration';
 import { captureElapsedSeconds, formatCaptureElapsed } from '../lib/liveCaptureTimer';
+import { liveBlockPhaseLabel, summarizeLiveBlocks } from '../lib/liveBlocks';
 import {
   countLiveQueue, elapsedSince, formatLiveOffset, liveQueueStatus, liveWaitReason,
   LIVE_PHASE_LABELS, LIVE_STATUS_LABELS, orderLiveQueue,
@@ -15,7 +16,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 
 const LIVE_SESSION_KEY = 'os_live_session';
-const ACTIVE_STATES = new Set(['iniciando', 'esperando', 'capturando', 'reconectando', 'deteniendo', 'finalizando']);
+const ACTIVE_STATES = new Set(['iniciando', 'esperando', 'capturando', 'reconectando', 'deteniendo', 'finalizando', 'detenido_por_disco']);
 const TERMINAL_STATES = new Set(['detenido', 'error']);
 
 function storeLiveSessionId(sessionId) {
@@ -132,6 +133,9 @@ export default function LivePanel({ uploadPostKey, uploadUserId, geminiApiKey, i
   const [url, setUrl] = useState('');
   const [minClipSeconds, setMinClipSeconds] = useState('30');
   const [maxClipSeconds, setMaxClipSeconds] = useState('60');
+  const [mode, setMode] = useState('reactive');
+  const [blockMinutes, setBlockMinutes] = useState('40');
+  const [blocks, setBlocks] = useState([]);
   const [sessionId, setSessionId] = useState(() => localStorage.getItem(LIVE_SESSION_KEY) || '');
   const [session, setSession] = useState(null);
   const [clockNow, setClockNow] = useState(() => Date.now());
@@ -236,6 +240,19 @@ export default function LivePanel({ uploadPostKey, uploadUserId, geminiApiKey, i
   const hasTimedEvaluation = pendingEvaluation.length > 0;
   const captureClockActive = session?.capture_started_at && session.capture_ended_at == null;
   useEffect(() => {
+    if (!sessionId || session?.mode !== 'blocks') { setBlocks([]); return undefined; }
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const result = await apiJson(`/api/live/${encodeURIComponent(sessionId)}/blocks?limit=50`);
+        if (!cancelled) setBlocks(result.blocks || []);
+      } catch (err) { if (!cancelled) setError(describeError(err)); }
+    };
+    load();
+    const timer = window.setInterval(load, 4500);
+    return () => { cancelled = true; window.clearInterval(timer); };
+  }, [sessionId, session?.mode, describeError]);
+  useEffect(() => {
     if (!captureClockActive && !hasActivePhase && !hasTimedQueue && !hasTimedEvaluation) return undefined;
     setClockNow(Date.now());
     const timer = window.setInterval(() => setClockNow(Date.now()), 1000);
@@ -255,7 +272,7 @@ export default function LivePanel({ uploadPostKey, uploadUserId, geminiApiKey, i
   const start = async (event) => {
     event.preventDefault();
     let payload;
-    try { payload = buildLiveCreatePayload(url, minClipSeconds, maxClipSeconds); }
+    try { payload = { ...buildLiveCreatePayload(url, minClipSeconds, maxClipSeconds), mode, block_minutes: Number(blockMinutes) }; }
     catch (err) { setError(err.message); return; }
     setBusy(true);
     setError('');
@@ -328,6 +345,7 @@ export default function LivePanel({ uploadPostKey, uploadUserId, geminiApiKey, i
           : liveStatus === 'iniciando' ? 'Preparando conexión'
         : TERMINAL_STATES.has(liveStatus) ? 'Desconectado' : 'Conexión pendiente';
   const momentsDetected = session?.stats?.detectados ?? candidates.length;
+  const sessionElapsed = captureElapsedSeconds(session, clockNow);
 
   return <section className="space-y-5" aria-labelledby="live-heading">
     <header className="flex items-start gap-3">
@@ -345,6 +363,19 @@ export default function LivePanel({ uploadPostKey, uploadUserId, geminiApiKey, i
       <div>
         <h2 className="font-display text-lg lowercase text-text-primary">Iniciar captura</h2>
         <p className="mt-1 text-xs text-text-secondary">El procesamiento usa la CPU y conserva un buffer temporal de los últimos 20 minutos.</p>
+      </div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <label htmlFor="live-mode" className="block text-sm text-text-primary">Modo
+          <select id="live-mode" value={mode} onChange={(event) => setMode(event.target.value)} className="input-field mt-1 w-full">
+            <option value="reactive">Reactivo (picos y palabras)</option>
+            <option value="blocks">Por bloques (análisis completo)</option>
+          </select>
+        </label>
+        {mode === 'blocks' && <label htmlFor="live-block-minutes" className="block text-sm text-text-primary">Duración del bloque
+          <select id="live-block-minutes" value={blockMinutes} onChange={(event) => setBlockMinutes(event.target.value)} className="input-field mt-1 w-full">
+            {[20, 30, 40, 60].map((minutes) => <option key={minutes} value={minutes}>{minutes} min</option>)}
+          </select>
+        </label>}
       </div>
       <label className="block text-sm text-text-primary" htmlFor="live-url">Enlace de un directo de YouTube</label>
       <input id="live-url" type="url" required value={url} onChange={(event) => setUrl(event.target.value)}
@@ -369,6 +400,45 @@ export default function LivePanel({ uploadPostKey, uploadUserId, geminiApiKey, i
     </form>}
 
     {session && <>
+      {session.mode === 'blocks' && <section className="card space-y-3 p-4 sm:p-5" aria-label="Bloques editoriales">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div><h2 className="font-display text-lg lowercase text-text-primary">Análisis por bloques</h2>
+            <p className="text-xs text-text-secondary">{summarizeLiveBlocks(blocks).total} bloques · {summarizeLiveBlocks(blocks).pending} pendientes</p></div>
+          {liveStatus === 'finalizando' && <button type="button" onClick={() => stop('detener_ya')} className="btn-ghost text-xs text-error">Cancelar procesamiento</button>}
+        </div>
+        {session.block_degradation && <p role="status" className="rounded-input border border-warning/30 bg-warning/5 p-3 text-sm text-warning">
+          {session.block_degradation === 'whisper_base'
+            ? 'La cola se retrasó: Whisper usa temporalmente el modelo base para recuperarse.'
+            : 'La cola se retrasó: se redujo temporalmente el máximo de clips por bloque.'}
+        </p>}
+        {blocks.map((block) => <details key={block.id} className="rounded-input border border-border bg-surface p-3">
+          <summary className="cursor-pointer text-sm font-medium text-text-primary">Bloque {block.index + 1} · {liveBlockPhaseLabel(block.phase)}{block.phase === 'grabando' ? ` ${formatCaptureElapsed(Math.max(0, Math.min(sessionElapsed, block.end_s) - block.start_s))} / ${formatCaptureElapsed(Number(session.block_minutes || 40) * 60)}` : block.phase === 'renderizando' && block.clips_total ? ` ${block.clips_processed || 0}/${block.clips_total}` : ''} · {block.clips?.length || 0} clips</summary>
+          {block.duration_processing_s != null && <p className="mt-2 text-xs text-text-secondary">Procesamiento: {formatCaptureElapsed(block.duration_processing_s)} · captura: {formatCaptureElapsed(Math.max(0, block.end_s - block.start_s))} · razón proceso/captura: {(Number(block.duration_processing_s) / Math.max(1, Number(block.end_s) - Number(block.start_s))).toFixed(2)}×</p>}
+          {block.gaps?.length > 0 && <p className="mt-2 text-xs text-warning">Hubo {block.gaps.length} interrupción(es) de captura en este bloque.</p>}
+          {block.error && <p role="alert" className="mt-2 text-xs text-error">{block.error}</p>}
+          {(block.phase === 'error' || (!active && ['cerrado', 'en_cola'].includes(block.phase))) && <button type="button" onClick={async () => {
+            try { await apiJson(`/api/live/${encodeURIComponent(sessionId)}/blocks/${encodeURIComponent(block.id)}/retry`, { method: 'POST' });
+              const result = await apiJson(`/api/live/${encodeURIComponent(sessionId)}/blocks?limit=50`); setBlocks(result.blocks || []);
+            } catch (err) { setError(describeError(err)); }
+          }} className="btn-ghost mt-2 text-xs">{block.phase === 'error' ? 'Reintentar bloque' : 'Procesar bloque guardado'}</button>}
+          {['cerrado', 'en_cola', 'error'].includes(block.phase) && <button type="button" onClick={async () => {
+            try { await apiJson(`/api/live/${encodeURIComponent(sessionId)}/blocks/${encodeURIComponent(block.id)}/omit`, { method: 'POST' });
+              const result = await apiJson(`/api/live/${encodeURIComponent(sessionId)}/blocks?limit=50`); setBlocks(result.blocks || []);
+            } catch (err) { setError(describeError(err)); }
+          }} className="btn-ghost mt-2 text-xs">Omitir bloque</button>}
+          {block.clips?.map((clip, index) => <article key={clip.file || index} className="mt-3 border-t border-border pt-3 text-xs text-text-secondary">
+            <div className="font-medium text-text-primary">Clip {index + 1}{clip.relleno ? ' · Relleno' : ''}{clip.status && clip.status !== 'completado' ? ` · ${clip.status.replaceAll('_', ' ')}` : ''}</div>
+            {clip.viral_hook_text && <p className="mt-1">Hook: {clip.viral_hook_text}</p>}
+            {clip.video_title_for_youtube_short && <p className="mt-1">YouTube Shorts: {clip.video_title_for_youtube_short}</p>}
+            {clip.video_description_for_tiktok && <p className="mt-1">TikTok: {clip.video_description_for_tiktok}</p>}
+            {clip.video_description_for_instagram && <p className="mt-1">Instagram: {clip.video_description_for_instagram}</p>}
+            {clip.video_description_for_youtube_short && <p className="mt-1">Descripción YouTube: {clip.video_description_for_youtube_short}</p>}
+          </article>)}
+        </details>)}
+        {!blocks.length && <p className="text-sm text-text-secondary">Los bloques aparecerán a medida que avance la captura.</p>}
+        {blocks.some((block) => ['cerrado', 'en_cola', 'transcribiendo', 'seleccionando', 'renderizando', 'error'].includes(block.phase))
+          && <p role="status" className="text-xs text-warning">Hay retraso acumulado: los bloques siguen en cola y se conservarán hasta procesarlos.</p>}
+      </section>}
       <section className="card space-y-4 p-4 sm:p-5" aria-label="Estado de la captura">
         <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
           <div className="min-w-0">

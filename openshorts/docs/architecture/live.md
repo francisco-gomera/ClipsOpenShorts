@@ -182,3 +182,59 @@ or end-to-end dashboard/browser run. Those measurements remain pending in
   `_assert_live_admission`.
 - The optional browser preview is independent of server capture. YouTube
   chooses its preview quality; the iframe does not request a resolution.
+
+## Modo por bloques
+
+`mode=blocks` selecciona un camino independiente dentro de `LiveSessionRuntime`.
+El recorder mantiene los segmentos TS de 10 s y el lector incremental de CSV
+asocia cada segmento con el reloj monotónico de sesión. El modo no arranca
+`IncrementalTranscriber`, detector, juez ni cola reactiva. Al cruzar cada límite,
+`BlockManager` cierra el manifiesto y el worker único ensambla el MP4 e invoca
+`main.py` en un directorio numerado del bloque. La captura sigue en el hilo
+supervisor mientras se ejecutan Whisper, selección y render en el worker.
+
+```mermaid
+flowchart LR
+  A[Resolver y recorder] -->|TS + CSV| B[Segmentos de sesión]
+  B --> C[Manifiesto blocks.json]
+  C -->|bloque cerrado| D[Cola persistente]
+  D --> E[Ensamblado y ffprobe]
+  E --> F[main.py: smart]
+  F --> G[Metadatos y clips del bloque]
+  A -. captura continua .-> B
+```
+
+### Relojes y límites
+
+- **Tiempo de sesión (`session_s`)** es monotónico desde el inicio de la
+  captura. Incluye huecos de reconexión. Los límites son `[k·N, (k+1)·N)`.
+- **Tiempo del MP4 (`mp4_s`)** recorre solo el contenido concatenado; los
+  huecos no ocupan tiempo. Cada bloque conserva `timeline` con la conversión
+  `session_start_s + (mp4_s - mp4_start_s)` y `gaps`.
+- **Tiempo del recorder** es local a cada CSV. Se suma al instante monotónico
+  de inicio de ese run y no se usa como reloj visible.
+
+El primer bloque no lleva solape. Los siguientes incluyen hasta
+`LIVE_BLOCK_OVERLAP_SECONDS`; el valor real resulta del contenido disponible
+antes del límite. Los segmentos se conservan mientras un bloque no terminal los
+posea. `release_segments` es idempotente y no libera registros en error.
+
+### Estados, cola y parada
+
+Los estados de bloque son `grabando`, `cerrado`, `en_cola`, `transcribiendo`,
+`seleccionando`, `renderizando`, `completado`, `error` y `omitido`.
+`blocks.json` se sustituye atómicamente; el estado de sesión solo guarda un
+resumen. Se permiten dos reintentos automáticos de trabajo interrumpido; luego
+el detalle queda en error para reintento manual. Cada bloque produce en su
+propia carpeta y el lector de metadatos no busca fuera de ella.
+
+El objetivo de cinco clips y el máximo de ocho se pasan a `main.py` mediante
+entorno. Puntuaciones bajo `LIVE_BLOCK_FILLER_SCORE` se muestran como relleno.
+La ausencia de candidatos no se sustituye por clips inventados. Si la cola
+supera el límite, se conservan todos los bloques y se muestra backpressure. La
+parada normal cierra el bloque parcial y drena el worker; cancelar detiene el
+grupo de procesos del pipeline y preserva el manifiesto.
+
+`LIVE_BLOCK_MIN_PARTIAL_MINUTES` rige el bloque parcial final. El modo reactivo
+mantiene su detector y su exclusividad como antes; la sesión por bloques usa el
+mismo admission middleware de `/api/live` y no llama a `/api/process`.

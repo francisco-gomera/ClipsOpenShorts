@@ -18,9 +18,10 @@ class FakeManager:
     def get(self, _session_id):
         return self.state
 
-    def create(self, url, user_id=None, min_clip_seconds=30, max_clip_seconds=60):
+    def create(self, url, user_id=None, min_clip_seconds=30, max_clip_seconds=60,
+               mode="reactive", block_minutes=40):
         self.state.update(url=url, user_id=user_id, min_clip_seconds=min_clip_seconds,
-                          max_clip_seconds=max_clip_seconds)
+                          max_clip_seconds=max_clip_seconds, mode=mode, block_minutes=block_minutes)
         write_state(self._directory(self.state["id"]), self.state)
         return self.state
 
@@ -155,6 +156,27 @@ def test_live_api_accepts_custom_clip_range_and_rejects_invalid_ranges(tmp_path,
     assert above_maximum.status_code == 422
     assert non_numeric.status_code == 422
     assert invalid_url.status_code == 400
+
+
+def test_live_api_validates_and_persists_block_mode_options(tmp_path, monkeypatch):
+    manager = FakeManager(tmp_path)
+    monkeypatch.setattr(live_api, "_manager", manager)
+    monkeypatch.setattr(live_api, "_owner_resolver", lambda _request: _async_value("owner-1"))
+    monkeypatch.setattr(live_api, "_access_check", lambda _request: _async_value(None))
+    monkeypatch.setattr(live_api, "_validate_youtube_url", lambda _url: None)
+    app = FastAPI()
+    app.include_router(live_api.router)
+
+    with TestClient(app) as client:
+        created = client.post("/api/live", json={"url": "https://youtube.com/live/id",
+                                                 "mode": "blocks", "block_minutes": 30})
+        invalid = client.post("/api/live", json={"url": "https://youtube.com/live/id",
+                                                 "mode": "blocks", "block_minutes": 25})
+
+    assert created.status_code == 202
+    assert created.json()["mode"] == "blocks"
+    assert created.json()["block_minutes"] == 30
+    assert invalid.status_code == 422
 
 
 def test_live_mutations_and_reads_reject_invalid_auth_before_touching_sessions(tmp_path, monkeypatch):
