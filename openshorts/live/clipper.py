@@ -31,7 +31,7 @@ def _probe_output_duration(path: str) -> tuple[float, float]:
 
 @contextlib.contextmanager
 def _live_render_env():
-    desired = {"AUTO_HOOK": "1", "AUTO_CAPTIONS": "1", "CLIP_WORKERS": "1", "WATERMARK": "0"}
+    desired = {"AUTO_HOOK": "0", "AUTO_CAPTIONS": "1", "CLIP_WORKERS": "1", "WATERMARK": "0"}
     old = {key: os.environ.get(key) for key in desired}
     os.environ.update(desired)
     try:
@@ -47,13 +47,11 @@ def _live_render_env():
 def _pipeline():
     import main
     import ffmpeg_utils
-    import hook_grounding
     import layout_ranges
     import subtitles
-    return {"render_clip": main.render_clip, "auto_hook_clip": main.auto_hook_clip,
-            "auto_caption_clip": main.auto_caption_clip, "cut_clip": ffmpeg_utils.cut_clip,
+    return {"render_clip": main.render_clip, "auto_caption_clip": main.auto_caption_clip,
+            "cut_clip": ffmpeg_utils.cut_clip,
             "read_layouts": layout_ranges.read, "split_ranges": layout_ranges.split_ranges,
-            "hook_wanted": hook_grounding.wanted, "reground": hook_grounding.reground,
             "generate_srt": subtitles.generate_srt}
 
 
@@ -77,7 +75,7 @@ def _force_strategy(path: str, mode: str) -> str | None:
 def render_candidate(window_path: str, candidate: dict, transcript: dict,
                      output_dir: str | Path, index: int, *, dependencies=None,
                      reframe: str | None = None, on_phase=None) -> dict:
-    """Cut, reframe, ground hook, add hook/captions, and create an SRT sidecar."""
+    """Cut and reframe the candidate, burn subtitles, and create an SRT sidecar."""
     def phase(name):
         if on_phase:
             on_phase(name)
@@ -113,33 +111,13 @@ def render_candidate(window_path: str, candidate: dict, transcript: dict,
             phase("analizando_encuadre")
             layouts = deps["read_layouts"](str(final))
             clip["layout_ranges"] = layouts
-            if deps["hook_wanted"](layouts, end - start):
-                phase("ajustando_hook")
-                deps["reground"](str(final), clip, transcript, start, end)
-
-            deliver = str(final)
-            captioned = None
             split_ranges = deps["split_ranges"](layouts)
-            plan = None
-            hook_text = (clip.get("viral_hook_text") or "").strip()
             has_transcript = bool(transcript and transcript.get("segments"))
-            if hook_text and has_transcript:
+            if has_transcript:
                 phase("generando_subtitulos")
-                plan = deps["auto_caption_clip"](str(final), transcript, start, end,
-                                                  split_ranges=split_ranges, plan_only=True)
-            hooked = None
-            if hook_text:
-                phase("generando_hook_y_subtitulos" if plan else "generando_hook")
-                hooked = deps["auto_hook_clip"](str(final), clip, captions=plan, mark=False)
-            if hooked:
-                deliver, hook_config = hooked
-                clip["auto_hook"] = dict(hook_config)
-                captioned = clip["auto_hook"].pop("_captioned", None)
-            if not captioned:
-                if has_transcript:
-                    phase("generando_subtitulos")
-                captioned = deps["auto_caption_clip"](deliver, transcript, start, end,
-                                                      split_ranges=split_ranges, mark=False)
+            captioned = deps["auto_caption_clip"](str(final), transcript, start, end,
+                                                  split_ranges=split_ranges, mark=False)
+            deliver = str(final)
             if captioned:
                 deliver = captioned
             phase("verificando_archivo")

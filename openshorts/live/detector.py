@@ -66,20 +66,28 @@ class LiveDetector:
         self._pending: list[dict] = []
         self._keyword_scanned_until = 0.0
         self._keyword_hits_seen: set[tuple[str, float]] = set()
+        self.last_metrics = {}
 
     def detect(self, buckets: list[dict], transcript: dict, *, latest_time: float | None = None) -> list[dict]:
         peaks = self.audio_detector.add(buckets)
+        metric = {"audio_peaks": len(peaks), "keyword_hits": 0,
+                  "rejected_weak_signal": 0, "rejected_cooldown": 0,
+                  "rejected_bounds": 0, "rejected_overlap": 0,
+                  "pending": 0, "candidates": 0}
         latest_time = float(latest_time if latest_time is not None else max(
             [p["end"] for p in peaks] + [0.0]))
         rolling = hasattr(transcript, "window") and hasattr(transcript, "segments")
         if rolling:
-            scan_start = max(0.0, self._keyword_scanned_until - 1.0)
+            # ASR timestamps can arrive behind capture time. Rescan a bounded
+            # tail and deduplicate hits so late words still reach the detector.
+            scan_start = max(0.0, self._keyword_scanned_until - 120.0)
             segments = transcript.segments(scan_start, latest_time)
             language = transcript.language
         else:
             segments = transcript.get("segments", []) if isinstance(transcript, dict) else []
             language = transcript.get("language", "") if isinstance(transcript, dict) else ""
         keywords = _keyword_hits(segments, language)
+        metric["keyword_hits"] = len(keywords)
         if rolling:
             keywords = [hit for hit in keywords
                         if (hit["phrase"], round(hit["start"], 1)) not in self._keyword_hits_seen]
@@ -87,7 +95,7 @@ class LiveDetector:
                 self._keyword_hits_seen.add((hit["phrase"], round(hit["start"], 1)))
             self._keyword_scanned_until = max(self._keyword_scanned_until, latest_time)
             self._keyword_hits_seen = {key for key in self._keyword_hits_seen
-                                       if key[1] >= latest_time - 2.0}
+                                       if key[1] >= latest_time - 122.0}
             words = []
         else:
             words = [{"w": word.get("word", ""), "s": float(word["start"]), "e": float(word["end"])}
@@ -117,6 +125,7 @@ class LiveDetector:
                       or bool(keyword and (keyword.get("explicit")
                                            or keyword_score >= KEYWORD_SOLO_SCORE)))
             if not strong and not (audio and keyword):
+                metric["rejected_weak_signal"] += 1
                 continue
             signal_weights = (0.45 if audio else 0.0) + (0.20 if keyword else 0.0)
             score = ((0.45 * min(1.0, audio_z / 6.0 if audio else 0.0)
@@ -141,6 +150,7 @@ class LiveDetector:
             start = max(0.0, min(preferred_start, latest_time - duration))
             end = start + duration
             if self._last_start is not None and start - self._last_start < self.cooldown_seconds:
+                metric["rejected_cooldown"] += 1
                 continue
             if rolling:
                 candidate_words = transcript.window(max(0.0, start - 5.0), end + 5.0)
@@ -155,6 +165,7 @@ class LiveDetector:
             if (end - start < self.min_seconds - 0.01
                     or end - start > self.max_seconds + 0.01
                     or start < 0 or end > latest_time + 0.01):
+                metric["rejected_bounds"] += 1
                 continue
             candidate = {"id": f"live_{next(self._ids):06d}", "start": round(start, 3),
                          "end": round(end, 3), "predicted_score": round(item["score"] * 100),
@@ -164,10 +175,14 @@ class LiveDetector:
                          "max_clip_seconds": self.max_seconds}
             accepted = dedupe_overlapping(self._recent + [candidate])
             if candidate not in accepted:
+                metric["rejected_overlap"] += 1
                 continue
             self._recent = accepted[-12:]
             self._last_start = start
             candidates.append(candidate)
+        metric["candidates"] = len(candidates)
+        metric["pending"] = len(self._pending)
+        self.last_metrics = metric
         return candidates
 
     def discard_pending(self) -> int:

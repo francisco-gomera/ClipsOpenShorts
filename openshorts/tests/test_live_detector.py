@@ -50,6 +50,22 @@ def test_rolling_detector_matches_full_transcript_for_one_hour():
         (item["id"], item["start"], item["end"]) for item in expected]
 
 
+def test_rolling_detector_rescans_keyword_words_arriving_late():
+    transcript = RollingTranscript()
+    transcript.language = "es"
+    detector = LiveDetector(cooldown_seconds=0, min_seconds=30, max_seconds=60,
+                            audio_detector=AudioPeakDetector(warmup_seconds=0))
+
+    assert detector.detect([], transcript, latest_time=250) == []
+    transcript.add_words([{"word": " increíble", "start": 200.0, "end": 200.6}])
+
+    candidates = detector.detect([], transcript, latest_time=300)
+
+    assert len(candidates) == 1
+    assert candidates[0]["keyword"] == "increíble"
+    assert detector.last_metrics["keyword_hits"] == 1
+
+
 @pytest.mark.parametrize("minimum,maximum", [(10, 30), (30, 60), (60, 120), (120, 240)])
 def test_detector_builds_configured_windows_around_highlights(monkeypatch, minimum, maximum):
     import live.detector as detector_module

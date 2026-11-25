@@ -7,7 +7,7 @@ import pytest
 from live.clipper import render_candidate
 
 
-def test_clipper_reuses_pipeline_chain_and_writes_sidecars(tmp_path, monkeypatch):
+def test_live_clipper_burns_subtitles_without_a_hook_and_writes_sidecars(tmp_path, monkeypatch):
     calls = []
     phases = []
 
@@ -30,20 +30,12 @@ def test_clipper_reuses_pipeline_chain_and_writes_sidecars(tmp_path, monkeypatch
         Path(target).write_bytes(b"captioned")
         return target
 
-    def hook(path, clip, *, captions=None, mark=False):
-        assert clip["viral_hook_text"] == "Hook"
-        target = str(Path(path).with_name("hooked_1_" + Path(path).name))
-        Path(target).write_bytes(b"hooked")
-        calls.append("hook")
-        return target, {"style": "classic"}
-
     def srt(_transcript, _start, _end, target):
         Path(target).write_text("1\n00:00:00,000 --> 00:00:01,000\nHola\n")
         return True
 
     deps = {"cut_clip": cut, "render_clip": render, "read_layouts": lambda _path: [],
-            "split_ranges": lambda _layouts: [], "hook_wanted": lambda *_args: False,
-            "reground": lambda *_args: None, "auto_hook_clip": hook,
+            "split_ranges": lambda _layouts: [],
             "auto_caption_clip": caption, "generate_srt": srt,
             "probe_duration": lambda _path: (30.0, 1 / 30)}
     result = render_candidate("window.ts", {"id": "live_1", "start": 2, "end": 32,
@@ -52,16 +44,16 @@ def test_clipper_reuses_pipeline_chain_and_writes_sidecars(tmp_path, monkeypatch
           "text": "Hola", "words": [{"word": "Hola", "start": 2, "end": 2.5}]}]}, tmp_path,
         0, dependencies=deps, on_phase=phases.append)
 
-    assert calls == ["render", "caption_plan", "hook", "caption"]
+    assert calls == ["render", "caption"]
     assert Path(result["path"]).exists()
     assert Path(result["canonical_path"]).exists()
     assert Path(result["srt_path"]).exists()
     assert result["clip"]["source_window_id"] == "live_1"
     assert result["clip"]["file"].startswith("subtitled_")
+    assert "auto_hook" not in result["clip"]
     assert result["clip"]["rendered_duration_seconds"] == 30.0
     assert not list(tmp_path.glob("*.cut.mp4"))
     assert phases == ["cortando_fragmento", "adaptando_vertical", "analizando_encuadre",
-                      "generando_subtitulos", "generando_hook_y_subtitulos",
                       "generando_subtitulos", "verificando_archivo", "generando_srt", "finalizado"]
 
 
@@ -75,8 +67,6 @@ def test_clipper_rejects_rendered_duration_outside_session_bounds(tmp_path):
         "cut_clip": lambda _source, target, *_args: Path(target).write_bytes(b"cut"),
         "render_clip": render,
         "read_layouts": lambda _path: [], "split_ranges": lambda _layouts: [],
-        "hook_wanted": lambda *_args: False, "reground": lambda *_args: None,
-        "auto_hook_clip": lambda *_args, **_kwargs: None,
         "auto_caption_clip": lambda *_args, **_kwargs: None,
         "generate_srt": lambda *_args: None,
         "probe_duration": lambda _path: (29.0, 0.01),
@@ -105,8 +95,6 @@ def test_clipper_measures_duration_of_the_final_video_with_ffprobe(tmp_path):
     deps = {
         "cut_clip": lambda *_args: None, "render_clip": render,
         "read_layouts": lambda _path: [], "split_ranges": lambda _layouts: [],
-        "hook_wanted": lambda *_args: False, "reground": lambda *_args: None,
-        "auto_hook_clip": lambda *_args, **_kwargs: None,
         "auto_caption_clip": lambda *_args, **_kwargs: None,
         "generate_srt": lambda *_args: None,
     }
